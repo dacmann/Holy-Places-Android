@@ -6,7 +6,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
@@ -93,6 +96,13 @@ class DataViewModel(application: Application) : AndroidViewModel(application) {
     // LiveData to hold the combined changes message for the UI
     private val _updateChangesSummary = MutableLiveData<String?>()
     val updateChangesSummary: LiveData<String?> = _updateChangesSummary
+    val allTemples: StateFlow<List<Temple>> = templeDao.getAllTemples()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000), // Keep active for 5s after last subscriber gone
+            initialValue = emptyList() // Initial value while data is loading
+        )
+
 
     init {
         // Optionally load last saved changes messages on init
@@ -107,10 +117,26 @@ class DataViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun checkForUpdates() {
+    fun checkForUpdates(forceNetworkFetch: Boolean = true) {
         viewModelScope.launch {
             _isLoading.value = true
-            _updateChangesSummary.value = null // Clear previous summary
+            var localDataLoadedSuccessfully = false
+            // Attempt to load from local DB first if not forcing network (or as a fallback)
+            // The StateFlow `allTemples` is already doing this reactively.
+
+            if (allTemples.value.isNotEmpty()) {
+                _lastUpdateMessage.value = "Displaying cached data. Checking for updates..."
+                localDataLoadedSuccessfully = true
+            } else {
+                _lastUpdateMessage.value = "No cached data. Checking for updates..."
+            }
+
+            if (!forceNetworkFetch && localDataLoadedSuccessfully) {
+                _isLoading.value = false
+                _lastUpdateMessage.value = "Using cached data. Data is up to date based on last check."
+
+                return@launch // Don't proceed to network if not forced and local data exists
+            }
             try {
                 val remoteVersion = fetchRemoteVersion() // This is from hpVersion.xml
                 val localVersion = userPreferencesManager.xmlVersionFlow.firstOrNull()
@@ -148,19 +174,20 @@ class DataViewModel(application: Application) : AndroidViewModel(application) {
                             holyPlacesData.changesMsg2,
                             holyPlacesData.changesMsg3
                         )
-                        _lastUpdateMessage.value = "Data file processed for version $remoteVersion, but no places were found. Update messages applied."
+                        _lastUpdateMessage.value =
+                            "Data file processed for version $remoteVersion, but no places were found. Update messages applied."
                         _updateChangesSummary.value = formatChangesMessage(
                             holyPlacesData.changesDate,
                             holyPlacesData.changesMsg1,
                             holyPlacesData.changesMsg2,
                             holyPlacesData.changesMsg3
                         )
-                    }
-                    else {
+                    } else {
                         _lastUpdateMessage.value = "Failed to update data or parse places."
                     }
                 } else if (remoteVersion == null) {
-                    _lastUpdateMessage.value = "Could not check for updates (network or parsing error for version file)."
+                    _lastUpdateMessage.value =
+                        "Could not check for updates (network or parsing error for version file)."
                 } else {
                     _lastUpdateMessage.value = "Data is up to date (Version: $localVersion)."
                     // Optionally, reload and show existing messages if needed, though init block handles this

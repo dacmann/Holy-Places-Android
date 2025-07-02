@@ -3,7 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.symbol.processing.gradle)
 }
-
+kotlin {
+    jvmToolchain(8)
+}
 android {
     namespace = "net.dacworld.android.holyplacesofthelord"
     compileSdk = 36
@@ -38,12 +40,10 @@ android {
         viewBinding = true
     }
 }
-kotlin {
-    jvmToolchain(11)
-}
 
 dependencies {
     dependencies {
+        implementation(libs.material)
 
         coreLibraryDesugaring(libs.desugar.jdk.libs)
 
