@@ -9,9 +9,6 @@ import android.widget.TextView
 import net.dacworld.android.holyplacesofthelord.R // Assuming your R file is here
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentHomeBinding // View Binding
 
-private val FragmentHomeBinding.homeTextView: TextView
-    get() = this.homeTextView
-
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
@@ -27,8 +24,6 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // You can set up your Home screen UI here if needed
-        binding.homeTextView.text = "Welcome to Holy Places!"
     }
 
     override fun onDestroyView() {

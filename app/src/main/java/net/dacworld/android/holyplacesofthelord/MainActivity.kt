@@ -24,9 +24,15 @@ class MainActivity : AppCompatActivity() {
 
         // Connect the TabLayout with the ViewPager2
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            tab.text = when (position) {
-                0 -> "Home"
-                1 -> "Places"
+            when (position) {
+                0 -> {
+                    tab.text = "Home"
+                    tab.setIcon(R.drawable.morningstar)
+                }
+                1 -> {
+                    tab.text = "Places"
+                    tab.setIcon(R.drawable.starofmelchizedek)
+                }
                 // Add more cases for other tabs
                 else -> null
             }
