@@ -1,5 +1,6 @@
 package net.dacworld.android.holyplacesofthelord.ui.places // Or your preferred package
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -16,15 +17,23 @@ class TempleAdapter : ListAdapter<Temple, TempleAdapter.TempleViewHolder>(Temple
     }
 
     override fun onBindViewHolder(holder: TempleViewHolder, position: Int) {
-        val temple = getItem(position)
-        holder.bind(temple)
+        val currentTemple = getItem(position)
+        Log.d("TempleAdapter", "onBindViewHolder - Position: $position, Temple: ${currentTemple?.name}") // <<< VERY IMPORTANT LOG
+        holder.bind(currentTemple) // Assuming a bind method in ViewHolder
     }
 
     class TempleViewHolder(private val binding: ItemTempleBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(temple: Temple) {
+            if (temple == null) {
+                Log.e("TempleViewHolder", "bind() called with null temple!") // Should not happen with ListAdapter if DiffUtil is correct
+                return
+            }
+            Log.d("TempleViewHolder", "Binding data for: ${temple.name}") // <<< IMPORTANT LOG
+            Log.d("TempleViewHolder", "  Name TextView: ${binding.templeNameTextView}") // Check if TextView is null
+            Log.d("TempleViewHolder", "  Location TextView: ${binding.templeSnippetTextView}")
+
             binding.templeNameTextView.text = temple.name
-            binding.templeLocationTextView.text = "${temple.cityState}, ${temple.country}"
-            // Add more bindings for other Temple properties you want to display
+            binding.templeSnippetTextView.text = temple.snippet
         }
     }
 }

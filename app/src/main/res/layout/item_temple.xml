@@ -14,11 +14,11 @@
         android:text="Temple Name" />
 
     <TextView
-        android:id="@+id/templeLocationTextView"
+        android:id="@+id/templeSnippetTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="14sp"
-        android:text="City, Country" />
+        android:text="123rd operating temple..." />
 
     <!-- Add more TextViews or ImageViews for other details -->
 
