@@ -3,9 +3,11 @@ package net.dacworld.android.holyplacesofthelord.ui.places // Or your preferred 
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.databinding.ItemTempleBinding // View Binding
 
@@ -26,14 +28,32 @@ class TempleAdapter : ListAdapter<Temple, TempleAdapter.TempleViewHolder>(Temple
         fun bind(temple: Temple) {
             if (temple == null) {
                 Log.e("TempleViewHolder", "bind() called with null temple!") // Should not happen with ListAdapter if DiffUtil is correct
+                binding.templeNameTextView.setTextColor(
+                    ContextCompat.getColor(binding.root.context, R.color.app_colorOnSurface)
+                )
                 return
             }
-            Log.d("TempleViewHolder", "Binding data for: ${temple.name}") // <<< IMPORTANT LOG
-            Log.d("TempleViewHolder", "  Name TextView: ${binding.templeNameTextView}") // Check if TextView is null
-            Log.d("TempleViewHolder", "  Location TextView: ${binding.templeSnippetTextView}")
 
             binding.templeNameTextView.text = temple.name
             binding.templeSnippetTextView.text = temple.snippet
+
+            // --- Logic to change text color based on temple.type (String from Firestore) ---
+            val context = binding.root.context
+
+            // Using the single character codes from your Swift project
+            val nameColor = when (temple.type) { // temple.type is a String like "T", "H", etc.
+                "T" -> ContextCompat.getColor(context, R.color.t1_temples)
+                "H" -> ContextCompat.getColor(context, R.color.t1_historic_site)
+                "A" -> ContextCompat.getColor(context, R.color.t1_announced_temples)
+                "C" -> ContextCompat.getColor(context, R.color.t1_under_construction)
+                "V" -> ContextCompat.getColor(context, R.color.t1_visitors_centers)
+                else -> {
+                    Log.w("TempleViewHolder", "Unknown temple type code: '${temple.type}' for temple: ${temple.name}")
+                    ContextCompat.getColor(context, R.color.app_colorOnSurface)
+                }
+            }
+            binding.templeNameTextView.setTextColor(nameColor)
+            // --- End of color change logic ---
         }
     }
 }

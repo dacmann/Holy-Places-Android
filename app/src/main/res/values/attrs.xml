@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="appBarBackgroundColor" format="color|reference" />
+    <attr name="appBarTextColor" format="color|reference" />
+    <attr name="tabBarBackgroundColor" format="color|reference" />
+    <attr name="tabTextColor" format="color|reference" />
+    <attr name="tabSelectedTextColor" format="color|reference" />
+    <attr name="tabIconColor" format="color|reference" />
+    <attr name="tabSelectedIconColor" format="color|reference" />
+    <attr name="searchViewBackgroundColor" format="color|reference" />
+    <attr name="searchViewStrokeColor" format="color|reference" />
+    <!-- Add any other custom attributes you've defined in your theme -->
+</resources>
+    

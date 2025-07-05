@@ -61,7 +61,10 @@ class DataViewModel(
             }
         }
     }
-
+    // Add this function:
+    fun clearLastUpdateMessage() {
+        _lastUpdateMessage.value = null
+    }
     fun checkForUpdates(forceNetworkFetch: Boolean = true) {
         viewModelScope.launch {
             _isLoading.value = true

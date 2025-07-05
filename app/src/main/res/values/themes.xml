@@ -6,12 +6,36 @@
         <item name="colorPrimaryVariant">@color/t1_temples</item>
         <item name="colorOnPrimary">@color/white</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/dkBaptismBlue</item>
-        <item name="colorSecondaryVariant">@color/dkt1_temples</item>
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_200</item>
         <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
+
+        <!-- Standard Material Semantic Colors -->
+        <item name="android:colorBackground">@color/app_colorBackground</item>
+        <item name="colorSurface">@color/app_colorSurface</item>
+        <item name="colorOnBackground">@color/app_colorOnBackground</item>
+        <item name="colorOnSurface">@color/app_colorOnSurface</item>
+
+        <!-- Status bar color (Light Theme specific part) -->
+        <item name="android:statusBarColor">@color/app_bar_background_color</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+
+        <!-- Custom Theme Attributes for Specific UI Elements -->
+        <item name="appBarBackgroundColor">@color/app_bar_background_color</item>
+        <item name="appBarTextColor">@color/app_bar_text_color</item>
+        <item name="tabBarBackgroundColor">@color/tab_bar_background_color</item>
+        <item name="tabTextColor">@color/tab_bar_text_color</item>
+        <item name="tabSelectedTextColor">@color/tab_bar_selected_text_color</item>
+        <item name="tabIconColor">@color/tab_bar_text_color</item>
+        <item name="tabSelectedIconColor">@color/tab_bar_selected_text_color</item>
+        <item name="searchViewBackgroundColor">@color/search_view_background_color</item>
+        <item name="searchViewStrokeColor">@color/search_view_stroke_color</item>
+
+        <!-- Theme Overlays for Toolbar -->
+        <item name="actionBarTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <item name="toolbarNavigationButtonStyle">@style/Widget.AppCompat.Toolbar.Button.Navigation</item>
+        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+
     </style>
     <style name="MyCustomTabTextAppearance" parent="TextAppearance.Design.Tab">
         <item name="android:fontFamily">@font/baskerville</item>

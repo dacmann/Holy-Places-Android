@@ -8,7 +8,9 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels // Keep this
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.distinctUntilChanged
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.map
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
@@ -18,6 +20,17 @@ import net.dacworld.android.holyplacesofthelord.data.DataViewModel
 import net.dacworld.android.holyplacesofthelord.data.DataViewModelFactory // Import your factory
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentPlacesBinding
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.recyclerview.widget.DividerItemDecoration
+import kotlinx.coroutines.flow.collectLatest // For observing search query
+import net.dacworld.android.holyplacesofthelord.model.Temple
+// Import your SharedToolbarViewModel
+import net.dacworld.android.holyplacesofthelord.ui.SharedToolbarViewModel
+import kotlin.text.contains
+import kotlin.text.filter
+import kotlin.text.isEmpty
+import kotlin.text.toList
 
 class PlacesFragment : Fragment() {
 
@@ -30,12 +43,10 @@ class PlacesFragment : Fragment() {
         DataViewModelFactory(application.templeDao, application.userPreferencesManager)
     }
 
-    private lateinit var templeAdapter: TempleAdapter
+    // ViewModel for Toolbar communication (title, count, search query)
+    private val sharedToolbarViewModel: SharedToolbarViewModel by activityViewModels()
 
-    // ... rest of your PlacesFragment.kt code remains the same ...
-    // onCreateView, onViewCreated, setupRecyclerView, onDestroyView
-    // The observers inside onViewCreated should work as before.
-    // Make sure TempleAdapter is imported or defined.
+    private lateinit var templeAdapter: TempleAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -51,43 +62,78 @@ class PlacesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
 
+        // Main observer for UI content (temples, loading state, search filtering)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Combine isLoading and allTemples to make decisions
-                dataViewModel.isLoading.combine(dataViewModel.allTemples) { isLoading, temples ->
-                    Pair(isLoading, temples) // Emit a pair of the latest values
-                }.collect { (isLoading, temples) ->
-                    Log.d("PlacesFragment", "Combined state: isLoading=$isLoading, templesCount=${temples.size}")
+                // Combine relevant flows:
+                combine(
+                    dataViewModel.isLoading,  // StateFlow<Boolean>
+                    dataViewModel.allTemples,   // StateFlow<List<Temple>>
+                    sharedToolbarViewModel.uiState.map { it.searchQuery }.distinctUntilChanged() // Flow<String>
+                ) { isLoading: Boolean, temples: List<Temple>, searchQuery: String -> // Explicit types HERE
+                    val filteredTemples = if (searchQuery.isBlank()) {
+                        temples
+                    } else {
+                        temples.filter { temple ->
+                            // Use properties from Temple.kt
+                            (temple.name.contains(searchQuery, ignoreCase = true)) ||
+                                    (temple.snippet.contains(searchQuery, ignoreCase = true)) ||
+                                    (temple.cityState.contains(searchQuery, ignoreCase = true))
+                            // Add more fields as needed for your search logic
+                            // If these fields can be null, use safe calls: temple.name?.contains(...) == true
+                        }
+                    }
+                    Triple(isLoading, filteredTemples, searchQuery)
+                }.collectLatest { (isLoading: Boolean, filteredTemples: List<Temple>, searchQuery: String) -> // Explicit types also good here
+                    val currentFilterName = if (searchQuery.isBlank()) "All Places" else "Search Results"
+                    Log.d(
+                        "PlacesFragment",
+                        "Combined UI State: isLoading=$isLoading, filteredTemplesCount=${filteredTemples.size}, searchQuery='$searchQuery'"
+                    )
 
-                    binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+                    sharedToolbarViewModel.updateToolbarInfo(currentFilterName, filteredTemples.size)
 
-                    if (isLoading) {
+                    binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0 && filteredTemples.isEmpty()) {
+                        View.VISIBLE
+                    } else {
+                        View.GONE
+                    }
+
+                    if (isLoading && templeAdapter.itemCount == 0 && filteredTemples.isEmpty()) {
                         binding.placesRecyclerView.visibility = View.GONE
                         binding.emptyViewTextView.visibility = View.GONE
-                        Log.d("PlacesFragment", "LOADING: RV GONE, EmptyView GONE")
+                        Log.d("PlacesFragment", "INITIAL LOADING: RV GONE, EmptyView GONE")
                     } else {
-                        templeAdapter.submitList(temples) // Submit list when not loading
-                        if (temples.isEmpty()) {
+                        templeAdapter.submitList(filteredTemples.toList())
+                        if (filteredTemples.isEmpty()) {
                             binding.placesRecyclerView.visibility = View.GONE
                             binding.emptyViewTextView.visibility = View.VISIBLE
-                            Log.d("PlacesFragment", "NOT LOADING - EMPTY: RV GONE, EmptyView VISIBLE")
+                            binding.emptyViewTextView.text = if (searchQuery.isNotBlank() && !isLoading) {
+                                "No places match your search."
+                            } else if (!isLoading) {
+                                "No places available."
+                            } else {
+                                ""
+                            }
+                            Log.d("PlacesFragment", "EMPTY LIST (after submit): RV GONE, EmptyView VISIBLE")
                         } else {
                             binding.placesRecyclerView.visibility = View.VISIBLE
                             binding.emptyViewTextView.visibility = View.GONE
-                            Log.d("PlacesFragment", "NOT LOADING - DATA: RV VISIBLE, EmptyView GONE")
+                            Log.d("PlacesFragment", "DATA PRESENT (after submit): RV VISIBLE, EmptyView GONE")
                         }
                     }
                 }
             }
         }
 
-        // Keep SnackBar observer separate if needed
+        // Observer for SnackBar messages
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dataViewModel.lastUpdateMessage.collect { message ->
+                dataViewModel.lastUpdateMessage.collectLatest { message: String? -> // Explicit type for message
                     if (!message.isNullOrEmpty()) {
                         Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
                         Log.i("PlacesFragment", "Update Message: $message")
+                        dataViewModel.clearLastUpdateMessage()
                     }
                 }
             }
@@ -101,6 +147,17 @@ class PlacesFragment : Fragment() {
             adapter = templeAdapter
             layoutManager = LinearLayoutManager(context)
             Log.d("PlacesFragment", "RecyclerView adapter and layoutManager set.")
+            // --- Add Divider Item Decoration START ---
+            val dividerItemDecoration = DividerItemDecoration(
+                context, // Use requireContext() if context might be null, but here it should be fine
+                (layoutManager as LinearLayoutManager).orientation
+            )
+            // Optionally, you can set a custom drawable for the divider:
+            // ContextCompat.getDrawable(requireContext(), R.drawable.your_custom_divider)?.let {
+            //    dividerItemDecoration.setDrawable(it)
+            // }
+            addItemDecoration(dividerItemDecoration)
+            // --- Add Divider Item Decoration END ---
         }
     }
 

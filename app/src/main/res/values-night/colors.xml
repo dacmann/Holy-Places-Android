@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Standard Material Colors (Dark Theme variants if needed, or reuse if they work) -->
+    <color name="purple_200">#FFBB86FC</color> <!-- Lighter for dark theme -->
+    <color name="purple_500">#FF6200EE</color> <!-- Might need adjustment if too dark -->
+    <color name="purple_700">#FF3700B3</color> <!-- Might need adjustment if too dark -->
+    <color name="teal_200">#FF03DAC5</color> <!-- Often works well on dark -->
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="grey_text">#B3FFFFFF</color> <!-- 70% white for secondary text on dark -->
+    <color name="alt_grey_text">#DEFFFFFF</color> <!-- 87% white for primary text on dark -->
+
+
+    <!-- Your Brand Colors (Dark Theme variants if needed) -->
+    <color name="brand_primary">#87CEEB</color> <!-- Example: Lighter Sky Blue for dark theme -->
+    <color name="brand_primary_variant">#E57373</color> <!-- Example: Lighter Red -->
+    <color name="brand_on_primary">@color/black</color>
+
+    <!-- General Material Semantic Colors (Dark Theme Values) -->
+    <color name="app_colorBackground">#121212</color>
+    <color name="app_colorSurface">#1E1E1E</color> <!-- Slightly lighter than background for elevated surfaces -->
+    <color name="app_colorOnBackground">@color/alt_grey_text</color>
+    <color name="app_colorOnSurface">@color/alt_grey_text</color>
+
+    <!-- Specific UI Element Colors (Dark Theme Values) -->
+    <color name="app_bar_background_color">@color/app_colorSurface</color> <!-- Use dark surface -->
+    <color name="app_bar_text_color">@color/alt_grey_text</color>
+    <color name="tab_bar_background_color">@color/app_colorSurface</color> <!-- Use dark surface -->
+    <color name="tab_bar_text_color">@color/grey_text</color>
+    <color name="tab_bar_selected_text_color">@color/brand_primary</color> <!-- Use dark theme primary accent -->
+    <color name="search_view_background_color">#333333</color> <!-- Darker grey for search BG -->
+    <color name="search_view_stroke_color">#555555</color> <!-- Medium grey stroke for search -->
+
+    <color name="BaptismBlue">#99BADD</color>
+    <color name="Confirmations">#D64E52</color>"
+    <color name="Initiatories">#B9BD86</color>
+    <color name="Endowments">#FEAE73</color>
+    <color name="Sealings">#AF9FC9</color>
+    <color name="t1_temples">#DA5E62</color>
+    <color name="t1_historic_site">#00A485</color>"
+    <color name="t1_visitors_centers">#AEAC97</color>
+    <color name="t1_announced_temples">#AEC5AE</color>
+    <color name="t1_under_construction">#FEB986</color>
+    <color name="t2_temples">#B197AA</color>
+    <color name="t2_historic_site">#FFA149</color>"
+    <color name="t2_visitors_centers">#FFE289</color>
+    <color name="t2_announced_temples">#FFD98D</color>
+    <color name="t2_under_construction">#8399C5</color>
+</resources>

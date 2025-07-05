@@ -7,6 +7,58 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/appBarBackgroundColor"
+        android:theme="?attr/actionBarTheme">
+
+        <!-- Toolbar for the Centered Title -->
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar_main_title"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:popupTheme="?attr/actionBarPopupTheme"
+            app:title=""> <!-- Ensure default title is cleared -->
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/toolbar_title_centered"
+                    style="@style/TextAppearance.AppCompat.Widget.ActionBar.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:fontFamily="@font/baskerville"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text=""
+                android:textColor="?attr/appBarTextColor"
+                android:textSize="20sp"
+                tools:text="Centered Title" />
+            </FrameLayout>
+
+        </androidx.appcompat.widget.Toolbar>
+
+        <!-- SearchView always visible below the title Toolbar -->
+        <!-- Add padding/margins as needed for appearance -->
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/search_view_persistent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/search_view_background_themed"
+            app:iconifiedByDefault="false"
+            app:queryHint="Search places..." />
+        <!-- Note: You might need to style this SearchView extensively
+             to make it look good in this persistent state (background, text color, hint color) -->
+
+    </com.google.android.material.appbar.AppBarLayout>
+
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="match_parent"

@@ -5,8 +5,33 @@
     <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="grey_text">#8A000000</color> <!-- 54% black for secondary text on light -->
+    <color name="alt_grey_text">#DE000000</color> <!-- 87% black for primary text on light -->
+
+    <!-- Your Brand Colors -->
+    <color name="brand_primary">@color/BaptismBlue</color> <!-- Using your existing BaptismBlue -->
+    <color name="brand_primary_variant">@color/t1_temples</color>
+    <color name="brand_on_primary">@color/white</color>
+
+    <!-- General Material Semantic Colors (Light Theme Values) -->
+    <color name="app_colorBackground">#FCFCFC</color>
+    <color name="app_colorSurface">@color/white</color>
+    <color name="app_colorOnBackground">@color/alt_grey_text</color>
+    <color name="app_colorOnSurface">@color/alt_grey_text</color>
+    <!-- colorError, colorOnError etc. if needed -->
+
+    <!-- Specific UI Element Colors (Light Theme Values) -->
+    <color name="app_bar_background_color">@color/white</color>
+    <color name="app_bar_text_color">@color/alt_grey_text</color>
+    <color name="tab_bar_background_color">@color/white</color>
+    <color name="tab_bar_text_color">@color/grey_text</color>
+    <color name="tab_bar_selected_text_color">@color/brand_primary</color>
+    <color name="search_view_background_color">@color/white</color> <!-- Assuming search BG is plain white -->
+    <color name="search_view_stroke_color">#E0E0E0</color> <!-- Light grey stroke for search -->
+
     <color name="BaptismBlue">#005493</color>
     <color name="Confirmations">#D64E52</color>"
     <color name="Initiatories">#c4c400</color>
@@ -22,19 +47,4 @@
     <color name="t2_visitors_centers">#FFCA27</color>
     <color name="t2_announced_temples">#FFC296</color>
     <color name="t2_under_construction">#5B78B2</color>
-    <color name="dkBaptismBlue">#99BADD</color>
-    <color name="dkConfirmations">#D64E52</color>"
-    <color name="dkInitiatories">#B9BD86</color>
-    <color name="dkEndowments">#FEAE73</color>
-    <color name="dkSealings">#AF9FC9</color>
-    <color name="dkt1_temples">#DA5E62</color>
-    <color name="dkt1_historic_site">#00A485</color>"
-    <color name="dkt1_visitors_centers">#AEAC97</color>
-    <color name="dkt1_announced_temples">#AEC5AE</color>
-    <color name="dkt1_under_construction">#FEB986</color>
-    <color name="dkt2_temples">#B197AA</color>
-    <color name="dkt2_historic_site">#FFA149</color>"
-    <color name="dkt2_visitors_centers">#FFE289</color>
-    <color name="dkt2_announced_temples">#FFD98D</color>
-    <color name="dkt2_under_construction">#8399C5</color>
 </resources>

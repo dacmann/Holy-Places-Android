@@ -4,4 +4,9 @@
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
     <string name="appName">Holy Places of the Lord</string>
+    <string name="no_places_found">No places found.</string>
+    <string name="stand_ye_in_holy_places_and_be_not_moved">"\"Stand ye in holy places, and be not moved…\""</string>
+    <string name="scripture_ref"><![CDATA[D&C 87:8]]></string>
+    <string name="search_title">Search</string>
+    <string name="search_hint">Search places…</string>
 </resources>

@@ -1,24 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="50dp"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:background="?android:attr/selectableItemBackground">
 
     <TextView
         android:id="@+id/templeNameTextView"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceListItem"
         android:textSize="18sp"
-        android:textStyle="bold"
-        android:text="Temple Name" />
+        tools:text="Temple Name" />
 
     <TextView
         android:id="@+id/templeSnippetTextView"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceListItemSecondary"
         android:textSize="14sp"
-        android:text="123rd operating temple..." />
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="123rd operating temple..." />
 
     <!-- Add more TextViews or ImageViews for other details -->
 
