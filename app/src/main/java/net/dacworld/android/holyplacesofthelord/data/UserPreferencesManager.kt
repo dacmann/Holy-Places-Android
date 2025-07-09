@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore // Ensure this import is present
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -27,6 +28,50 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val CHANGES_MSG2_KEY = stringPreferencesKey("changes_msg2")
         val CHANGES_MSG3_KEY = stringPreferencesKey("changes_msg3")
         val IS_INITIAL_DATA_SEEDED = booleanPreferencesKey("is_initial_data_seeded")
+        // New keys for the one-time dialog after initial seeding
+        val SHOW_INITIAL_SEED_DIALOG = booleanPreferencesKey("show_initial_seed_dialog")
+        val INITIAL_SEED_DIALOG_TITLE = stringPreferencesKey("initial_seed_dialog_title")
+        val INITIAL_SEED_DIALOG_MESSAGES = stringSetPreferencesKey("initial_seed_dialog_messages")
+    }
+
+    // Storing details for the one-time initial seed dialog
+    suspend fun setInitialSeedDetails(title: String, messages: List<String>) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.INITIAL_SEED_DIALOG_TITLE] = title
+            preferences[PreferencesKeys.INITIAL_SEED_DIALOG_MESSAGES] = messages.toSet()
+            preferences[PreferencesKeys.SHOW_INITIAL_SEED_DIALOG] = true // Flag to show it
+        }
+    }
+
+    val initialSeedDialogDetailsFlow: Flow<UpdateDetails?> = dataStoreInstance.data
+        .catch { exception -> // Best practice: add catch block to preference flows
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            val shouldShow = preferences[PreferencesKeys.SHOW_INITIAL_SEED_DIALOG] ?: false
+            if (shouldShow) {
+                val title = preferences[PreferencesKeys.INITIAL_SEED_DIALOG_TITLE] ?: "Update Complete"
+                val messages = preferences[PreferencesKeys.INITIAL_SEED_DIALOG_MESSAGES]?.toList() ?: listOf("Data has been loaded.")
+                // Make sure UpdateDetails data class is accessible here
+                UpdateDetails(updateTitle = title, messages = messages)
+            } else {
+                null
+            }
+        }
+
+    // Call this after the dialog has been shown to prevent it from showing again
+    suspend fun clearShowInitialSeedDialogFlag() {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_INITIAL_SEED_DIALOG] = false
+            // Optional: also clear title and messages if you don't need them anymore,
+            // though keeping them might be useful for debugging or history if ever needed.
+            // preferences.remove(PreferencesKeys.INITIAL_SEED_DIALOG_TITLE)
+            // preferences.remove(PreferencesKeys.INITIAL_SEED_DIALOG_MESSAGES)
+        }
     }
 
     // Flow for XML version

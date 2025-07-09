@@ -5,6 +5,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+//import androidx.compose.ui.semantics.dismiss
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels // Keep this
 import androidx.lifecycle.Lifecycle
@@ -23,10 +24,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.recyclerview.widget.DividerItemDecoration
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest // For observing search query
 import net.dacworld.android.holyplacesofthelord.model.Temple
 // Import your SharedToolbarViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedToolbarViewModel
+import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import kotlin.text.contains
 import kotlin.text.filter
 import kotlin.text.isEmpty
@@ -48,6 +51,9 @@ class PlacesFragment : Fragment() {
 
     private lateinit var templeAdapter: TempleAdapter
 
+    // Keep track of active dialogs to prevent overlap if needed, though clearing the Flow source is primary
+    private var isDialogShowing = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -55,8 +61,6 @@ class PlacesFragment : Fragment() {
         _binding = FragmentPlacesBinding.inflate(inflater, container, false)
         return binding.root
     }
-
-    // In PlacesFragment.kt
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -93,51 +97,105 @@ class PlacesFragment : Fragment() {
 
                     sharedToolbarViewModel.updateToolbarInfo(currentFilterName, filteredTemples.size)
 
-                    binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0 && filteredTemples.isEmpty()) {
-                        View.VISIBLE
-                    } else {
-                        View.GONE
-                    }
+                    // Simplified progress bar logic - show if loading AND list is currently empty
+                    binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0) View.VISIBLE else View.GONE
 
-                    if (isLoading && templeAdapter.itemCount == 0 && filteredTemples.isEmpty()) {
+                    templeAdapter.submitList(filteredTemples.toList())
+                    if (filteredTemples.isEmpty() && !isLoading) { // Only show empty view if not loading and list is empty
                         binding.placesRecyclerView.visibility = View.GONE
-                        binding.emptyViewTextView.visibility = View.GONE
-                        Log.d("PlacesFragment", "INITIAL LOADING: RV GONE, EmptyView GONE")
-                    } else {
-                        templeAdapter.submitList(filteredTemples.toList())
-                        if (filteredTemples.isEmpty()) {
-                            binding.placesRecyclerView.visibility = View.GONE
-                            binding.emptyViewTextView.visibility = View.VISIBLE
-                            binding.emptyViewTextView.text = if (searchQuery.isNotBlank() && !isLoading) {
-                                "No places match your search."
-                            } else if (!isLoading) {
-                                "No places available."
-                            } else {
-                                ""
-                            }
-                            Log.d("PlacesFragment", "EMPTY LIST (after submit): RV GONE, EmptyView VISIBLE")
+                        binding.emptyViewTextView.visibility = View.VISIBLE
+                        binding.emptyViewTextView.text = if (searchQuery.isNotBlank()) {
+                            "No places match your search."
                         } else {
-                            binding.placesRecyclerView.visibility = View.VISIBLE
-                            binding.emptyViewTextView.visibility = View.GONE
-                            Log.d("PlacesFragment", "DATA PRESENT (after submit): RV VISIBLE, EmptyView GONE")
+                            "No places available."
+                        }
+                    } else if (filteredTemples.isNotEmpty()) {
+                        binding.placesRecyclerView.visibility = View.VISIBLE
+                        binding.emptyViewTextView.visibility = View.GONE
+                    } else if (isLoading && filteredTemples.isEmpty()){ // still loading and no data yet
+                        binding.placesRecyclerView.visibility = View.GONE
+                        binding.emptyViewTextView.visibility = View.GONE // Hide empty text while loading
+                    }
+                }
+            }
+        }
+        // Observer for Initial Seed Dialog
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                dataViewModel.initialSeedUpdateDetails.collectLatest { details: UpdateDetails? ->
+                    details?.let {
+                        if (!isDialogShowing) { // Basic concurrency check
+                            isDialogShowing = true
+                            showUpdateDialog(
+                                details = it,
+                                onDismiss = {
+                                    dataViewModel.initialSeedDialogShown()
+                                    isDialogShowing = false
+                                }
+                            )
                         }
                     }
                 }
             }
         }
 
+        // Observer for Remote XML Update Dialog
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                dataViewModel.remoteUpdateDetails.collectLatest { details: UpdateDetails? ->
+                    details?.let {
+                        if (!isDialogShowing) { // Basic concurrency check
+                            isDialogShowing = true
+                            showUpdateDialog(
+                                details = it,
+                                onDismiss = {
+                                    dataViewModel.remoteUpdateDialogShown()
+                                    isDialogShowing = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
         // Observer for SnackBar messages
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dataViewModel.lastUpdateMessage.collectLatest { message: String? -> // Explicit type for message
-                    if (!message.isNullOrEmpty()) {
+                dataViewModel.lastUpdateMessage.collectLatest { message: String? ->
+                    if (!message.isNullOrEmpty() && !isDialogShowing) { // Avoid Snackbar if a dialog is showing
+                        // You might want to filter out certain messages if they are now handled by dialogs
+                        // e.g., if (message != "Data updated to version X" && message != "Data is up to date")
                         Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
-                        Log.i("PlacesFragment", "Update Message: $message")
+                        Log.i("PlacesFragment", "Snackbar Message: $message")
+                        dataViewModel.clearLastUpdateMessage() // Clear after showing or deciding not to show
+                    } else if (!message.isNullOrEmpty() && isDialogShowing) {
+                        Log.i("PlacesFragment", "Dialog showing, Snackbar suppressed: $message")
+                        // Clear message even if not shown, to prevent it from reappearing later
                         dataViewModel.clearLastUpdateMessage()
                     }
                 }
             }
         }
+    }
+
+    private fun showUpdateDialog(details: UpdateDetails, onDismiss: () -> Unit) {
+        val formattedMessage = details.messages.joinToString(separator = "\n\n")
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(details.updateTitle)
+            .setMessage(formattedMessage)
+            .setPositiveButton(android.R.string.ok) { dialog, _ -> // Using android.R.string.ok for standard "OK"
+                dialog.dismiss() // Dismiss first
+                onDismiss()      // Then call the ViewModel action
+            }
+            .setCancelable(false) // User must click OK
+            .setOnDismissListener {
+                // This ensures isDialogShowing is reset even if dialog is dismissed by other means
+                // (though setCancelable(false) prevents most other means)
+                isDialogShowing = false
+            }
+            .show()
+        Log.d("PlacesFragment", "Showing dialog: ${details.updateTitle}")
     }
 
     private fun setupRecyclerView() {
@@ -152,10 +210,6 @@ class PlacesFragment : Fragment() {
                 context, // Use requireContext() if context might be null, but here it should be fine
                 (layoutManager as LinearLayoutManager).orientation
             )
-            // Optionally, you can set a custom drawable for the divider:
-            // ContextCompat.getDrawable(requireContext(), R.drawable.your_custom_divider)?.let {
-            //    dividerItemDecoration.setDrawable(it)
-            // }
             addItemDecoration(dividerItemDecoration)
             // --- Add Divider Item Decoration END ---
         }
@@ -165,5 +219,6 @@ class PlacesFragment : Fragment() {
         super.onDestroyView()
         binding.placesRecyclerView.adapter = null // Recommended to clear adapter
         _binding = null
+        isDialogShowing = false // Reset flag
     }
 }

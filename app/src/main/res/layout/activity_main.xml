@@ -70,6 +70,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:tabMode="fixed"
-        app:tabTextAppearance="@style/MyCustomTabTextAppearance" />
+        android:background="?attr/tabBarBackgroundColor"
+        app:tabIndicatorColor="?attr/tabSelectedIconColor"
+        app:tabTextColor="?attr/tabTextColor"
+        app:tabSelectedTextColor="?attr/tabSelectedTextColor"
+        app:tabIconTint="@color/tab_icon_color_selector_themed" />
 
 </LinearLayout>

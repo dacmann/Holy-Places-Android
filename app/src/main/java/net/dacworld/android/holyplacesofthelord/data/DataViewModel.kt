@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
+import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser // Ensure this is imported
 import org.xmlpull.v1.XmlPullParser // Keep for fetchRemoteVersion
@@ -46,22 +47,47 @@ class DataViewModel(
             initialValue = emptyList() // DB provides initial state (empty or populated by MyApplication)
         )
 
+    // --- For Initial Seed Dialog (from MyApplication via UserPreferencesManager) ---
+    val initialSeedUpdateDetails: StateFlow<UpdateDetails?> =
+        userPreferencesManager.initialSeedDialogDetailsFlow // This flow comes from UserPreferencesManager
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = null
+            )
+
+    fun initialSeedDialogShown() {
+        viewModelScope.launch {
+            userPreferencesManager.clearShowInitialSeedDialogFlag()
+        }
+    }
+
+    // --- For Remote XML Update Dialog ---
+    private val _remoteUpdateDetails = MutableStateFlow<UpdateDetails?>(null)
+    val remoteUpdateDetails: StateFlow<UpdateDetails?> = _remoteUpdateDetails.asStateFlow()
+
+    fun remoteUpdateDialogShown() { // Renamed for clarity from clearRemoteUpdateDetails
+        _remoteUpdateDetails.value = null
+    }
+
     init {
-        // Load last saved changes messages on init
-        // This assumes that if MyApplication populated the DB, it also saved initial messages/version.
+        // Load initial change summary messages when ViewModel is created
+        loadCurrentChangeSummary()
+    }
+    private fun loadCurrentChangeSummary() {
         viewModelScope.launch {
             val date = userPreferencesManager.changesDateFlow.firstOrNull()
             val msg1 = userPreferencesManager.changesMsg1Flow.firstOrNull()
             val msg2 = userPreferencesManager.changesMsg2Flow.firstOrNull()
             val msg3 = userPreferencesManager.changesMsg3Flow.firstOrNull()
-            // val msgQuiz = userPreferencesManager.changesMsgQuizFlow.firstOrNull() // If you save this too
 
-            if (date != null || msg1 != null || msg2 != null || msg3 != null /* || msgQuiz != null */) {
-                _updateChangesSummary.value = formatChangesMessage(date, msg1, msg2, msg3 /*, msgQuiz */)
+            if (!date.isNullOrBlank() || !msg1.isNullOrBlank() || !msg2.isNullOrBlank() || !msg3.isNullOrBlank()) {
+                _updateChangesSummary.value = formatChangesMessage(date, msg1, msg2, msg3)
+            } else {
+                _updateChangesSummary.value = "No update information available." // Or empty string
             }
         }
     }
-    // Add this function:
     fun clearLastUpdateMessage() {
         _lastUpdateMessage.value = null
     }
@@ -70,23 +96,31 @@ class DataViewModel(
             _isLoading.value = true
             var localDataExists = allTemples.value.isNotEmpty()
 
-            if (localDataExists) {
-                _lastUpdateMessage.value = "Displaying cached data. Checking for updates..."
+            // Simplified initial message
+            if (localDataExists && !forceNetworkFetch) {
+                _lastUpdateMessage.value = "Using cached data. Checking remote version..."
+            } else if (!localDataExists) {
+                _lastUpdateMessage.value = "No local data. Checking for updates..."
             } else {
-                _lastUpdateMessage.value = "No cached data found. Checking for updates..."
+                _lastUpdateMessage.value = "Checking for updates..."
             }
 
+            // Short-circuit if not forcing network and data exists (quick version check only)
             if (!forceNetworkFetch && localDataExists) {
-                _isLoading.value = false
-                // Perform a quick version check even if not downloading to update message accurately
-                val remoteVersionCheck = fetchRemoteVersion()
-                val localVersionCheck = userPreferencesManager.xmlVersionFlow.firstOrNull()
-                if (remoteVersionCheck != null && remoteVersionCheck == localVersionCheck) {
-                    _lastUpdateMessage.value = "Using cached data. Data is up to date (Version: $localVersionCheck)."
-                } else if (remoteVersionCheck != null && remoteVersionCheck != localVersionCheck) {
-                    _lastUpdateMessage.value = "Using cached data. A new version ($remoteVersionCheck) is available."
-                } else {
-                    _lastUpdateMessage.value = "Using cached data. Could not verify remote version."
+                try {
+                    val remoteVersionCheck = fetchRemoteVersion()
+                    val localVersionCheck = userPreferencesManager.xmlVersionFlow.firstOrNull()
+                    if (remoteVersionCheck != null && remoteVersionCheck == localVersionCheck) {
+                        _lastUpdateMessage.value = "Data is up to date (Version: $localVersionCheck)."
+                    } else if (remoteVersionCheck != null && remoteVersionCheck != localVersionCheck) {
+                        _lastUpdateMessage.value = "Using cached data. A new version ($remoteVersionCheck) is available."
+                    } else if (remoteVersionCheck == null) {
+                        _lastUpdateMessage.value = "Using cached data. Could not verify remote version."
+                    }
+                } catch (e: Exception) {
+                    _lastUpdateMessage.value = "Error checking remote version: ${e.message}"
+                } finally {
+                    _isLoading.value = false
                 }
                 return@launch
             }
@@ -110,43 +144,41 @@ class DataViewModel(
                             holyPlacesData.changesMsg3
                             // holyPlacesData.changesMsgQuiz // Persist if needed
                         )
-                        _lastUpdateMessage.value = "Data updated to version: $remoteVersion."
-                        _updateChangesSummary.value = formatChangesMessage(
-                            holyPlacesData.changesDate,
-                            holyPlacesData.changesMsg1,
-                            holyPlacesData.changesMsg2,
-                            holyPlacesData.changesMsg3
-                            // holyPlacesData.changesMsgQuiz
-                        )
-                    } else if (holyPlacesData != null && holyPlacesData.temples.isEmpty() && holyPlacesData.version != null) {
-                        userPreferencesManager.saveXmlVersion(remoteVersion)
-                        userPreferencesManager.saveChangeMessages(
-                            holyPlacesData.changesDate,
-                            holyPlacesData.changesMsg1,
-                            holyPlacesData.changesMsg2,
-                            holyPlacesData.changesMsg3
-                            // holyPlacesData.changesMsgQuiz
-                        )
-                        _lastUpdateMessage.value =
-                            "Data file processed for version $remoteVersion, but no places were found. Update messages applied."
-                        _updateChangesSummary.value = formatChangesMessage(
-                            holyPlacesData.changesDate,
-                            holyPlacesData.changesMsg1,
-                            holyPlacesData.changesMsg2,
-                            holyPlacesData.changesMsg3
-                            // holyPlacesData.changesMsgQuiz
-                        )
-                    } else {
-                        _lastUpdateMessage.value = "Failed to update data or parse downloaded places."
+                        loadCurrentChangeSummary() // Reload the summary text view
+
+                        val dialogMessages = mutableListOf<String>()
+                        holyPlacesData.changesMsg1?.takeIf { it.isNotBlank() }?.let { dialogMessages.add(it) }
+                        holyPlacesData.changesMsg2?.takeIf { it.isNotBlank() }?.let { dialogMessages.add(it) }
+                        holyPlacesData.changesMsg3?.takeIf { it.isNotBlank() }?.let { dialogMessages.add(it) }
+
+                        if (holyPlacesData.temples.isNotEmpty()) {
+                            _lastUpdateMessage.value = "Data updated to version: $remoteVersion. ${holyPlacesData.temples.size} places loaded."
+                            if (dialogMessages.isEmpty()) { // Add a default message if specific changes aren't listed but temples updated
+                                dialogMessages.add("Place data has been updated to version $remoteVersion.")
+                            }
+                        } else { // No temples in the update, but maybe message changes
+                            _lastUpdateMessage.value = "Data file processed for version $remoteVersion. Update messages applied."
+                            if (dialogMessages.isEmpty()) { // Add a default message if specific changes aren't listed
+                                dialogMessages.add("Update messages for version $remoteVersion have been applied.")
+                            }
+                        }
+
+                        // Post details for the dialog
+                        if (dialogMessages.isNotEmpty()) {
+                            _remoteUpdateDetails.value = UpdateDetails(
+                                updateTitle = "${holyPlacesData.changesDate ?: "Data"} Update (v$remoteVersion)",
+                                messages = dialogMessages
+                            )
+                        }
+
+                    } else { // holyPlacesData is null (download or parsing failed)
+                        _lastUpdateMessage.value = "Failed to download or process update for version $remoteVersion."
                     }
                 } else if (remoteVersion == null) {
-                    _lastUpdateMessage.value =
-                        "Could not check for updates (network or parsing error for version file)."
+                    _lastUpdateMessage.value = "Could not check for updates (network or parsing error for version file)."
                 } else { // remoteVersion == localVersion
                     _lastUpdateMessage.value = "Data is up to date (Version: $localVersion)."
-                    // If up-to-date, ensure the change messages displayed are current.
-                    // The init block already loads them, but this is a good place to re-verify or refresh if necessary.
-                    // loadSavedChangeMessages() // Potentially call this again if there's a complex state reason.
+                    loadCurrentChangeSummary() // Ensure summary is current
                 }
             } catch (e: Exception) {
                 _lastUpdateMessage.value = "Error during update: ${e.message}"
@@ -160,21 +192,19 @@ class DataViewModel(
     private fun formatChangesMessage(date: String?, msg1: String?, msg2: String?, msg3: String? /*, msgQuiz: String? */): String {
         // ... (implementation as before)
         val builder = StringBuilder()
-        if (!date.isNullOrEmpty()) {
+        if (!date.isNullOrBlank()) { // Use isNullOrBlank for better checking
             builder.append("Changes as of: $date\n\n")
         }
-        if (!msg1.isNullOrEmpty()) {
+        if (!msg1.isNullOrBlank()) {
             builder.append("$msg1\n\n")
         }
-        if (!msg2.isNullOrEmpty()) {
+        if (!msg2.isNullOrBlank()) {
             builder.append("$msg2\n\n")
         }
-        if (!msg3.isNullOrEmpty()) {
+        if (!msg3.isNullOrBlank()) {
             builder.append("$msg3\n")
         }
-        // Add quiz message if you parse and store it
-        // if (!msgQuiz.isNullOrEmpty()) { builder.append("\nQuiz Info: $msgQuiz\n") }
-        return builder.toString().trim()
+        return builder.toString().trim().ifEmpty { "No update information available." }
     }
 
     private suspend fun fetchRemoteVersion(): String? = withContext(Dispatchers.IO) {

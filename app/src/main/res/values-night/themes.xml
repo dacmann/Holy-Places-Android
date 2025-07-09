@@ -1,10 +1,21 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.HolyPlacesOfTheLord" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <style name="Theme.HolyPlacesOfTheLord" parent="Theme.MaterialComponents.DayNight.NoActionBar">
 
         <!-- Status bar color for dark mode -->
         <item name="android:statusBarColor">@color/app_bar_background_color</item> <!-- Match app bar (dark version) -->
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item> <!-- Dark status bar icons are light -->
+
+        <!-- Theme for the AppBar itself to ensure light text/icons on dark background -->
+        <item name="appBarBackgroundColor">@color/app_bar_background_color</item>
+        <item name="appBarTextColor">@color/app_bar_text_color</item>
+        <item name="tabBarBackgroundColor">@color/tab_bar_background_color</item>
+        <item name="tabTextColor">@color/tab_bar_text_color</item>
+        <item name="tabSelectedTextColor">@color/tab_bar_selected_text_color</item>
+        <item name="tabIconColor">@color/tab_bar_text_color</item> <!-- Or a specific tab_icon_color_dark -->
+        <item name="tabSelectedIconColor">@color/tab_bar_selected_text_color</item> <!-- Or a specific tab_selected_icon_color_dark -->
+        <item name="searchViewBackgroundColor">@color/search_view_background_color</item>
+        <item name="searchViewStrokeColor">@color/search_view_stroke_color</item>
 
         <!-- Theme for the AppBar itself to ensure light text/icons on dark background -->
         <item name="actionBarTheme">@style/ThemeOverlay.AppCompat.Dark.ActionBar</item>

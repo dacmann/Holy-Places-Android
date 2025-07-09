@@ -1,16 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Standard Material Colors (Dark Theme variants if needed, or reuse if they work) -->
-    <color name="purple_200">#FFBB86FC</color> <!-- Lighter for dark theme -->
-    <color name="purple_500">#FF6200EE</color> <!-- Might need adjustment if too dark -->
-    <color name="purple_700">#FF3700B3</color> <!-- Might need adjustment if too dark -->
-    <color name="teal_200">#FF03DAC5</color> <!-- Often works well on dark -->
 
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="grey_text">#B3FFFFFF</color> <!-- 70% white for secondary text on dark -->
     <color name="alt_grey_text">#DEFFFFFF</color> <!-- 87% white for primary text on dark -->
-
 
     <!-- Your Brand Colors (Dark Theme variants if needed) -->
     <color name="brand_primary">#87CEEB</color> <!-- Example: Lighter Sky Blue for dark theme -->

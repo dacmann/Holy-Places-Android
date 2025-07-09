@@ -5,10 +5,6 @@
         <item name="colorPrimary">@color/BaptismBlue</item>
         <item name="colorPrimaryVariant">@color/t1_temples</item>
         <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
 
         <!-- Standard Material Semantic Colors -->
         <item name="android:colorBackground">@color/app_colorBackground</item>
