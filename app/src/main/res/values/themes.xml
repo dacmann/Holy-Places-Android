@@ -33,6 +33,25 @@
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
 
     </style>
+    <!-- ADDED: Custom Material Alert Dialog Theme -->
+    <style name="AppTheme.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <!-- This will apply to the text of the positive button -->
+        <item name="buttonBarPositiveButtonStyle">@style/AppTheme.DialogButton.BaptismBlue</item>
+
+        <!-- You could also try forcing the colorPrimary for the dialog theme,
+             though buttonBarPositiveButtonStyle is usually more direct for buttons.
+        <item name="colorPrimary">@color/BaptismBlue</item>
+        -->
+    </style>
+
+    <!-- ADDED: Custom Style for the Dialog Button using BaptismBlue -->
+    <style name="AppTheme.DialogButton.BaptismBlue" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/BaptismBlue</item>
+        <item name="rippleColor">@color/BaptismBlue</item> <!-- Use BaptismBlue for ripple too, or a lighter/alpha version -->
+        <!-- Ensure background is transparent for a text button look -->
+        <item name="android:background">@android:color/transparent</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+    </style>
     <style name="MyCustomTabTextAppearance" parent="TextAppearance.Design.Tab">
         <item name="android:fontFamily">@font/baskerville</item>
         <item name="android:textSize">14sp</item>

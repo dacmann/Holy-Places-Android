@@ -14,7 +14,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.map
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.MyApplication // Import MyApplication
 import net.dacworld.android.holyplacesofthelord.data.DataViewModel
@@ -31,9 +30,9 @@ import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.ui.SharedToolbarViewModel
 import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import kotlin.text.contains
-import kotlin.text.filter
-import kotlin.text.isEmpty
-import kotlin.text.toList
+import android.app.AlertDialog // Import AlertDialog for getButton
+import androidx.core.content.ContextCompat // Import ContextCompat for getColor
+import net.dacworld.android.holyplacesofthelord.R // Import R for R.color.BaptismBlue
 
 class PlacesFragment : Fragment() {
 
@@ -119,25 +118,6 @@ class PlacesFragment : Fragment() {
                 }
             }
         }
-        // Observer for Initial Seed Dialog
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dataViewModel.initialSeedUpdateDetails.collectLatest { details: UpdateDetails? ->
-                    details?.let {
-                        if (!isDialogShowing) { // Basic concurrency check
-                            isDialogShowing = true
-                            showUpdateDialog(
-                                details = it,
-                                onDismiss = {
-                                    dataViewModel.initialSeedDialogShown()
-                                    isDialogShowing = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
 
         // Observer for Remote XML Update Dialog
         viewLifecycleOwner.lifecycleScope.launch {
@@ -158,44 +138,46 @@ class PlacesFragment : Fragment() {
                 }
             }
         }
-        // Observer for SnackBar messages
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dataViewModel.lastUpdateMessage.collectLatest { message: String? ->
-                    if (!message.isNullOrEmpty() && !isDialogShowing) { // Avoid Snackbar if a dialog is showing
-                        // You might want to filter out certain messages if they are now handled by dialogs
-                        // e.g., if (message != "Data updated to version X" && message != "Data is up to date")
-                        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
-                        Log.i("PlacesFragment", "Snackbar Message: $message")
-                        dataViewModel.clearLastUpdateMessage() // Clear after showing or deciding not to show
-                    } else if (!message.isNullOrEmpty() && isDialogShowing) {
-                        Log.i("PlacesFragment", "Dialog showing, Snackbar suppressed: $message")
-                        // Clear message even if not shown, to prevent it from reappearing later
-                        dataViewModel.clearLastUpdateMessage()
-                    }
-                }
-            }
-        }
     }
 
     private fun showUpdateDialog(details: UpdateDetails, onDismiss: () -> Unit) {
+        if (!isAdded || context == null) { // Good practice to check if fragment is still added
+            Log.w("PlacesFragment", "Dialog not shown for update, fragment not attached or context null.")
+            onDismiss() // Call dismiss to clear flags in ViewModel if necessary
+            isDialogShowing = false
+            return
+        }
+
         val formattedMessage = details.messages.joinToString(separator = "\n\n")
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(details.updateTitle)
             .setMessage(formattedMessage)
-            .setPositiveButton(android.R.string.ok) { dialog, _ -> // Using android.R.string.ok for standard "OK"
-                dialog.dismiss() // Dismiss first
-                onDismiss()      // Then call the ViewModel action
-            }
-            .setCancelable(false) // User must click OK
-            .setOnDismissListener {
-                // This ensures isDialogShowing is reset even if dialog is dismissed by other means
-                // (though setCancelable(false) prevents most other means)
-                isDialogShowing = false
-            }
-            .show()
-        Log.d("PlacesFragment", "Showing dialog: ${details.updateTitle}")
+            .setCancelable(false)
+            // Positive button text is set here, action will be set later
+            .setPositiveButton(android.R.string.ok, null) // Set text, listener is overridden by setOnShowListener or set later
+            .create() // Create the dialog instance
+
+        // Set the OnShowListener to modify the button color after the dialog is shown
+        dialog.setOnShowListener {
+            val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            positiveButton?.setTextColor(ContextCompat.getColor(requireContext(), R.color.BaptismBlue))
+        }
+
+        // Set the click listener for the positive button
+        // This ensures your onDismiss logic is correctly tied
+        dialog.setButton(AlertDialog.BUTTON_POSITIVE, getString(android.R.string.ok)) { d, _ ->
+            d.dismiss() // Dismiss the dialog
+            onDismiss()   // Call your original onDismiss logic
+        }
+
+        dialog.setOnDismissListener {
+            isDialogShowing = false
+            // Log.d("PlacesFragment", "Update dialog dismissed.") // Optional: more specific log
+        }
+
+        dialog.show()
+        Log.d("PlacesFragment", "Showing update dialog: ${details.updateTitle}")
     }
 
     private fun setupRecyclerView() {

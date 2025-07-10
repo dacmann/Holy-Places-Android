@@ -34,9 +34,6 @@ class DataViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _lastUpdateMessage = MutableStateFlow<String?>(null)
-    val lastUpdateMessage: StateFlow<String?> = _lastUpdateMessage.asStateFlow()
-
     private val _updateChangesSummary = MutableStateFlow<String>("")
     val updateChangesSummary: StateFlow<String> = _updateChangesSummary.asStateFlow()
 
@@ -88,42 +85,10 @@ class DataViewModel(
             }
         }
     }
-    fun clearLastUpdateMessage() {
-        _lastUpdateMessage.value = null
-    }
+
     fun checkForUpdates(forceNetworkFetch: Boolean = true) {
         viewModelScope.launch {
             _isLoading.value = true
-            var localDataExists = allTemples.value.isNotEmpty()
-
-            // Simplified initial message
-            if (localDataExists && !forceNetworkFetch) {
-                _lastUpdateMessage.value = "Using cached data. Checking remote version..."
-            } else if (!localDataExists) {
-                _lastUpdateMessage.value = "No local data. Checking for updates..."
-            } else {
-                _lastUpdateMessage.value = "Checking for updates..."
-            }
-
-            // Short-circuit if not forcing network and data exists (quick version check only)
-            if (!forceNetworkFetch && localDataExists) {
-                try {
-                    val remoteVersionCheck = fetchRemoteVersion()
-                    val localVersionCheck = userPreferencesManager.xmlVersionFlow.firstOrNull()
-                    if (remoteVersionCheck != null && remoteVersionCheck == localVersionCheck) {
-                        _lastUpdateMessage.value = "Data is up to date (Version: $localVersionCheck)."
-                    } else if (remoteVersionCheck != null && remoteVersionCheck != localVersionCheck) {
-                        _lastUpdateMessage.value = "Using cached data. A new version ($remoteVersionCheck) is available."
-                    } else if (remoteVersionCheck == null) {
-                        _lastUpdateMessage.value = "Using cached data. Could not verify remote version."
-                    }
-                } catch (e: Exception) {
-                    _lastUpdateMessage.value = "Error checking remote version: ${e.message}"
-                } finally {
-                    _isLoading.value = false
-                }
-                return@launch
-            }
 
             try {
                 val remoteVersion = fetchRemoteVersion()
@@ -132,7 +97,7 @@ class DataViewModel(
 
 
                 if (remoteVersion != null && remoteVersion != localVersion) {
-                    _lastUpdateMessage.value = "New version found: $remoteVersion. Downloading..."
+                    //New version found. Downloading...
                     val holyPlacesData = downloadAndProcessPlaces() // Uses HolyPlacesXmlParser
 
                     if (holyPlacesData != null && holyPlacesData.temples.isNotEmpty()) {
@@ -151,38 +116,46 @@ class DataViewModel(
                         holyPlacesData.changesMsg2?.takeIf { it.isNotBlank() }?.let { dialogMessages.add(it) }
                         holyPlacesData.changesMsg3?.takeIf { it.isNotBlank() }?.let { dialogMessages.add(it) }
 
+                        val dialogTitle: String
                         if (holyPlacesData.temples.isNotEmpty()) {
-                            _lastUpdateMessage.value = "Data updated to version: $remoteVersion. ${holyPlacesData.temples.size} places loaded."
-                            if (dialogMessages.isEmpty()) { // Add a default message if specific changes aren't listed but temples updated
-                                dialogMessages.add("Place data has been updated to version $remoteVersion.")
+                            // REMOVED: _lastUpdateMessage for successful update with temples
+                            if (dialogMessages.isEmpty()) {
+                                dialogMessages.add("Place data has been updated to version $remoteVersion. ${holyPlacesData.temples.size} places loaded.")
                             }
-                        } else { // No temples in the update, but maybe message changes
-                            _lastUpdateMessage.value = "Data file processed for version $remoteVersion. Update messages applied."
-                            if (dialogMessages.isEmpty()) { // Add a default message if specific changes aren't listed
+                            dialogTitle = "${holyPlacesData.changesDate ?: "Data"} Update"
+                        } else {
+                            // REMOVED: _lastUpdateMessage for successful update without temples
+                            if (dialogMessages.isEmpty()) {
                                 dialogMessages.add("Update messages for version $remoteVersion have been applied.")
                             }
+                            dialogTitle = "${holyPlacesData.changesDate ?: "Messages"} Updated (v$remoteVersion)"
                         }
 
-                        // Post details for the dialog
                         if (dialogMessages.isNotEmpty()) {
                             _remoteUpdateDetails.value = UpdateDetails(
-                                updateTitle = "${holyPlacesData.changesDate ?: "Data"} Update (v$remoteVersion)",
+                                updateTitle = dialogTitle,
                                 messages = dialogMessages
                             )
                         }
 
                     } else { // holyPlacesData is null (download or parsing failed)
-                        _lastUpdateMessage.value = "Failed to download or process update for version $remoteVersion."
+                        _remoteUpdateDetails.value = UpdateDetails(
+                            updateTitle = "Update Failed",
+                            messages = listOf("Failed to download or process update for version $remoteVersion. Please try again later.")
+                        )
                     }
                 } else if (remoteVersion == null) {
-                    _lastUpdateMessage.value = "Could not check for updates (network or parsing error for version file)."
-                } else { // remoteVersion == localVersion
-                    _lastUpdateMessage.value = "Data is up to date (Version: $localVersion)."
-                    loadCurrentChangeSummary() // Ensure summary is current
+                    _remoteUpdateDetails.value = UpdateDetails(
+                        updateTitle = "Update Check Failed",
+                        messages = listOf("Could not check for updates. Please check your network connection and try again.")
+                    )
                 }
             } catch (e: Exception) {
-                _lastUpdateMessage.value = "Error during update: ${e.message}"
                 Log.e("DataViewModel", "Error during checkForUpdates: ${e.message}", e)
+                _remoteUpdateDetails.value = UpdateDetails(
+                    updateTitle = "Update Error",
+                    messages = listOf("An unexpected error occurred during the update: ${e.message}")
+                )
             } finally {
                 _isLoading.value = false
             }
@@ -240,15 +213,9 @@ class DataViewModel(
                 }
             } else {
                 Log.w("DataViewModel", "Version check failed: HTTP ${connection.responseCode}")
-                withContext(Dispatchers.Main) {
-                    _lastUpdateMessage.value = "Version check failed: HTTP ${connection.responseCode}"
-                }
             }
         } catch (e: Exception) {
             Log.e("DataViewModel", "Error fetching remote version: ${e.message}", e)
-            withContext(Dispatchers.Main) {
-                _lastUpdateMessage.value = "Error fetching remote version: ${e.message}"
-            }
         }
         version
     }
@@ -280,15 +247,9 @@ class DataViewModel(
                 }
             } else {
                 Log.w("DataViewModel", "Download failed: HTTP ${connection.responseCode}")
-                withContext(Dispatchers.Main) {
-                    _lastUpdateMessage.value = "Download failed: HTTP ${connection.responseCode}"
-                }
             }
         } catch (e: Exception) {
             Log.e("DataViewModel", "Error downloading/processing places: ${e.message}", e)
-            withContext(Dispatchers.Main) {
-                _lastUpdateMessage.value = "Error downloading/processing places: ${e.message}"
-            }
         }
         return@withContext null
     }
