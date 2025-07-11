@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var persistentSearchView: SearchView
     private val dataViewModel: DataViewModel by viewModels {
         val application = application as MyApplication
-        DataViewModelFactory(application.templeDao, application.userPreferencesManager)
+        DataViewModelFactory(application, application.templeDao, application.userPreferencesManager)
     }
 
     private val sharedToolbarViewModel: SharedToolbarViewModel by viewModels()

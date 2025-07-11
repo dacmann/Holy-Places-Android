@@ -45,6 +45,8 @@ dependencies {
     dependencies {
         implementation(libs.material)
 
+        implementation(libs.coil)
+
         coreLibraryDesugaring(libs.desugar.jdk.libs)
 
         implementation(libs.androidx.room.runtime)

@@ -1,9 +1,19 @@
 package net.dacworld.android.holyplacesofthelord.data
 
+import android.app.Application
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.util.Log
-import androidx.lifecycle.ViewModel // Reverted from AndroidViewModel if Application context is not directly needed here
+import androidx.lifecycle.AndroidViewModel // Change to AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import coil.Coil.imageLoader
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,17 +29,17 @@ import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser // Ensure this is imported
 import org.xmlpull.v1.XmlPullParser // Keep for fetchRemoteVersion
 import org.xmlpull.v1.XmlPullParserFactory // Keep for fetchRemoteVersion
+import java.io.ByteArrayOutputStream
 import java.io.InputStream // Keep, though direct use in this file might be gone
 import java.net.HttpURLConnection
 import java.net.URL
 
-// Assuming HolyPlacesData class is defined (as used by HolyPlacesXmlParser)
 
 class DataViewModel(
-    // Application context is removed if ViewModel doesn't directly access assets for initial load
+    application: Application,
     private val templeDao: TempleDao,
     private val userPreferencesManager: UserPreferencesManager
-) : ViewModel() { // Reverted to ViewModel
+) : AndroidViewModel(application) { // Inherit from AndroidViewModel
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -52,6 +62,14 @@ class DataViewModel(
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = null
             )
+
+    // For the version from the last successfully processed XML/DB state
+    private val _currentDataVersion = MutableStateFlow<String?>(null)
+    val currentDataVersion: StateFlow<String?> = _currentDataVersion.asStateFlow()
+
+    // For the "changes date" from the last successfully processed XML/DB state
+    private val _currentDataChangesDate = MutableStateFlow<String?>(null)
+    val currentDataChangesDate: StateFlow<String?> = _currentDataChangesDate.asStateFlow()
 
     fun initialSeedDialogShown() {
         viewModelScope.launch {
@@ -220,38 +238,183 @@ class DataViewModel(
         version
     }
 
+    // DataViewModel.kt
+
+// ... (other imports, imageLoader, fetchImageWithCoil as previously discussed) ...
+
+    // Helper data class for picture update tasks
+
+    // Correct way to initialize a shared ImageLoader instance for this ViewModel
+    private val imageLoader: ImageLoader by lazy {
+        ImageLoader.Builder(getApplication<Application>().applicationContext)
+            .build()
+    }
+
+    private data class PictureUpdateTask(
+        val templeId: String,
+        val pictureUrlToFetch: String
+    )
+
     private suspend fun downloadAndProcessPlaces(): HolyPlacesData? = withContext(Dispatchers.IO) {
-        // ... (implementation as before, using HolyPlacesXmlParser.parse and .use for inputStream)
+        _isLoading.value = true
+        var processingSuccess = false // Renamed for clarity
         try {
             val url = URL("https://dacworld.net/holyplaces/HolyPlaces.xml")
             val connection = url.openConnection() as HttpURLConnection
-            // ... (timeouts, connect)
             connection.connectTimeout = 30000
             connection.readTimeout = 60000
             connection.connect()
 
-            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                connection.inputStream.use { inputStream ->
-                    val parsedData = HolyPlacesXmlParser.parse(inputStream) // Uses the utility
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                Log.e("DataViewModel", "Failed to download HolyPlaces.xml. HTTP Code: ${connection.responseCode}")
+                return@withContext null
+            }
 
-                    if (parsedData.temples.isNotEmpty()) {
-                        templeDao.clearAndInsertAll(parsedData.temples)
-                    } else if (parsedData.version != null) {
-                        Log.w("DataViewModel", "Downloaded HolyPlaces.xml (Version: ${parsedData.version}), but no <Place> elements were found.")
-                        // If an empty but valid XML is received, you might want to clear the local DB.
-                        // For example: templeDao.clearAllTemples()
-                        // This behavior needs to be defined based on product requirements.
-                        // For now, it only inserts if temples are present.
+            val parsedData = connection.inputStream.use { inputStream ->
+                HolyPlacesXmlParser.parse(inputStream)
+            }
+
+            if (parsedData == null) {
+                Log.e("DataViewModel", "Failed to parse HolyPlaces.xml. Parsed data is null.")
+                return@withContext null
+            }
+            Log.d("DataViewModel", "Parsed ${parsedData.temples.size} temples from XML (Version: ${parsedData.version}).")
+
+            val existingDbTemplesMap = templeDao.getAllTemplesForSyncOrList().associateBy { it.id }
+            Log.d("DataViewModel", "Fetched ${existingDbTemplesMap.size} existing temple metadata from DB.")
+
+            val xmlTempleIds = parsedData.temples.map { it.id }.toSet()
+            val pictureUpdateTasks = mutableListOf<PictureUpdateTask>()
+
+            // --- Metadata Pass ---
+            for (xmlTempleFromParser in parsedData.temples) {
+                val xmlTemple = xmlTempleFromParser.copy(pictureData = null) // Ensure pictureData is null
+                val existingDbTempleMeta = existingDbTemplesMap[xmlTemple.id]
+
+                if (existingDbTempleMeta != null) { // Temple EXISTS in DB
+                    // Compare metadata (Temple.equals() ignores pictureData).
+                    // Also check if pictureUrl itself changed.
+                    val metadataFieldsChanged = xmlTemple.copy(pictureUrl = existingDbTempleMeta.pictureUrl) != existingDbTempleMeta
+                    val pictureUrlChanged = xmlTemple.pictureUrl != existingDbTempleMeta.pictureUrl
+
+                    if (metadataFieldsChanged || pictureUrlChanged) {
+                        Log.d("DataViewModel", "Updating metadata/URL for existing temple: ID ${xmlTemple.id}, Name: ${xmlTemple.name}")
+                        // xmlTemple contains new metadata and new pictureUrl, with pictureData = null.
+                        templeDao.update(xmlTemple)
                     }
-                    return@withContext parsedData
+
+                    if (xmlTemple.pictureUrl.isNotBlank()) {
+                        if (pictureUrlChanged) { // Only flag if URL actually changed
+                            Log.d("DataViewModel", "Flagging PIC UPDATE for existing ${xmlTemple.id}: URL changed from '${existingDbTempleMeta.pictureUrl}' to '${xmlTemple.pictureUrl}'.")
+                            pictureUpdateTasks.add(PictureUpdateTask(xmlTemple.id, xmlTemple.pictureUrl))
+                        } else {
+                            if (!existingDbTempleMeta.hasLocalPictureData) { // Check if data is missing
+                                Log.d("DataViewModel", "PictureURL same for ${xmlTemple.id}, but local picture_data missing. Flagging for download.")
+                                pictureUpdateTasks.add(PictureUpdateTask(xmlTemple.id, xmlTemple.pictureUrl))
+                            } else {
+                                Log.d("DataViewModel", "No pic update needed for existing ${xmlTemple.id}, PictureURL same and local data likely present.")
+                            }
+                        }
+                    } else { // XML pictureUrl is blank
+                        if (existingDbTempleMeta.pictureUrl.isNotBlank()) {
+                            Log.d("DataViewModel", "XML PictureURL blank for ${xmlTemple.id}. Clearing DB picture URL and data.")
+                            templeDao.updatePicture(xmlTemple.id, null, null)
+                        }
+                    }
+                } else { // Temple is NEW -> INSERT
+                    Log.d("DataViewModel", "Inserting new temple: ID ${xmlTemple.id}, Name: ${xmlTemple.name}")
+                    templeDao.insert(xmlTemple) // xmlTemple has pictureData = null
+                    if (xmlTemple.pictureUrl.isNotBlank()) {
+                        Log.d("DataViewModel", "Flagging PIC UPDATE for new temple ${xmlTemple.id} (URL: '${xmlTemple.pictureUrl}').")
+                        pictureUpdateTasks.add(PictureUpdateTask(xmlTemple.id, xmlTemple.pictureUrl))
+                    }
+                }
+            }
+
+            // --- Picture Update Pass ---
+            if (pictureUpdateTasks.isNotEmpty()) {
+                Log.d("DataViewModel", "Starting picture update pass for ${pictureUpdateTasks.size} temples.")
+                pictureUpdateTasks.map { task ->
+                    async(Dispatchers.IO) {
+                        Log.d("DataViewModel", "Fetching image for ${task.templeId} from ${task.pictureUrlToFetch}")
+                        val imageData = fetchImageWithCoil(task.pictureUrlToFetch)
+                        if (imageData != null) {
+                            Log.d("DataViewModel", "Successfully fetched image for ${task.templeId}. Updating DB with picture data and URL: ${task.pictureUrlToFetch}.")
+                            templeDao.updatePicture(task.templeId, task.pictureUrlToFetch, imageData)
+                        } else {
+                            Log.w("DataViewModel", "Failed to fetch image for ${task.templeId} (URL: ${task.pictureUrlToFetch}). Setting DB picture_data to null, URL to ${task.pictureUrlToFetch}.")
+                            templeDao.updatePicture(task.templeId, task.pictureUrlToFetch, null)
+                        }
+                    }
+                }.awaitAll()
+                Log.d("DataViewModel", "Finished picture update pass.")
+            } else {
+                Log.d("DataViewModel", "No picture updates needed based on URL changes or new temples.")
+            }
+
+            // --- Delete Orphans ---
+            val currentDbTempleIds = templeDao.getAllTempleIds().toSet()
+            val orphanIds = currentDbTempleIds.filter { it !in xmlTempleIds }
+            if (orphanIds.isNotEmpty()) {
+                Log.d("DataViewModel", "Deleting ${orphanIds.size} orphan temples: $orphanIds")
+                templeDao.deleteTemplesByIds(orphanIds)
+            } else {
+                Log.d("DataViewModel", "No orphan temples to delete.")
+            }
+
+            _currentDataVersion.value = parsedData.version
+            _currentDataChangesDate.value = parsedData.changesDate ?: "Unknown"
+
+            processingSuccess = true
+            return@withContext parsedData
+
+        } catch (e: Exception) {
+            Log.e("DataViewModel", "Error in downloadAndProcessPlaces: ${e.message}", e)
+            return@withContext null
+        } finally {
+            _isLoading.value = false
+            if (processingSuccess) {
+                Log.d("DataViewModel", "downloadAndProcessPlaces completed successfully.")
+            } else {
+                Log.e("DataViewModel", "downloadAndProcessPlaces completed with errors or was aborted.")
+            }
+        }
+    }
+
+    // Function to be called by UI (e.g., from a Fragment/ViewModel for the detail screen)
+    // when a specific temple detail is needed
+    suspend fun getTempleDetailsWithPicture(templeId: String): Temple? {
+        // This ensures the BLOB is loaded only when this function is explicitly called.
+        return templeDao.getTempleWithPictureById(templeId)
+    }
+    // fetchImageWithCoil using shared imageLoader, as discussed
+    private suspend fun fetchImageWithCoil(imageUrl: String): ByteArray? {
+        // ... (implementation using ViewModel's imageLoader, Dispatchers.IO, etc.)
+        // Ensure this method is robust
+        try {
+            val request = ImageRequest.Builder(getApplication())
+                .data(imageUrl)
+                .allowHardware(false)
+                .build()
+            Log.d("ImageFetchCoil", "Requesting image via Coil from: $imageUrl")
+            val result = imageLoader.execute(request)
+
+            if (result is SuccessResult) {
+                val bitmap = (result.drawable as BitmapDrawable).bitmap
+                ByteArrayOutputStream().use { stream -> // Use .use for auto-closing
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+                    val byteArray = stream.toByteArray()
+                    Log.d("ImageFetchCoil", "Successfully decoded image from $imageUrl, size: ${byteArray.size} bytes")
+                    return byteArray
                 }
             } else {
-                Log.w("DataViewModel", "Download failed: HTTP ${connection.responseCode}")
+                Log.w("ImageFetchCoil", "Coil result not SuccessResult for $imageUrl. Result: ${result::class.java.simpleName}")
+                return null
             }
         } catch (e: Exception) {
-            Log.e("DataViewModel", "Error downloading/processing places: ${e.message}", e)
+            Log.e("ImageFetchCoil", "Error fetching/processing image from $imageUrl", e)
+            return null
         }
-        return@withContext null
     }
 
     // parseHolyPlacesXml, extractAnnouncedDateObject, extractOrderFromSnippet are REMOVED.

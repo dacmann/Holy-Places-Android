@@ -42,7 +42,7 @@ class PlacesFragment : Fragment() {
     // Provide the factory to activityViewModels
     private val dataViewModel: DataViewModel by activityViewModels {
         val application = requireActivity().application as MyApplication
-        DataViewModelFactory(application.templeDao, application.userPreferencesManager)
+        DataViewModelFactory(application,application.templeDao, application.userPreferencesManager)
     }
 
     // ViewModel for Toolbar communication (title, count, search query)
