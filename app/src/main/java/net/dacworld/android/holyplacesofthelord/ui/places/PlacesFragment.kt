@@ -5,6 +5,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
 //import androidx.compose.ui.semantics.dismiss
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels // Keep this
@@ -13,6 +15,7 @@ import androidx.lifecycle.distinctUntilChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.map
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.MyApplication // Import MyApplication
@@ -32,7 +35,12 @@ import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import kotlin.text.contains
 import android.app.AlertDialog // Import AlertDialog for getButton
 import androidx.core.content.ContextCompat // Import ContextCompat for getColor
+import androidx.navigation.NavController
+import androidx.navigation.findNavController
 import net.dacworld.android.holyplacesofthelord.R // Import R for R.color.BaptismBlue
+import androidx.fragment.app.activityViewModels // For NavigationViewModel
+import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel // Import your ViewModel
+
 
 class PlacesFragment : Fragment() {
 
@@ -47,6 +55,9 @@ class PlacesFragment : Fragment() {
 
     // ViewModel for Toolbar communication (title, count, search query)
     private val sharedToolbarViewModel: SharedToolbarViewModel by activityViewModels()
+
+    // Get the NavigationViewModel, scoped to the Activity
+    private val navigationViewModel: NavigationViewModel by activityViewModels()
 
     private lateinit var templeAdapter: TempleAdapter
 
@@ -63,6 +74,10 @@ class PlacesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // --- NEW: Call methods to setup Toolbar and SearchView ---
+        setupToolbar()
+        setupSearchViewListeners()
+        // --- END NEW ---
         setupRecyclerView()
 
         // Main observer for UI content (temples, loading state, search filtering)
@@ -86,6 +101,19 @@ class PlacesFragment : Fragment() {
                             // If these fields can be null, use safe calls: temple.name?.contains(...) == true
                         }
                     }
+                    // --- MODIFIED PART within the combine block ---
+                    // Determine the title based on search state
+                    val currentScreenTitle = if (searchQuery.isBlank()) {
+                        // Assuming you have a string resource like <string name="title_places">Places</string>
+                        getString(R.string.tab_label_places) // Or your preferred default title
+                    } else {
+                        getString(R.string.tab_label_places) // e.g., "Search Results"
+                    }
+                    // Update the SharedToolbarViewModel with this title and count
+                    // This call was already here, ensure it uses the determined title
+                    sharedToolbarViewModel.updateToolbarInfo(currentScreenTitle, filteredTemples.size)
+                    // --- END MODIFIED PART ---
+
                     Triple(isLoading, filteredTemples, searchQuery)
                 }.collectLatest { (isLoading: Boolean, filteredTemples: List<Temple>, searchQuery: String) -> // Explicit types also good here
                     val currentFilterName = if (searchQuery.isBlank()) "All Places" else "Search Results"
@@ -94,7 +122,7 @@ class PlacesFragment : Fragment() {
                         "Combined UI State: isLoading=$isLoading, filteredTemplesCount=${filteredTemples.size}, searchQuery='$searchQuery'"
                     )
 
-                    sharedToolbarViewModel.updateToolbarInfo(currentFilterName, filteredTemples.size)
+                    //sharedToolbarViewModel.updateToolbarInfo(currentFilterName, filteredTemples.size)
 
                     // Simplified progress bar logic - show if loading AND list is currently empty
                     binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0) View.VISIBLE else View.GONE
@@ -138,6 +166,76 @@ class PlacesFragment : Fragment() {
                 }
             }
         }
+        // --- NEW: Observer for SharedToolbarViewModel's title and initial SearchView query ---
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                sharedToolbarViewModel.uiState.collectLatest { toolbarState ->
+                    // Update the centered title
+                    val titleText = if (toolbarState.searchQuery.isBlank()) {
+                        // Example: "Places (150)"
+                        // Ensure you have R.string.toolbar_title_format = "%1$s (%2$d)"
+                        getString(R.string.toolbar_title_format, toolbarState.title, toolbarState.count)
+                    } else {
+                        // Example: "Search Results (10)"
+                        // Ensure you have R.string.toolbar_search_results_format = "Search Results (%1$d)"
+                        getString(R.string.toolbar_search_results_format, toolbarState.count)
+                    }
+                    binding.placesToolbarTitleCentered?.text = titleText // Use safe call as binding might be null during quick exit
+
+                    // Initialize SearchView text if it hasn't been set by user interaction yet
+                    // and if it differs from the ViewModel's state (e.g., on configuration change)
+                    if (binding.placesSearchView?.query?.toString() != toolbarState.searchQuery) {
+                        binding.placesSearchView?.setQuery(toolbarState.searchQuery, false)
+                    }
+                }
+            }
+        }
+
+        // --- NEW: Observer for NavigationViewModel to handle navigation to PlaceDetail ---
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                navigationViewModel.navigateToPlaceDetail.collectLatest { placeId: String? -> // Added : String?
+                    placeId?.let { nonNullPlaceId -> // Using a different name for clarity after null check
+                        Log.d("PlacesFragmentNav", "Observed navigation request for place ID: $nonNullPlaceId. Navigating.")
+                        try {
+                            // Ensure PlacesFragmentDirections is correctly generated and imported
+                            val action = PlacesFragmentDirections.actionPlacesFragmentToPlaceDetailFragment(nonNullPlaceId)
+                            findNavController().navigate(action)
+                        } catch (e: IllegalStateException) { // More specific exception
+                            Log.e("PlacesFragmentNav", "Navigation failed (IllegalStateException): ${e.message}. Current destination: ${findNavController().currentDestination?.label}", e)
+                        } catch (e: IllegalArgumentException) { // More specific exception
+                            Log.e("PlacesFragmentNav", "Navigation failed (IllegalArgumentException): ${e.message}. Check arguments or action ID.", e)
+                        } catch (e: Exception) { // Generic fallback
+                            Log.e("PlacesFragmentNav", "Navigation failed (Exception): ${e.message}", e)
+                        }
+                        navigationViewModel.onPlaceDetailNavigated()
+                    }
+                }
+            }
+        }
+
+    }
+
+    private fun setupToolbar() {
+        // Set the new toolbar as the support action bar
+        (activity as? AppCompatActivity)?.setSupportActionBar(binding.placesToolbar)
+        // The title is handled by the placesToolbarTitleCentered TextView,
+        // which is updated by observing sharedToolbarViewModel.uiState
+    }
+
+    private fun setupSearchViewListeners() {
+        binding.placesSearchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                sharedToolbarViewModel.setSearchQuery(query.orEmpty().trim())
+                binding.placesSearchView.clearFocus() // Optional: dismiss keyboard
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                sharedToolbarViewModel.setSearchQuery(newText.orEmpty().trim())
+                return true
+            }
+        })
     }
 
     private fun showUpdateDialog(details: UpdateDetails, onDismiss: () -> Unit) {
@@ -182,7 +280,10 @@ class PlacesFragment : Fragment() {
 
     private fun setupRecyclerView() {
         Log.d("PlacesFragment", "setupRecyclerView called")
-        templeAdapter = TempleAdapter() // Initialize your adapter
+        templeAdapter = TempleAdapter { temple ->
+            Log.d("PlacesFragmentNav", "Item clicked: ${temple.name}, ID: ${temple.id}. Requesting navigation via ViewModel.")
+            navigationViewModel.requestNavigationToPlaceDetail(temple.id) // <<<< CHANGE HERE
+        }
         binding.placesRecyclerView.apply {
             adapter = templeAdapter
             layoutManager = LinearLayoutManager(context)

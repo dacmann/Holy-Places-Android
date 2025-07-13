@@ -18,6 +18,7 @@ ksp = "2.2.0-2.0.2"
 room = "2.7.2"
 locationServices = "21.3.0"
 dataStorePref = "1.1.7"
+navVersion = "2.9.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -45,4 +46,5 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-symbol-processing-gradle = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+androidx-navigation-safeargs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navVersion" }
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/home_fragment_destination"
+        android:icon="@drawable/morningstar"
+        android:title="@string/title_home" />
+
+    <item
+        android:id="@+id/places_fragment_destination"
+        android:icon="@drawable/starofmelchizedek"
+        android:title="@string/tab_label_places" />
+
+    <!-- Add other items for your main navigation tabs if needed, e.g., Maps, Settings -->
+    <!-- <item
+        android:id="@+id/maps_fragment_destination"
+        android:icon="@drawable/ic_map"
+        android:title="@string/bottom_nav_title_maps" />
+    -->
+</menu>

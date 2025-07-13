@@ -2,6 +2,7 @@ package net.dacworld.android.holyplacesofthelord // Assuming this is your packag
 
 import android.app.Application
 import android.util.Log
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.ProcessLifecycleOwner // For observing app lifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ class MyApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         ProcessLifecycleOwner.get().lifecycleScope.launch {
             val isDataSeeded = userPreferencesManager.isInitialDataSeededFlow.first()
             if (!isDataSeeded) {

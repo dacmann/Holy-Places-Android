@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.places.PlacesFragment">
+    android:orientation="vertical"
+    tools:context=".ui.`TabsHostFragment.kt.backup`">
 
-    <!-- AppBarLayout migrated from fragment_tabs_host.xml -->
     <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/places_app_bar"
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/appBarBackgroundColor"
         android:theme="?attr/actionBarTheme">
 
         <androidx.appcompat.widget.Toolbar
-            android:id="@+id/places_toolbar"
+            android:id="@+id/toolbar_main_title"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:popupTheme="?attr/actionBarPopupTheme"
-            app:title=""> <!-- Clear default title to use the centered TextView -->
+            app:title=""> <!-- Clear default title -->
 
             <TextView
-                android:id="@+id/places_toolbar_title_centered"
+                android:id="@+id/toolbar_title_centered"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="@string/tab_label_places"
+                android:text="@string/app_name"
                 android:textAppearance="?attr/textAppearanceHeadline6"
                 android:textColor="?attr/appBarTextColor"
-                tools:text="Places" />
+                tools:text="Holy Places" />
         </androidx.appcompat.widget.Toolbar>
 
         <androidx.appcompat.widget.SearchView
-            android:id="@+id/places_search_view"
+            android:id="@+id/search_view_persistent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="8dp"
@@ -43,29 +43,21 @@
             app:queryHint="@string/search_hint" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- RecyclerView constrained to scroll under the AppBarLayout -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/placesRecyclerView"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        tools:listitem="@layout/item_temple" />
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
-    <!-- ProgressBar centered in the CoordinatorLayout -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
+        android:background="?attr/tabBarBackgroundColor"
+        app:tabIconTint="@color/tab_icon_color_selector_themed"
+        app:tabIndicatorColor="?attr/tabSelectedIconColor"
+        app:tabMode="fixed"
+        app:tabSelectedTextColor="?attr/tabSelectedTextColor"
+        app:tabTextColor="?attr/tabTextColor" />
 
-    <!-- EmptyView centered in the CoordinatorLayout -->
-    <TextView
-        android:id="@+id/emptyViewTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/no_places_found"
-        android:visibility="gone" />
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

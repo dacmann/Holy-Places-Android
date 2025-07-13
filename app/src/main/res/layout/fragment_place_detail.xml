@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    tools:context=".ui.places.PlaceDetailFragment">
+
+    <!-- Toolbar at the top -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/place_detail_toolbar"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:theme="?attr/actionBarTheme"
+        app:popupTheme="?attr/actionBarPopupTheme"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageView
+        android:id="@+id/imageViewTempleDetail"
+        android:layout_width="0dp"
+        android:layout_height="200dp"
+        android:scaleType="centerCrop"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:contentDescription="Place Image"
+        tools:src="@tools:sample/backgrounds/scenic"/>
+
+    <TextView
+        android:id="@+id/textViewFhCodeDetail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        app:layout_constraintTop_toBottomOf="@id/imageViewTempleDetail"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <TextView
+        android:id="@+id/textViewTempleNameDetail"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:gravity="center_horizontal"
+        android:textAppearance="?attr/textAppearanceHeadlineSmall"
+        app:layout_constraintTop_toBottomOf="@id/imageViewTempleDetail"
+        app:layout_constraintStart_toEndOf="@id/textViewFhCodeDetail"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/textViewSnippetDetail"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_horizontal"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        app:layout_constraintTop_toBottomOf="@id/textViewTempleNameDetail"
+        app:layout_constraintStart_toStartOf="@id/textViewTempleNameDetail"
+        app:layout_constraintEnd_toEndOf="@id/textViewTempleNameDetail"/>
+
+    <!-- Guideline to help separate address/phone from buttons -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_buttons_start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.60" />  <!-- Adjust percentage as needed -->
+
+    <!-- Bottom Aligned Address and Phone -->
+    <TextView
+        android:id="@+id/textViewPhoneDetail"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_start"
+        tools:text="(801) 240-4872" /> <!-- Example from Temple.phone -->
+
+    <TextView
+        android:id="@+id/textViewAddressDetail"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="4dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        app:layout_constraintBottom_toTopOf="@id/textViewPhoneDetail"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_start"
+        tools:text="50 W North Temple St, Salt Lake City, Utah" /> <!-- Example from Temple.address -->
+
+    <!-- Buttons Stacked on Bottom Right -->
+    <Button
+        android:id="@+id/buttonSchedule"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/schedule_button_text"
+        style="?attr/materialButtonOutlinedStyle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/guideline_buttons_start"
+        android:layout_marginStart="8dp"/>
+
+    <Button
+        android:id="@+id/buttonMoreInfo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/more_info_button_text"
+        style="?attr/materialButtonStyle"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/buttonSchedule"
+        app:layout_constraintEnd_toEndOf="@id/buttonSchedule"
+        app:layout_constraintStart_toStartOf="@id/buttonSchedule" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

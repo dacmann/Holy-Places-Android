@@ -11,7 +11,8 @@ import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.databinding.ItemTempleBinding // View Binding
 
-class TempleAdapter : ListAdapter<Temple, TempleAdapter.TempleViewHolder>(TempleDiffCallback()) {
+class TempleAdapter(private val onItemClicked: (Temple) -> Unit) :
+    ListAdapter<Temple, TempleAdapter.TempleViewHolder>(TempleDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TempleViewHolder {
         val binding = ItemTempleBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -22,17 +23,14 @@ class TempleAdapter : ListAdapter<Temple, TempleAdapter.TempleViewHolder>(Temple
         val currentTemple = getItem(position)
         Log.d("TempleAdapter", "onBindViewHolder - Position: $position, Temple: ${currentTemple?.name}") // <<< VERY IMPORTANT LOG
         holder.bind(currentTemple) // Assuming a bind method in ViewHolder
+        // Set the click listener on the item view
+        holder.itemView.setOnClickListener {
+            onItemClicked(currentTemple)
+        }
     }
 
     class TempleViewHolder(private val binding: ItemTempleBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(temple: Temple) {
-            if (temple == null) {
-                Log.e("TempleViewHolder", "bind() called with null temple!") // Should not happen with ListAdapter if DiffUtil is correct
-                binding.templeNameTextView.setTextColor(
-                    ContextCompat.getColor(binding.root.context, R.color.app_colorOnSurface)
-                )
-                return
-            }
 
             binding.templeNameTextView.text = temple.name
             binding.templeSnippetTextView.text = temple.snippet

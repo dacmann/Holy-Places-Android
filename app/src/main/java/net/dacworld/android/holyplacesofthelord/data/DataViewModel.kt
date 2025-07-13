@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel // Change to AndroidViewModel
+import androidx.lifecycle.distinctUntilChanged
 import androidx.lifecycle.viewModelScope
 import coil.Coil.imageLoader
 import coil.ImageLoader
