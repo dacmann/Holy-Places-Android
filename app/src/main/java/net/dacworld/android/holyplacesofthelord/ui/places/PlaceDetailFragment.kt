@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.ui.NavigationUI
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -50,16 +51,37 @@ class PlaceDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // ---Toolbar Setup START ---
-        val navController = findNavController()
-        // Define top-level destinations (if any) for AppBarConfiguration.
-        // For a detail screen, it's usually not a top-level destination.
-        // The NavController will use the nav graph to determine if the Up button should be shown.
-        val appBarConfiguration = AppBarConfiguration(navController.graph)
+        // Keep the view.post for initial setup if it helped the "navigate to" crash,
+        // or set up directly if that crash is no longer observed.
+        // For this specific test, let's try direct setup first to simplify.
+        // If the "navigate to" crash returns, we can re-add view.post around this.
 
-        // Assuming your toolbar ID in fragment_place_detail.xml is "place_detail_toolbar"
-        binding.placeDetailToolbar.setupWithNavController(navController, appBarConfiguration)
-        // --- Toolbar Setup END ---
+        val navController = findNavController()
+        // val appBarConfiguration = AppBarConfiguration(navController.graph) // Not strictly needed for manual Up
+
+        // 1. Set this fragment's toolbar as the SupportActionBar
+        (requireActivity() as AppCompatActivity).setSupportActionBar(binding.placeDetailToolbar)
+
+        // 2. Manually set the title to empty
+        (requireActivity() as AppCompatActivity).supportActionBar?.title = ""
+
+        // 3. Manually enable and handle the Up button
+        (requireActivity() as AppCompatActivity).supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        (requireActivity() as AppCompatActivity).supportActionBar?.setDisplayShowHomeEnabled(true)
+
+        binding.placeDetailToolbar.setNavigationOnClickListener {
+            // Option A: Simplest pop
+            // navController.popBackStack()
+
+            // Option B: More robust, like NavigationUI.navigateUp
+            // This takes into account if you're at the start destination of a nested graph.
+            // For a simple detail screen, popBackStack() is usually fine.
+            navController.navigateUp()
+        }
+
+        // REMOVE or COMMENT OUT:
+        // NavigationUI.setupWithNavController(binding.placeDetailToolbar, navController, appBarConfiguration)
+
 
         val templeId = args.templeId
         if (templeId.isNotEmpty()) {
@@ -91,8 +113,8 @@ class PlaceDetailFragment : Fragment() {
     }
 
     private fun bindTempleData(temple: Temple) {
-        // Set the toolbar title
-        (activity as? AppCompatActivity)?.supportActionBar?.title = temple.name
+        // Toolbar title is now handled in onViewCreated to ensure it's empty.
+        // Do NOT set (activity as? AppCompatActivity)?.supportActionBar?.title = temple.name here
 
         // Bind data to views, using IDs from fragment_place_detail.xml
         binding.textViewTempleNameDetail.text = temple.name

@@ -64,31 +64,53 @@ class PlacesFragment : Fragment() {
     // Keep track of active dialogs to prevent overlap if needed, though clearing the Flow source is primary
     private var isDialogShowing = false
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d("PlacesFragment", "LIFECYCLE: onCreate")
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        Log.d("PlacesFragment", "LIFECYCLE: onCreateView")
         _binding = FragmentPlacesBinding.inflate(inflater, container, false)
         return binding.root
     }
 
+    override fun onStart() {
+        super.onStart()
+        Log.d("PlacesFragment", "LIFECYCLE: onStart") // Add if not present
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("PlacesFragment", "LIFECYCLE: onResume") // Add if not present
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        Log.d("PlacesFragment", "LIFECYCLE: onViewCreated")
         // --- NEW: Call methods to setup Toolbar and SearchView ---
         setupToolbar()
         setupSearchViewListeners()
         // --- END NEW ---
         setupRecyclerView()
+        Log.d("PlacesFragment", "OBSERVER_SETUP: Starting main UI content observer setup (combine).") // <<<
 
         // Main observer for UI content (temples, loading state, search filtering)
         viewLifecycleOwner.lifecycleScope.launch {
+            Log.d("PlacesFragment", "OBSERVER_SETUP: Main UI content observer coroutine LAUNCHED.") // <<<
+
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                Log.d("PlacesFragment", "OBSERVER_SETUP: Main UI content observer REPEATING on STARTED.") // <<<
                 // Combine relevant flows:
                 combine(
                     dataViewModel.isLoading,  // StateFlow<Boolean>
                     dataViewModel.allTemples,   // StateFlow<List<Temple>>
                     sharedToolbarViewModel.uiState.map { it.searchQuery }.distinctUntilChanged() // Flow<String>
                 ) { isLoading: Boolean, temples: List<Temple>, searchQuery: String -> // Explicit types HERE
+                    Log.d("PlacesFragment", "Combine Triggered: isLoading=$isLoading, templesCount=${temples.size}, searchQuery='$searchQuery', templesInstance=${System.identityHashCode(temples)}")
                     val filteredTemples = if (searchQuery.isBlank()) {
                         temples
                     } else {
@@ -101,6 +123,7 @@ class PlacesFragment : Fragment() {
                             // If these fields can be null, use safe calls: temple.name?.contains(...) == true
                         }
                     }
+                    Log.i("PlacesFragment_COMBINE", "FILTERED_RESULT: filteredCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)})")
                     // --- MODIFIED PART within the combine block ---
                     // Determine the title based on search state
                     val currentScreenTitle = if (searchQuery.isBlank()) {
@@ -111,11 +134,13 @@ class PlacesFragment : Fragment() {
                     }
                     // Update the SharedToolbarViewModel with this title and count
                     // This call was already here, ensure it uses the determined title
+                    Log.i("PlacesFragment_COMBINE", "FILTERED: filteredCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)})")
                     sharedToolbarViewModel.updateToolbarInfo(currentScreenTitle, filteredTemples.size)
                     // --- END MODIFIED PART ---
 
                     Triple(isLoading, filteredTemples, searchQuery)
                 }.collectLatest { (isLoading: Boolean, filteredTemples: List<Temple>, searchQuery: String) -> // Explicit types also good here
+                    Log.w("PlacesFragment_COLLECT", "RECEIVED_FOR_UI: listCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)}), isLoading=$isLoading, searchQuery='$searchQuery'")
                     val currentFilterName = if (searchQuery.isBlank()) "All Places" else "Search Results"
                     Log.d(
                         "PlacesFragment",
@@ -127,7 +152,11 @@ class PlacesFragment : Fragment() {
                     // Simplified progress bar logic - show if loading AND list is currently empty
                     binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0) View.VISIBLE else View.GONE
 
-                    templeAdapter.submitList(filteredTemples.toList())
+                    val listToSubmit = filteredTemples.toList() // Your existing .toList() call
+                    Log.w("PlacesFragment_SUBMIT", "PREP_FOR_ADAPTER: listToSubmitCount=${listToSubmit.size} (ID: ${System.identityHashCode(listToSubmit)})")
+                    Log.w("PlacesFragment_SUBMIT", "CALLING submitList with ${listToSubmit.size} items.")
+
+                    templeAdapter.submitList(listToSubmit)
                     if (filteredTemples.isEmpty() && !isLoading) { // Only show empty view if not loading and list is empty
                         binding.placesRecyclerView.visibility = View.GONE
                         binding.emptyViewTextView.visibility = View.VISIBLE
@@ -285,8 +314,10 @@ class PlacesFragment : Fragment() {
             navigationViewModel.requestNavigationToPlaceDetail(temple.id) // <<<< CHANGE HERE
         }
         binding.placesRecyclerView.apply {
+            Log.d("PlacesFragment", "setupRecyclerView: Configuring RecyclerView.") // <<< ADDED
             adapter = templeAdapter
             layoutManager = LinearLayoutManager(context)
+            itemAnimator = null
             Log.d("PlacesFragment", "RecyclerView adapter and layoutManager set.")
             // --- Add Divider Item Decoration START ---
             val dividerItemDecoration = DividerItemDecoration(
@@ -298,10 +329,22 @@ class PlacesFragment : Fragment() {
         }
     }
 
+    override fun onPause() { // Added onPause
+        super.onPause()
+        Log.d("PlacesFragment", "LIFECYCLE: onPause")
+    }
+
+    override fun onStop() { // Added onStop
+        super.onStop()
+        Log.d("PlacesFragment", "LIFECYCLE: onStop")
+    }
+
     override fun onDestroyView() {
+        Log.d("PlacesFragment", "LIFECYCLE: onDestroyView") // Added log
         super.onDestroyView()
         binding.placesRecyclerView.adapter = null // Recommended to clear adapter
         _binding = null
+        Log.d("PlacesFragment", "LIFECYCLE: _binding and RecyclerView adapter set to null.") // Added log
         isDialogShowing = false // Reset flag
     }
 }
