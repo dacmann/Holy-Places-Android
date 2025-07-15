@@ -6,6 +6,7 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // If using the traditional splash screen method, you might have setTheme() here
         // For example: setTheme(R.style.AppTheme) // Switch from splash theme to main app theme
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)

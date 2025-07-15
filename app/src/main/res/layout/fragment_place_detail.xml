@@ -27,25 +27,36 @@
         android:id="@+id/content_constraint_layout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="16dp">
+        android:layout_weight="1">
+        <!-- Padding removed from here -->
 
         <ImageView
             android:id="@+id/imageViewTempleDetail"
             android:layout_width="0dp"
-            android:layout_height="200dp"
-            android:scaleType="centerCrop"
-            android:contentDescription="@string/temple_image_description"
+            android:layout_height="0dp"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/guideline_image_bottom"
+            app:layout_constraintVertical_bias="0.0"
+            android:contentDescription="@string/temple_image_description"
             tools:src="@drawable/default_placeholder_image"/>
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline_image_bottom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.40" />
 
         <TextView
             android:id="@+id/textViewFhCodeDetail"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             app:layout_constraintTop_toBottomOf="@id/imageViewTempleDetail"
             app:layout_constraintStart_toStartOf="parent"
@@ -57,6 +68,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:layout_marginStart="8dp"
+            android:layout_marginEnd="16dp"
             android:gravity="center_horizontal"
             android:textAppearance="?attr/textAppearanceHeadlineSmall"
             app:layout_constraintTop_toBottomOf="@id/imageViewTempleDetail"
@@ -69,6 +81,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
             android:gravity="center_horizontal"
             android:textAppearance="?attr/textAppearanceBodyLarge"
             app:layout_constraintTop_toBottomOf="@id/textViewTempleNameDetail"
@@ -81,20 +95,25 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="4dp"
+            android:layout_marginStart="16dp"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             app:layout_constraintBottom_toTopOf="@id/textViewPhoneDetail"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_start"
+            android:layout_marginEnd="8dp"
             tools:text="50 W North Temple St, Salt Lake City, Utah"/>
 
         <TextView
             android:id="@+id/textViewPhoneDetail"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_start"
+            android:layout_marginEnd="8dp"
             tools:text="(801) 240-4872"/>
 
         <Button
@@ -106,7 +125,9 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@+id/guideline_buttons_start"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginStart="8dp"/>
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"/>
 
         <Button
             android:id="@+id/buttonMoreInfo"
@@ -117,7 +138,8 @@
             android:text="@string/more_info_button_text"
             app:layout_constraintBottom_toTopOf="@+id/buttonSchedule"
             app:layout_constraintStart_toStartOf="@id/buttonSchedule"
-            app:layout_constraintEnd_toEndOf="@id/buttonSchedule"/>
+            app:layout_constraintEnd_toEndOf="@id/buttonSchedule"
+            /> <!-- This button will inherit start/end margins from buttonSchedule due to constraints -->
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline_buttons_start"

@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +13,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.ui.NavigationUI
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -27,6 +31,7 @@ import net.dacworld.android.holyplacesofthelord.data.DataViewModel
 import net.dacworld.android.holyplacesofthelord.data.DataViewModelFactory
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentPlaceDetailBinding // Correct binding class
 import net.dacworld.android.holyplacesofthelord.model.Temple
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class PlaceDetailFragment : Fragment() {
 
@@ -70,17 +75,59 @@ class PlaceDetailFragment : Fragment() {
         (requireActivity() as AppCompatActivity).supportActionBar?.setDisplayShowHomeEnabled(true)
 
         binding.placeDetailToolbar.setNavigationOnClickListener {
-            // Option A: Simplest pop
-            // navController.popBackStack()
-
-            // Option B: More robust, like NavigationUI.navigateUp
-            // This takes into account if you're at the start destination of a nested graph.
-            // For a simple detail screen, popBackStack() is usually fine.
             navController.navigateUp()
         }
 
-        // REMOVE or COMMENT OUT:
-        // NavigationUI.setupWithNavController(binding.placeDetailToolbar, navController, appBarConfiguration)
+        // <<<<<<<<<<<< START: ADD INSET HANDLING CODE HERE >>>>>>>>>>>>>>>>
+        // The view that needs padding. This should be the container of your
+        // content that is getting obscured. binding.contentConstraintLayout seems
+        // appropriate from your fragment_place_detail.xml.
+        val contentViewToPad = binding.root
+
+        // THE ONE AND ONLY LISTENER ATTACHMENT
+        ViewCompat.setOnApplyWindowInsetsListener(contentViewToPad) { v, insets ->
+            // ALL YOUR ORIGINAL LISTENER LOGIC AND PADDING CODE GOES HERE
+
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            var desiredBottomPadding = systemBars.bottom
+
+            val activityRootView = requireActivity().window.decorView
+            val bottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
+
+            if (bottomNavView != null) {if (bottomNavView.visibility == View.VISIBLE) {
+                    desiredBottomPadding += bottomNavView.height // This is the part that might need the fixed dimen later
+                }
+            } else {
+                Log.d("PlaceDetailFragmentInsets", "BottomNavView not found!")
+            }
+
+            desiredBottomPadding = kotlin.math.max(desiredBottomPadding, ime.bottom)
+            Log.d("PlaceDetailFragmentInsets", "Final Desired Bottom Padding: $desiredBottomPadding")
+
+            v.updatePadding(
+                left = systemBars.left,
+                right = systemBars.right,
+                bottom = desiredBottomPadding
+            )
+            Log.d("PlaceDetailFragmentInsets", "Applied Padding: Left=${v.paddingLeft}, Top=${v.paddingTop}, Right=${v.paddingRight}, Bottom=${v.paddingBottom}")
+
+            insets // Return insets
+        }
+        // Request insets to be applied initially.
+        if (contentViewToPad.isAttachedToWindow) {
+            ViewCompat.requestApplyInsets(contentViewToPad)
+        } else {
+            contentViewToPad.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    v.removeOnAttachStateChangeListener(this)
+                    ViewCompat.requestApplyInsets(v)
+                }
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+        }
+        Log.d("PlaceDetailFragmentInsets", "Finished setting up inset handling.")
+        // <<<<<<<<<<<< END: ADD INSET HANDLING CODE HERE >>>>>>>>>>>>>>>>
 
 
         val templeId = args.templeId
@@ -127,14 +174,12 @@ class PlaceDetailFragment : Fragment() {
         when {
             temple.pictureData != null -> {
                 binding.imageViewTempleDetail.load(temple.pictureData) {
-                    crossfade(true)
                     placeholder(R.drawable.default_placeholder_image) // Provide your placeholder
                     error(R.drawable.default_placeholder_image)     // Provide your error drawable
                 }
             }
             temple.pictureUrl.isNotBlank() -> {
                 binding.imageViewTempleDetail.load(temple.pictureUrl) {
-                    crossfade(true)
                     placeholder(R.drawable.default_placeholder_image)
                     error(R.drawable.default_placeholder_image)
                 }
