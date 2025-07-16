@@ -32,6 +32,109 @@
         <item name="toolbarNavigationButtonStyle">@style/Widget.AppCompat.Toolbar.Button.Navigation</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
 
+        <!-- >>>>>>>>>> ADD FONT CUSTOMIZATION HERE <<<<<<<<<< -->
+
+        <!-- 1. Define your app-specific font family attribute -->
+        <item name="fontFamilyApp">@font/baskerville_font_family</item>
+        <!-- Assuming your font family XML is baskerville_font_family.xml -->
+
+        <!-- 2. Apply it as the default font family -->
+        <!-- For Material Components, it's good to target specific text appearances -->
+        <!-- And also set the general android:fontFamily -->
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+
+        <!-- 3. Override Material Components Text Appearances -->
+        <!-- These ensure that Material Components use your font. -->
+        <!-- You might not need all of them, but these are common ones. -->
+        <item name="textAppearanceHeadline1">@style/TextAppearance.App.Headline1</item>
+        <item name="textAppearanceHeadline2">@style/TextAppearance.App.Headline2</item>
+        <item name="textAppearanceHeadline3">@style/TextAppearance.App.Headline3</item>
+        <item name="textAppearanceHeadline4">@style/TextAppearance.App.Headline4</item>
+        <item name="textAppearanceHeadline5">@style/TextAppearance.App.Headline5</item>
+        <item name="textAppearanceHeadline6">@style/TextAppearance.App.Headline6</item>
+        <item name="textAppearanceSubtitle1">@style/TextAppearance.App.Subtitle1</item>
+        <item name="textAppearanceSubtitle2">@style/TextAppearance.App.Subtitle2</item>
+        <item name="textAppearanceBody1">@style/TextAppearance.App.Body1</item>
+        <item name="textAppearanceBody2">@style/TextAppearance.App.Body2</item>
+        <item name="textAppearanceButton">@style/TextAppearance.App.Button</item>
+        <item name="textAppearanceCaption">@style/TextAppearance.App.Caption</item>
+        <item name="textAppearanceOverline">@style/TextAppearance.App.Overline</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.App.HeadlineSmall</item> <!-- Corresponds to ?attr/textAppearanceHeadlineSmall -->
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.App.BodyLarge</item>     <!-- Corresponds to ?attr/textAppearanceBodyLarge -->
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.App.BodyMedium</item>   <!-- Corresponds to ?attr/textAppearanceBodyMedium -->
+
+
+    </style>
+
+    <!-- >>>>>>>>>> DEFINE YOUR CUSTOM TEXT APPEARANCES HERE <<<<<<<<<< -->
+    <!-- Make sure these parent from the correct MaterialComponents text appearances -->
+    <style name="TextAppearance.App.Headline1" parent="TextAppearance.MaterialComponents.Headline1">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Headline2" parent="TextAppearance.MaterialComponents.Headline2">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Headline3" parent="TextAppearance.MaterialComponents.Headline3">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Headline4" parent="TextAppearance.MaterialComponents.Headline4">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Headline5" parent="TextAppearance.MaterialComponents.Headline5">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Headline6" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Subtitle1" parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Subtitle2" parent="TextAppearance.MaterialComponents.Subtitle2">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Body1" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Body2" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Button" parent="TextAppearance.MaterialComponents.Button">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+        <!-- You might want to ensure buttons use a specific weight if your font family supports it, e.g. -->
+        <!-- <item name="android:textStyle">bold</item> -->
+    </style>
+    <style name="TextAppearance.App.Caption" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.Overline" parent="TextAppearance.MaterialComponents.Overline">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.HeadlineSmall" parent="TextAppearance.MaterialComponents.HeadlineSmall">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+
+    <style name="TextAppearance.App.BodyLarge" parent="TextAppearance.MaterialComponents.BodyLarge">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+
+    <style name="TextAppearance.App.BodyMedium" parent="TextAppearance.MaterialComponents.BodyMedium">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
     </style>
     <!-- ADDED: Custom Material Alert Dialog Theme -->
     <style name="AppTheme.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">

@@ -9,6 +9,7 @@
     <attr name="tabSelectedIconColor" format="color|reference" />
     <attr name="searchViewBackgroundColor" format="color|reference" />
     <attr name="searchViewStrokeColor" format="color|reference" />
+    <attr name="fontFamilyApp" format="reference" />
     <!-- Add any other custom attributes you've defined in your theme -->
 </resources>
     
