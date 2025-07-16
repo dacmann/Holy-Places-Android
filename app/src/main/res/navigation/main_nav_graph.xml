@@ -8,9 +8,9 @@
     <!-- HomeFragment: Linked to the first item in your BottomNavigationView -->
     <fragment
         android:id="@+id/home_fragment_destination"
-    android:name="net.dacworld.android.holyplacesofthelord.ui.home.HomeFragment"
-    android:label="@string/title_home"
-    tools:layout="@layout/fragment_home" />
+        android:name="net.dacworld.android.holyplacesofthelord.ui.home.HomeFragment"
+        android:label="@string/title_home"
+        tools:layout="@layout/fragment_home" />
 
     <!-- PlacesFragment: Linked to the second item in your BottomNavigationView -->
     <fragment

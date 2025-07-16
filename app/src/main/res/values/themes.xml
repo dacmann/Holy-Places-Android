@@ -1,16 +1,41 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.HolyPlacesOfTheLord" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.HolyPlacesOfTheLord" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/BaptismBlue</item>
-        <item name="colorPrimaryVariant">@color/t1_temples</item>
         <item name="colorOnPrimary">@color/white</item>
 
-        <!-- Standard Material Semantic Colors -->
+        <item name="colorPrimaryContainer">@color/app_colorBackground</item>
+        <item name="colorOnPrimaryContainer">@color/app_colorOnBackground</item>
+
+        <!-- M3 Secondary Colors - Let's use neutral or derive from primary for now -->
+        <item name="colorSecondary">@color/BaptismBlue</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/app_colorSurface</item>
+        <item name="colorOnSecondaryContainer">@color/app_colorOnSurface</item>
+
+        <!-- M3 Tertiary Colors - Optional, can be similar to secondary or more neutrals -->
+        <item name="colorTertiary">@color/BaptismBlue</item>
+        <item name="colorOnTertiary">@color/white</item>
+        <item name="colorTertiaryContainer">@color/app_colorSurface</item>
+        <item name="colorOnTertiaryContainer">@color/app_colorOnSurface</item>
+
+        <!-- M3 Error Colors - Define these in colors.xml if they don't exist -->
+        <!-- <item name="colorError">@color/my_error_red</item> -->
+        <!-- <item name="colorOnError">@color/white</item> -->
+        <!-- <item name="colorErrorContainer">@color/my_error_red_light</item> -->
+        <!-- <item name="colorOnErrorContainer">@color/my_error_red_dark</item> -->
+        <!-- If not defined, Material3 themes have sensible defaults for error colors -->
+
+        <!-- M3 Background and Surface Colors -->
         <item name="android:colorBackground">@color/app_colorBackground</item>
-        <item name="colorSurface">@color/app_colorSurface</item>
         <item name="colorOnBackground">@color/app_colorOnBackground</item>
+        <item name="colorSurface">@color/app_colorSurface</item>
         <item name="colorOnSurface">@color/app_colorOnSurface</item>
+        <!-- For SurfaceVariant, let's use a slightly modified surface or same as surface for now -->
+        <item name="colorSurfaceVariant">@color/app_colorSurface</item> <!-- Adjust if you want a subtle difference -->
+        <item name="colorOnSurfaceVariant">@color/app_colorOnSurface</item>
+        <item name="colorOutline">@color/search_view_stroke_color</item>
 
         <!-- Status bar color (Light Theme specific part) -->
         <item name="android:statusBarColor">@color/app_bar_background_color</item>
@@ -27,117 +52,102 @@
         <item name="searchViewBackgroundColor">@color/search_view_background_color</item>
         <item name="searchViewStrokeColor">@color/search_view_stroke_color</item>
 
-        <!-- Theme Overlays for Toolbar -->
-        <item name="actionBarTheme">@style/ThemeOverlay.AppCompat.Light</item>
-        <item name="toolbarNavigationButtonStyle">@style/Widget.AppCompat.Toolbar.Button.Navigation</item>
-        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <!-- Theme Overlays for Toolbar - Review if these are still M3 compatible or needed -->
+        <!-- M3 toolbars style themselves well from the main theme usually -->
+<!--        <item name="actionBarTheme">@style/ThemeOverlay.AppCompat.Light</item>-->
+<!--        <item name="toolbarNavigationButtonStyle">@style/Widget.AppCompat.Toolbar.Button.Navigation</item>-->
+<!--        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>-->
 
         <!-- >>>>>>>>>> ADD FONT CUSTOMIZATION HERE <<<<<<<<<< -->
 
         <!-- 1. Define your app-specific font family attribute -->
         <item name="fontFamilyApp">@font/baskerville_font_family</item>
-        <!-- Assuming your font family XML is baskerville_font_family.xml -->
 
-        <!-- 2. Apply it as the default font family -->
-        <!-- For Material Components, it's good to target specific text appearances -->
-        <!-- And also set the general android:fontFamily -->
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-
-        <!-- 3. Override Material Components Text Appearances -->
-        <!-- These ensure that Material Components use your font. -->
-        <!-- You might not need all of them, but these are common ones. -->
-        <item name="textAppearanceHeadline1">@style/TextAppearance.App.Headline1</item>
-        <item name="textAppearanceHeadline2">@style/TextAppearance.App.Headline2</item>
-        <item name="textAppearanceHeadline3">@style/TextAppearance.App.Headline3</item>
-        <item name="textAppearanceHeadline4">@style/TextAppearance.App.Headline4</item>
-        <item name="textAppearanceHeadline5">@style/TextAppearance.App.Headline5</item>
-        <item name="textAppearanceHeadline6">@style/TextAppearance.App.Headline6</item>
-        <item name="textAppearanceSubtitle1">@style/TextAppearance.App.Subtitle1</item>
-        <item name="textAppearanceSubtitle2">@style/TextAppearance.App.Subtitle2</item>
-        <item name="textAppearanceBody1">@style/TextAppearance.App.Body1</item>
-        <item name="textAppearanceBody2">@style/TextAppearance.App.Body2</item>
-        <item name="textAppearanceButton">@style/TextAppearance.App.Button</item>
-        <item name="textAppearanceCaption">@style/TextAppearance.App.Caption</item>
-        <item name="textAppearanceOverline">@style/TextAppearance.App.Overline</item>
-        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.App.HeadlineSmall</item> <!-- Corresponds to ?attr/textAppearanceHeadlineSmall -->
-        <item name="textAppearanceBodyLarge">@style/TextAppearance.App.BodyLarge</item>     <!-- Corresponds to ?attr/textAppearanceBodyLarge -->
-        <item name="textAppearanceBodyMedium">@style/TextAppearance.App.BodyMedium</item>   <!-- Corresponds to ?attr/textAppearanceBodyMedium -->
-
+        <!-- Override M3 Text Appearances -->
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.App.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.App.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.App.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.App.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.App.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.App.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.App.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.App.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.App.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.App.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.App.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.App.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.App.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.App.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.App.LabelSmall</item>
 
     </style>
-
     <!-- >>>>>>>>>> DEFINE YOUR CUSTOM TEXT APPEARANCES HERE <<<<<<<<<< -->
-    <!-- Make sure these parent from the correct MaterialComponents text appearances -->
-    <style name="TextAppearance.App.Headline1" parent="TextAppearance.MaterialComponents.Headline1">
+    <style name="TextAppearance.App.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge">
         <item name="fontFamily">?attr/fontFamilyApp</item>
         <item name="android:fontFamily">?attr/fontFamilyApp</item>
     </style>
-    <style name="TextAppearance.App.Headline2" parent="TextAppearance.MaterialComponents.Headline2">
+    <style name="TextAppearance.App.DisplayMedium" parent="TextAppearance.Material3.DisplayMedium">
         <item name="fontFamily">?attr/fontFamilyApp</item>
         <item name="android:fontFamily">?attr/fontFamilyApp</item>
     </style>
-    <style name="TextAppearance.App.Headline3" parent="TextAppearance.MaterialComponents.Headline3">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Headline4" parent="TextAppearance.MaterialComponents.Headline4">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Headline5" parent="TextAppearance.MaterialComponents.Headline5">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Headline6" parent="TextAppearance.MaterialComponents.Headline6">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Subtitle1" parent="TextAppearance.MaterialComponents.Subtitle1">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Subtitle2" parent="TextAppearance.MaterialComponents.Subtitle2">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Body1" parent="TextAppearance.MaterialComponents.Body1">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Body2" parent="TextAppearance.MaterialComponents.Body2">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Button" parent="TextAppearance.MaterialComponents.Button">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-        <!-- You might want to ensure buttons use a specific weight if your font family supports it, e.g. -->
-        <!-- <item name="android:textStyle">bold</item> -->
-    </style>
-    <style name="TextAppearance.App.Caption" parent="TextAppearance.MaterialComponents.Caption">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.Overline" parent="TextAppearance.MaterialComponents.Overline">
-        <item name="fontFamily">?attr/fontFamilyApp</item>
-        <item name="android:fontFamily">?attr/fontFamilyApp</item>
-    </style>
-    <style name="TextAppearance.App.HeadlineSmall" parent="TextAppearance.MaterialComponents.HeadlineSmall">
+    <style name="TextAppearance.App.DisplaySmall" parent="TextAppearance.Material3.DisplaySmall">
         <item name="fontFamily">?attr/fontFamilyApp</item>
         <item name="android:fontFamily">?attr/fontFamilyApp</item>
     </style>
 
-    <style name="TextAppearance.App.BodyLarge" parent="TextAppearance.MaterialComponents.BodyLarge">
+    <style name="TextAppearance.App.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.HeadlineSmall" parent="TextAppearance.Material3.HeadlineSmall">
         <item name="fontFamily">?attr/fontFamilyApp</item>
         <item name="android:fontFamily">?attr/fontFamilyApp</item>
     </style>
 
-    <style name="TextAppearance.App.BodyMedium" parent="TextAppearance.MaterialComponents.BodyMedium">
+    <style name="TextAppearance.App.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+
+    <style name="TextAppearance.App.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.BodySmall" parent="TextAppearance.Material3.BodySmall">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+
+    <style name="TextAppearance.App.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.LabelMedium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+    </style>
+    <style name="TextAppearance.App.LabelSmall" parent="TextAppearance.Material3.LabelSmall">
         <item name="fontFamily">?attr/fontFamilyApp</item>
         <item name="android:fontFamily">?attr/fontFamilyApp</item>
     </style>
     <!-- ADDED: Custom Material Alert Dialog Theme -->
-    <style name="AppTheme.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+    <style name="AppTheme.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <!-- This will apply to the text of the positive button -->
         <item name="buttonBarPositiveButtonStyle">@style/AppTheme.DialogButton.BaptismBlue</item>
 
@@ -147,18 +157,23 @@
         -->
     </style>
 
-    <!-- ADDED: Custom Style for the Dialog Button using BaptismBlue -->
-    <style name="AppTheme.DialogButton.BaptismBlue" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+    <!-- Review AppTheme.DialogButton.BaptismBlue, M3 dialog buttons are styled by Widget.Material3.Button.TextButton.Dialog -->
+    <style name="AppTheme.DialogButton.BaptismBlue" parent="Widget.Material3.Button.TextButton.Dialog">
         <item name="android:textColor">@color/BaptismBlue</item>
-        <item name="rippleColor">@color/BaptismBlue</item> <!-- Use BaptismBlue for ripple too, or a lighter/alpha version -->
-        <!-- Ensure background is transparent for a text button look -->
-        <item name="android:background">@android:color/transparent</item>
-        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="rippleColor">@color/BaptismBlue</item> <!-- Adjust alpha for ripple -->
+        <!-- backgroundTint is often not needed for M3 text buttons as they are transparent by default -->
     </style>
-    <style name="MyCustomTabTextAppearance" parent="TextAppearance.Design.Tab">
-        <item name="android:fontFamily">@font/baskerville</item>
-        <item name="android:textSize">14sp</item>
-        <item name="textAllCaps">false</item>
-        <!-- Add other attributes like android:textColor, android:textStyle if needed -->
-    </style>
+<!--    <style name="AppTheme.DialogButton.BaptismBlue" parent="Widget.MaterialComponents.Button.TextButton.Dialog">-->
+<!--        <item name="android:textColor">@color/BaptismBlue</item>-->
+<!--        <item name="rippleColor">@color/BaptismBlue</item> &lt;!&ndash; Use BaptismBlue for ripple too, or a lighter/alpha version &ndash;&gt;-->
+<!--        &lt;!&ndash; Ensure background is transparent for a text button look &ndash;&gt;-->
+<!--        <item name="android:background">@android:color/transparent</item>-->
+<!--        <item name="backgroundTint">@android:color/transparent</item>-->
+<!--    </style>-->
+<!--    <style name="MyCustomTabTextAppearance" parent="TextAppearance.Design.Tab">-->
+<!--        <item name="android:fontFamily">@font/baskerville</item>-->
+<!--        <item name="android:textSize">14sp</item>-->
+<!--        <item name="textAllCaps">false</item>-->
+<!--        &lt;!&ndash; Add other attributes like android:textColor, android:textStyle if needed &ndash;&gt;-->
+<!--    </style>-->
 </resources>

@@ -1,11 +1,14 @@
 package net.dacworld.android.holyplacesofthelord
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -14,6 +17,7 @@ import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.NavigationUI
 import androidx.navigation.ui.setupWithNavController
+import com.google.android.material.shape.MaterialShapeDrawable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.data.DataViewModel
@@ -38,6 +42,20 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // force the background of the bottom nav bar to not be tinted
+        val bottomNav = binding.mainBottomNavigation
+        val bottomNavBackground = bottomNav.background
+        if (bottomNavBackground is MaterialShapeDrawable) {
+            val resolvedAppColorSurface = ContextCompat.getColor(this, R.color.app_colorSurface)
+            bottomNavBackground.fillColor = ColorStateList.valueOf(resolvedAppColorSurface)
+            bottomNavBackground.setTintList(ColorStateList.valueOf(resolvedAppColorSurface))
+            bottomNavBackground.elevation = 0f
+            bottomNav.invalidate() // Request a redraw
+        } else {
+            Log.w("MainActivity", "BottomNavigationView background is not a MaterialShapeDrawable. Current background: ${bottomNavBackground?.javaClass?.name}")
+        }
+
 
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment_activity_main) as NavHostFragment

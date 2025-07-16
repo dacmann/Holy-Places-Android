@@ -1,26 +1,62 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.HolyPlacesOfTheLord" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.HolyPlacesOfTheLord" parent="Theme.Material3.Dark.NoActionBar">
+
+        <!-- M3 Color Role Mappings -->
+        <item name="colorPrimary">@color/BaptismBlue</item> <!-- Resolves to values-night/colors.xml version -->
+        <item name="colorOnPrimary">@color/app_bar_text_color</item>
+        <item name="colorPrimaryContainer">@color/app_bar_background_color</item>
+        <item name="colorOnPrimaryContainer">@color/app_bar_text_color</item>
+
+        <item name="colorSecondary">@color/t1_temples</item> <!-- Resolves to values-night/colors.xml version -->
+        <item name="colorOnSecondary">@color/app_bar_text_color</item>
+        <item name="colorSecondaryContainer">@color/search_view_background_color</item>
+        <item name="colorOnSecondaryContainer">@color/tab_bar_text_color</item>
+
+        <!-- Define error colors in values-night/colors.xml and reference them here -->
+        <!-- <item name="colorError">@color/my_dark_error_red</item> -->
+        <!-- ... -->
+
+        <item name="android:colorBackground">@color/app_colorBackground</item> <!-- Resolves to values-night version -->
+        <item name="colorOnBackground">@color/app_colorOnBackground</item> <!-- Resolves to values-night version -->
+        <item name="colorSurface">@color/app_bar_background_color</item>
+        <item name="colorOnSurface">@color/app_bar_text_color</item>
+        <item name="colorSurfaceVariant">@color/tab_bar_background_color</item>
+        <item name="colorOnSurfaceVariant">@color/tab_bar_text_color</item>
+        <item name="colorOutline">@color/search_view_stroke_color</item>
 
         <!-- Status bar color for dark mode -->
-        <item name="android:statusBarColor">@color/app_bar_background_color</item> <!-- Match app bar (dark version) -->
-        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item> <!-- Dark status bar icons are light -->
+        <!-- M3 themes often handle this via colorSurface. If this doesn't work as expected, uncomment: -->
+        <!-- <item name="android:statusBarColor">@color/app_bar_background_color</item> -->
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
 
-        <!-- Theme for the AppBar itself to ensure light text/icons on dark background -->
+        <!-- Custom attributes - Review if needed after M3 components adopt above roles -->
         <item name="appBarBackgroundColor">@color/app_bar_background_color</item>
         <item name="appBarTextColor">@color/app_bar_text_color</item>
         <item name="tabBarBackgroundColor">@color/tab_bar_background_color</item>
         <item name="tabTextColor">@color/tab_bar_text_color</item>
         <item name="tabSelectedTextColor">@color/tab_bar_selected_text_color</item>
-        <item name="tabIconColor">@color/tab_bar_text_color</item> <!-- Or a specific tab_icon_color_dark -->
-        <item name="tabSelectedIconColor">@color/tab_bar_selected_text_color</item> <!-- Or a specific tab_selected_icon_color_dark -->
+        <item name="tabIconColor">@color/tab_bar_text_color</item>
+        <item name="tabSelectedIconColor">@color/tab_bar_selected_text_color</item>
         <item name="searchViewBackgroundColor">@color/search_view_background_color</item>
         <item name="searchViewStrokeColor">@color/search_view_stroke_color</item>
 
-        <!-- Theme for the AppBar itself to ensure light text/icons on dark background -->
-        <item name="actionBarTheme">@style/ThemeOverlay.AppCompat.Dark.ActionBar</item>
-        <item name="toolbarNavigationButtonStyle">@style/Widget.AppCompat.Toolbar.Button.Navigation</item>
-        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Dark</item>
+        <!-- M3 Typography Overrides -->
+        <item name="fontFamilyApp">@font/baskerville_font_family</item>
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.App.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.App.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.App.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.App.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.App.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.App.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.App.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.App.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.App.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.App.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.App.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.App.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.App.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.App.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.App.LabelSmall</item>
 
     </style>
 </resources>
