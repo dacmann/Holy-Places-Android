@@ -247,9 +247,12 @@ class PlacesFragment : Fragment() {
 
     private fun setupToolbar() {
         // Set the new toolbar as the support action bar
-        (activity as? AppCompatActivity)?.setSupportActionBar(binding.placesToolbar)
+        val appCompatActivity = (activity as? AppCompatActivity)
+        appCompatActivity?.setSupportActionBar(binding.placesToolbar)
         // The title is handled by the placesToolbarTitleCentered TextView,
         // which is updated by observing sharedToolbarViewModel.uiState
+        appCompatActivity?.supportActionBar?.title = "" // Clear title on the new action bar
+        appCompatActivity?.supportActionBar?.subtitle = "" // Clear subtitle too, just in case
     }
 
     private fun setupSearchViewListeners() {

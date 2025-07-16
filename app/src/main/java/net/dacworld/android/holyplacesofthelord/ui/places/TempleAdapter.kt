@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.databinding.ItemTempleBinding // View Binding
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils // Import ColorUtils
 
 class TempleAdapter(private val onItemClicked: (Temple) -> Unit) :
     ListAdapter<Temple, TempleAdapter.TempleViewHolder>(TempleDiffCallback()) {
@@ -31,27 +32,12 @@ class TempleAdapter(private val onItemClicked: (Temple) -> Unit) :
 
     class TempleViewHolder(private val binding: ItemTempleBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(temple: Temple) {
-
             binding.templeNameTextView.text = temple.name
             binding.templeSnippetTextView.text = temple.snippet
 
-            // --- Logic to change text color based on temple.type (String from Firestore) ---
-            val context = binding.root.context
-
-            // Using the single character codes from your Swift project
-            val nameColor = when (temple.type) { // temple.type is a String like "T", "H", etc.
-                "T" -> ContextCompat.getColor(context, R.color.t1_temples)
-                "H" -> ContextCompat.getColor(context, R.color.t1_historic_site)
-                "A" -> ContextCompat.getColor(context, R.color.t1_announced_temples)
-                "C" -> ContextCompat.getColor(context, R.color.t1_under_construction)
-                "V" -> ContextCompat.getColor(context, R.color.t1_visitors_centers)
-                else -> {
-                    Log.w("TempleViewHolder", "Unknown temple type code: '${temple.type}' for temple: ${temple.name}")
-                    ContextCompat.getColor(context, R.color.app_colorOnSurface)
-                }
-            }
+            // Use the helper function
+            val nameColor = ColorUtils.getTextColorForTempleType(binding.root.context, temple.type)
             binding.templeNameTextView.setTextColor(nameColor)
-            // --- End of color change logic ---
         }
     }
 }

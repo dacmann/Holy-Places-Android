@@ -32,6 +32,7 @@ import net.dacworld.android.holyplacesofthelord.data.DataViewModelFactory
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentPlaceDetailBinding // Correct binding class
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 
 class PlaceDetailFragment : Fragment() {
 
@@ -163,9 +164,48 @@ class PlaceDetailFragment : Fragment() {
         // Toolbar title is now handled in onViewCreated to ensure it's empty.
         // Do NOT set (activity as? AppCompatActivity)?.supportActionBar?.title = temple.name here
 
+        val templeType = temple.type
+        var subtitle: String? = null
+        var finalSnippetText = temple.snippet ?: ""
+
+        val relevantTypes = listOf("T", "A", "C")
+        val delimiter = " - "
+
+        if (templeType != null && relevantTypes.contains(templeType) && !temple.snippet.isNullOrBlank()) {
+            Log.d("PlaceDetailDebug", "Attempting to split SNIPPET: '${temple.snippet}' with delimiter: '${delimiter}'")
+            val parts = temple.snippet.split(delimiter, limit = 2) // Split the snippet
+            Log.d("PlaceDetailDebug", "Parts count after SNIPPET split: ${parts.size}")
+
+            if (parts.size == 2) {
+                // The part *before* " - " from the snippet becomes the subtitle
+                subtitle = parts[0].trim()
+                // The part *after* " - " from the snippet becomes the new snippet text
+                finalSnippetText = parts[1].trim()
+                Log.d("PlaceDetailDebug", "SNIPPET SPLIT SUCCESS: subtitle='${subtitle}', finalSnippetText='${finalSnippetText}'")
+            }
+        }
+
         // Bind data to views, using IDs from fragment_place_detail.xml
         binding.textViewTempleNameDetail.text = temple.name
-        binding.textViewSnippetDetail.text = temple.snippet // Show empty string if snippet is null
+        // --- Apply the text color logic ---
+        val nameColor = ColorUtils.getTextColorForTempleType(requireContext(), temple.type)
+        binding.textViewTempleNameDetail.setTextColor(nameColor)
+
+        // Set Subtitle
+        if (subtitle != null) {
+            binding.textViewTempleSubtitleDetail.text = subtitle
+            binding.textViewTempleSubtitleDetail.visibility = View.VISIBLE
+        } else {
+            binding.textViewTempleSubtitleDetail.visibility = View.GONE
+        }
+
+        // Set Snippet Text
+        Log.d("PlaceDetailDebug", "FINAL finalSnippetText before setText: '$finalSnippetText'")
+        binding.textViewSnippetDetail.text = finalSnippetText
+        binding.textViewSnippetDetail.visibility = if (finalSnippetText.isBlank()) View.GONE else View.VISIBLE
+        Log.d("PlaceDetailDebug", "Snippet visibility: ${if (finalSnippetText.isBlank()) "GONE" else "VISIBLE"}")
+
+
         binding.textViewFhCodeDetail.text = temple.fhCode ?: "N/A"
         binding.textViewAddressDetail.text = temple.address ?: getString(R.string.address_not_available)
         binding.textViewPhoneDetail.text = temple.phone ?: getString(R.string.phone_not_available)

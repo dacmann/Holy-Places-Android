@@ -26,10 +26,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="@string/tab_label_places"
+                android:text=""
                 android:textAppearance="?attr/textAppearanceHeadline6"
+                android:fontFamily="@font/baskerville_font_family"
                 android:textColor="?attr/appBarTextColor"
-                tools:text="Places" />
+                tools:text="Holy Places" />
         </androidx.appcompat.widget.Toolbar>
 
         <androidx.appcompat.widget.SearchView

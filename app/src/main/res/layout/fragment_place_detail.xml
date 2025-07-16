@@ -66,15 +66,31 @@
             android:id="@+id/textViewTempleNameDetail"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:gravity="center_horizontal"
             android:textAppearance="?attr/textAppearanceHeadlineSmall"
-            app:layout_constraintTop_toBottomOf="@id/imageViewTempleDetail"
-            app:layout_constraintStart_toEndOf="@id/textViewFhCodeDetail"
+            app:layout_constraintTop_toBottomOf="@id/textViewFhCodeDetail"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             tools:text="Temple Name Here"/>
+        <!-- NEW: TextView for the extracted subtitle -->
+        <TextView
+            android:id="@+id/textViewTempleSubtitleDetail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:gravity="center_horizontal"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/textViewTempleNameDetail"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:text="Extracted Subtitle Part"
+            tools:visibility="visible"/>
 
         <TextView
             android:id="@+id/textViewSnippetDetail"
@@ -85,7 +101,7 @@
             android:layout_marginEnd="16dp"
             android:gravity="center_horizontal"
             android:textAppearance="?attr/textAppearanceBodyLarge"
-            app:layout_constraintTop_toBottomOf="@id/textViewTempleNameDetail"
+            app:layout_constraintTop_toBottomOf="@id/textViewTempleSubtitleDetail"
             app:layout_constraintStart_toStartOf="@id/textViewTempleNameDetail"
             app:layout_constraintEnd_toEndOf="@id/textViewTempleNameDetail"
             tools:text="A short, inspiring snippet about the place."/>
