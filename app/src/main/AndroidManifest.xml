@@ -23,6 +23,29 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- ADD THIS <queries> BLOCK -->
+    <queries>
+        <!-- For viewing map locations (ACTION_VIEW with geo: scheme) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+
+        <!-- For viewing web pages (ACTION_VIEW with https/http schemes) -->
+        <!-- These are good to have if you also use openUrl for web links, -->
+        <!-- even if openUrl uses try-catch instead of resolveActivity. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+            <category android:name="android.intent.category.BROWSABLE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+            <category android:name="android.intent.category.BROWSABLE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".MyApplication"
         android:allowBackup="true"

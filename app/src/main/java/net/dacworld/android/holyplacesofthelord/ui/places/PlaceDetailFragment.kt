@@ -33,6 +33,8 @@ import net.dacworld.android.holyplacesofthelord.databinding.FragmentPlaceDetailB
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import androidx.core.net.toUri
+import androidx.core.content.ContextCompat
 
 class PlaceDetailFragment : Fragment() {
 
@@ -218,6 +220,92 @@ class PlaceDetailFragment : Fragment() {
         binding.textViewCountryDetail.visibility = if (temple.country.isNullOrBlank()) View.GONE else View.VISIBLE
 
         binding.textViewPhoneDetail.text = temple.phone ?: getString(R.string.phone_not_available)
+
+        // --- More Info Button Visibility/Action ---
+        val moreInfoButton = binding.buttonMoreInfo
+        val infoLink = temple.infoUrl // Using the correct field name from your Temple model
+
+        if (infoLink.isNullOrBlank()) {
+            moreInfoButton.visibility = View.GONE
+            Log.d("PlaceDetailDebug", "More Info button: infoUrl is blank. Hiding button.")
+        } else {
+            moreInfoButton.visibility = View.VISIBLE
+            moreInfoButton.setOnClickListener {
+                // Your existing logic from context [1] for opening the URL
+                openUrl(infoLink, getString(R.string.error_no_app_for_info_url))
+            }
+            Log.d("PlaceDetailDebug", "More Info button: infoUrl is '$infoLink'. Showing button.")
+        }
+
+        // --- Conditional Button Text for Schedule/Web Site ---
+        val scheduleButton = binding.buttonSchedule
+        if (templeType != "T") {
+            scheduleButton.text = getString(R.string.web_site_button_text) // Web Site
+            Log.d("PlaceDetailDebug", "Temple type is '$templeType', setting button text to 'Web Site'")
+            // Optionally, you might want to change the button's action/visibility too
+            // e.g., scheduleButton.setOnClickListener { openWebsite(temple.websiteUrl) }
+        } else {
+            scheduleButton.text = getString(R.string.schedule_button_text) // Schedule
+            Log.d("PlaceDetailDebug", "Temple type is '$templeType', setting button text to 'Schedule'")
+            // e.g., scheduleButton.setOnClickListener { openScheduleScreen(temple.id) }
+        }
+        // --- End of Conditional Button Text ---
+
+        // Make the address clickable for navigation
+        if (temple.latitude != 0.0 || temple.longitude != 0.0) { // Basic check for valid coordinates
+            binding.textViewAddressDetail.setOnClickListener {
+                val latitude = temple.latitude
+                val longitude = temple.longitude
+                val templeNameEncoded = Uri.encode(temple.name) // Uri.encode is still the standard way to encode parts of a URI
+
+                // URI to show a pin at lat,long with the temple name as the label
+                val uriString = "geo:0,0?q=$latitude,$longitude($templeNameEncoded)"
+                val gmmIntentUri = uriString.toUri() // Using the KTX extension function
+
+                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+
+                if (mapIntent.resolveActivity(requireActivity().packageManager) != null) {
+                    startActivity(mapIntent)
+                } else {
+                    Toast.makeText(context, getString(R.string.no_map_app_found), Toast.LENGTH_LONG).show()
+                    Log.e("PlaceDetailFragment", "No application can handle navigation intent for ${temple.name}")
+                }
+            }
+            // ... (optional styling)
+            Log.d("PlaceDetailFragment", "Address is clickable for navigation for ${temple.name} with name as label.")
+        } else {
+            binding.textViewAddressDetail.setOnClickListener(null)
+            binding.textViewAddressDetail.isClickable = false
+            Log.d("PlaceDetailFragment", "Address is NOT clickable for navigation for ${temple.name} (invalid lat/long).")
+        }
+
+        // Phone
+        val phoneNumber = temple.phone
+        if (!phoneNumber.isNullOrBlank()) {
+            binding.textViewPhoneDetail.text = phoneNumber
+            binding.textViewPhoneDetail.visibility = View.VISIBLE
+            binding.textViewPhoneDetail.setOnClickListener {
+                try {
+                    // Create an Intent to dial the number
+                    val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                        data = "tel:$phoneNumber".toUri()
+                    }
+                    startActivity(dialIntent)
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(context, getString(R.string.no_dialer_app_found), Toast.LENGTH_LONG).show()
+                    Log.e("PlaceDetailFragment", "No application can handle dial intent for $phoneNumber", e)
+                }
+            }
+            Log.d("PlaceDetailFragment", "Phone number $phoneNumber is clickable.")
+
+        } else {
+            binding.textViewPhoneDetail.text = getString(R.string.phone_not_available) // Or just hide it
+            binding.textViewPhoneDetail.visibility = View.GONE // Recommended if phone is not available
+            binding.textViewPhoneDetail.setOnClickListener(null)
+            binding.textViewPhoneDetail.isClickable = false
+            Log.d("PlaceDetailFragment", "Phone number is not available or blank.")
+        }
+
 
         // Image Loading with Coil
         when {

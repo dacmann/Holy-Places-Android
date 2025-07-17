@@ -147,6 +147,8 @@ object HolyPlacesXmlParser {
                                 }
                             }
                         }
+                        // ***** THE FIX: Reset text variable after it's been used for the current END_TAG *****
+                        text = null
                     }
                 }
                 eventType = parser.next()
