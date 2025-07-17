@@ -206,8 +206,17 @@ class PlaceDetailFragment : Fragment() {
         Log.d("PlaceDetailDebug", "Snippet visibility: ${if (finalSnippetText.isBlank()) "GONE" else "VISIBLE"}")
 
 
-        binding.textViewFhCodeDetail.text = temple.fhCode ?: "N/A"
-        binding.textViewAddressDetail.text = temple.address ?: getString(R.string.address_not_available)
+        binding.textViewFhCodeDetail.text = temple.fhCode ?: ""
+
+        binding.textViewAddressDetail.text = temple.address
+        binding.textViewAddressDetail.visibility = if (temple.address.isNullOrBlank()) View.GONE else View.VISIBLE
+
+        binding.textViewCityStateDetail.text = temple.cityState
+        binding.textViewCityStateDetail.visibility = if (temple.cityState.isNullOrBlank()) View.GONE else View.VISIBLE
+
+        binding.textViewCountryDetail.text = temple.country
+        binding.textViewCountryDetail.visibility = if (temple.country.isNullOrBlank()) View.GONE else View.VISIBLE
+
         binding.textViewPhoneDetail.text = temple.phone ?: getString(R.string.phone_not_available)
 
         // Image Loading with Coil

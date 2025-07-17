@@ -18,7 +18,8 @@
             android:id="@+id/place_detail_toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            android:background="?attr/colorPrimaryContainer"
+            android:theme="@style/ThemeOverlay.App.Toolbar"
             app:popupTheme="?attr/actionBarPopupTheme" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -57,7 +58,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:layout_marginStart="16dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textAppearance="?attr/textAppearanceBodySmall"
             app:layout_constraintTop_toBottomOf="@id/imageViewTempleDetail"
             app:layout_constraintStart_toStartOf="parent"
             tools:text="FH123"/>
@@ -96,14 +97,17 @@
             android:id="@+id/textViewSnippetDetail"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
             android:gravity="center_horizontal"
             android:textAppearance="?attr/textAppearanceBodyLarge"
             app:layout_constraintTop_toBottomOf="@id/textViewTempleSubtitleDetail"
-            app:layout_constraintStart_toStartOf="@id/textViewTempleNameDetail"
-            app:layout_constraintEnd_toEndOf="@id/textViewTempleNameDetail"
+            app:layout_constraintBottom_toTopOf="@+id/buttonMoreInfo"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintVertical_bias="0.5"
             tools:text="A short, inspiring snippet about the place."/>
 
         <TextView
@@ -113,11 +117,39 @@
             android:layout_marginBottom="4dp"
             android:layout_marginStart="16dp"
             android:textAppearance="?attr/textAppearanceBodyMedium"
-            app:layout_constraintBottom_toTopOf="@id/textViewPhoneDetail"
+            app:layout_constraintBottom_toTopOf="@id/textViewCityStateDetail"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_start"
             android:layout_marginEnd="8dp"
             tools:text="50 W North Temple St, Salt Lake City, Utah"/>
+
+        <!-- NEW: TextView for City, State -->
+        <TextView
+            android:id="@+id/textViewCityStateDetail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            app:layout_constraintTop_toBottomOf="@id/textViewAddressDetail"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_start"
+            tools:text="Salt Lake City, Utah"
+            tools:visibility="visible"/>
+
+        <!-- NEW: TextView for Country -->
+        <TextView
+            android:id="@+id/textViewCountryDetail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            app:layout_constraintTop_toBottomOf="@id/textViewCityStateDetail"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_start"
+            tools:text="United States"
+            tools:visibility="visible"/>
 
         <TextView
             android:id="@+id/textViewPhoneDetail"
@@ -126,6 +158,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginBottom="16dp"
             android:textAppearance="?attr/textAppearanceBodyMedium"
+            app:layout_constraintTop_toBottomOf="@id/textViewCountryDetail"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/guideline_buttons_start"
@@ -147,7 +180,7 @@
 
         <Button
             android:id="@+id/buttonMoreInfo"
-            style="?attr/materialButtonStyle"
+            style="?attr/materialIconButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"

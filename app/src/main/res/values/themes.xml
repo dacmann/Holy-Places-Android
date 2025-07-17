@@ -12,7 +12,7 @@
         <item name="colorSecondary">@color/BaptismBlue</item>
         <item name="colorOnSecondary">@color/white</item>
         <item name="colorSecondaryContainer">@color/app_colorSurface</item>
-        <item name="colorOnSecondaryContainer">@color/app_colorOnSurface</item>
+        <item name="colorOnSecondaryContainer">@color/BaptismBlue</item>
 
         <!-- M3 Tertiary Colors - Optional, can be similar to secondary or more neutrals -->
         <item name="colorTertiary">@color/BaptismBlue</item>
@@ -81,6 +81,16 @@
         <item name="textAppearanceLabelSmall">@style/TextAppearance.App.LabelSmall</item>
 
     </style>
+
+
+    <!-- Theme Overlay for a White/Black Toolbar -->
+    <style name="ThemeOverlay.App.Toolbar" parent="">
+        <item name="android:background">@color/app_colorBackground</item>
+        <item name="android:textColorPrimary">@color/BaptismBlue</item> <!-- For title text -->
+        <item name="android:textColorSecondary">@color/BaptismBlue</item> <!-- For icons like Up button -->
+        <item name="colorControlNormal">@color/BaptismBlue</item> <!-- For navigation icon (Up button) -->
+    </style>
+
     <!-- >>>>>>>>>> DEFINE YOUR CUSTOM TEXT APPEARANCES HERE <<<<<<<<<< -->
     <style name="TextAppearance.App.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge">
         <item name="fontFamily">?attr/fontFamilyApp</item>
@@ -156,6 +166,7 @@
         <item name="colorPrimary">@color/BaptismBlue</item>
         -->
     </style>
+
 
     <!-- Review AppTheme.DialogButton.BaptismBlue, M3 dialog buttons are styled by Widget.Material3.Button.TextButton.Dialog -->
     <style name="AppTheme.DialogButton.BaptismBlue" parent="Widget.Material3.Button.TextButton.Dialog">
