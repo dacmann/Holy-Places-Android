@@ -12,7 +12,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/appBarBackgroundColor"
-        android:theme="?attr/actionBarTheme">
+        android:theme="?attr/actionBarTheme"
+        android:fitsSystemWindows="true">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/places_toolbar"

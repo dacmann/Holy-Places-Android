@@ -12,7 +12,8 @@
         android:id="@+id/app_bar_layout_detail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="?attr/actionBarTheme">
+        android:theme="?attr/actionBarTheme"
+        android:fitsSystemWindows="true">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/place_detail_toolbar"
@@ -72,6 +73,10 @@
             android:layout_marginEnd="16dp"
             android:gravity="center_horizontal"
             android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:lines="1"
+            app:autoSizeTextType="uniform"
+            app:autoSizeMinTextSize="12sp"
+            app:autoSizeStepGranularity="1sp"
             app:layout_constraintTop_toBottomOf="@id/textViewFhCodeDetail"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -98,7 +103,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.80" />
+            app:layout_constraintGuide_percent="0.82" />
 
         <TextView
             android:id="@+id/textViewSnippetDetail"
@@ -110,6 +115,10 @@
             android:layout_marginBottom="8dp"
             android:gravity="center_horizontal"
             android:textAppearance="?attr/textAppearanceBodyLarge"
+            app:autoSizeTextType="uniform"
+            app:autoSizeMinTextSize="10sp"
+            android:maxLines="5"
+            app:autoSizeStepGranularity="1sp"
             app:layout_constraintTop_toBottomOf="@id/textViewTempleSubtitleDetail"
             app:layout_constraintBottom_toTopOf="@+id/guideline_bottom_section_top"
             app:layout_constraintStart_toStartOf="parent"

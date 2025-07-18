@@ -2,6 +2,7 @@ package net.dacworld.android.holyplacesofthelord.ui.placedetail
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -35,6 +36,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 import androidx.core.net.toUri
 import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AlertDialog
+import java.net.URLEncoder
 
 class PlaceDetailFragment : Fragment() {
 
@@ -82,40 +85,50 @@ class PlaceDetailFragment : Fragment() {
         }
 
         // <<<<<<<<<<<< START: ADD INSET HANDLING CODE HERE >>>>>>>>>>>>>>>>
-        // The view that needs padding. This should be the container of your
-        // content that is getting obscured. binding.contentConstraintLayout seems
-        // appropriate from your fragment_place_detail.xml.
         val contentViewToPad = binding.root
 
         // THE ONE AND ONLY LISTENER ATTACHMENT
         ViewCompat.setOnApplyWindowInsetsListener(contentViewToPad) { v, insets ->
-            // ALL YOUR ORIGINAL LISTENER LOGIC AND PADDING CODE GOES HERE
+            // Get specific inset types
+            val systemNavigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars()) // For system's own nav bar
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())                     // For the keyboard
+            val systemBarsForSides = insets.getInsets(WindowInsetsCompat.Type.systemBars())     // For L/R padding (e.g., gesture nav)
 
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            var desiredBottomPadding = systemBars.bottom
+            // Start with the height of the system's own navigation bar
+            var effectiveNavHeight = systemNavigationBars.bottom
+            Log.d("PlaceDetailFragmentInsets", "Initial systemNavigationBars.bottom: $effectiveNavHeight")
 
+            // Check for your app's BottomNavigationView
             val activityRootView = requireActivity().window.decorView
-            val bottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
+            val appBottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
 
-            if (bottomNavView != null) {if (bottomNavView.visibility == View.VISIBLE) {
-                    desiredBottomPadding += bottomNavView.height // This is the part that might need the fixed dimen later
+            if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
+                Log.d("PlaceDetailFragmentInsets", "App's BottomNavView found: Height=${appBottomNavView.height}, Visible=true")
+                // If your app's BottomNav is visible and taller than the system's nav bar,
+                // or if the system nav bar is very small (common in gesture mode),
+                // then the app's BottomNav height is likely the one to use as the primary navigation height.
+                if (effectiveNavHeight < appBottomNavView.height) {
+                    effectiveNavHeight = appBottomNavView.height
+                    Log.d("PlaceDetailFragmentInsets", "Using App's BottomNavView height ($effectiveNavHeight) as effectiveNavHeight")
                 }
             } else {
-                Log.d("PlaceDetailFragmentInsets", "BottomNavView not found!")
+                Log.d("PlaceDetailFragmentInsets", "App's BottomNavView not found or not visible.")
             }
 
-            desiredBottomPadding = kotlin.math.max(desiredBottomPadding, ime.bottom)
-            Log.d("PlaceDetailFragmentInsets", "Final Desired Bottom Padding: $desiredBottomPadding")
+            // The final bottom padding should be enough for whatever is tallest:
+            // the effective navigation area (system or app's) OR the keyboard.
+            val desiredBottomPadding = kotlin.math.max(effectiveNavHeight, imeInsets.bottom)
+
+            Log.d("PlaceDetailFragmentInsets", "IME.bottom: ${imeInsets.bottom}, EffectiveNavHeight: $effectiveNavHeight, Final desiredBottomPadding: $desiredBottomPadding")
 
             v.updatePadding(
-                left = systemBars.left,
-                right = systemBars.right,
+                left = systemBarsForSides.left,
+                right = systemBarsForSides.right,
                 bottom = desiredBottomPadding
+                // Top padding is not modified here, assuming AppBarLayout handles it
             )
-            Log.d("PlaceDetailFragmentInsets", "Applied Padding: Left=${v.paddingLeft}, Top=${v.paddingTop}, Right=${v.paddingRight}, Bottom=${v.paddingBottom}")
 
-            insets // Return insets
+            insets // Return inset
         }
         // Request insets to be applied initially.
         if (contentViewToPad.isAttachedToWindow) {
@@ -252,31 +265,15 @@ class PlaceDetailFragment : Fragment() {
         // --- End of Conditional Button Text ---
 
         // Make the address clickable for navigation
-        if (temple.latitude != 0.0 || temple.longitude != 0.0) { // Basic check for valid coordinates
+        if (temple.latitude != 0.0 || temple.longitude != 0.0) {
             binding.textViewAddressDetail.setOnClickListener {
-                val latitude = temple.latitude
-                val longitude = temple.longitude
-                val templeNameEncoded = Uri.encode(temple.name) // Uri.encode is still the standard way to encode parts of a URI
-
-                // URI to show a pin at lat,long with the temple name as the label
-                val uriString = "geo:0,0?q=$latitude,$longitude($templeNameEncoded)"
-                val gmmIntentUri = uriString.toUri() // Using the KTX extension function
-
-                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-
-                if (mapIntent.resolveActivity(requireActivity().packageManager) != null) {
-                    startActivity(mapIntent)
-                } else {
-                    Toast.makeText(context, getString(R.string.no_map_app_found), Toast.LENGTH_LONG).show()
-                    Log.e("PlaceDetailFragment", "No application can handle navigation intent for ${temple.name}")
-                }
+                showNavigationChooser(temple)
             }
-            // ... (optional styling)
-            Log.d("PlaceDetailFragment", "Address is clickable for navigation for ${temple.name} with name as label.")
+            Log.d("PlaceDetailFragment", "Address is clickable for navigation for ${temple.name}.")
         } else {
             binding.textViewAddressDetail.setOnClickListener(null)
             binding.textViewAddressDetail.isClickable = false
-            Log.d("PlaceDetailFragment", "Address is NOT clickable for navigation for ${temple.name} (invalid lat/long).")
+            Log.d("PlaceDetailFragment", "Address is NOT clickable (invalid lat/long).")
         }
 
         // Phone
@@ -362,6 +359,83 @@ class PlaceDetailFragment : Fragment() {
             Log.e("PlaceDetailFragment", "Exception opening URL: $urlString", e)
             Toast.makeText(context, getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show()
         }
+    }
+
+    fun isPackageInstalled(packageName: String, packageManager: PackageManager): Boolean {
+        return try {
+            packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+    private fun showNavigationChooser(temple: Temple) {
+        val latitude = temple.latitude
+        val longitude = temple.longitude
+        val templeName = temple.name ?: "Destination" // Fallback name
+
+        if (latitude == 0.0 && longitude == 0.0) {
+            Toast.makeText(context, "Location coordinates not available.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val availableApps = mutableListOf<Pair<String, Intent>>()
+        val packageManager = requireActivity().packageManager
+
+        // --- Waze ---
+        val wazePackageName = "com.waze"
+        if (isPackageInstalled(wazePackageName, packageManager)) {
+            val wazeUri = "waze://?ll=$latitude,$longitude&navigate=yes"
+            val wazeIntent = Intent(Intent.ACTION_VIEW, Uri.parse(wazeUri))
+            // wazeIntent.setPackage(wazePackageName) // Optional: waze:// is fairly unique
+            availableApps.add("Waze" to wazeIntent)
+            Log.d("NavChooser", "Waze added to chooser.")
+        }
+
+        // --- Google Maps (Show Pin with Label) ---
+        val gmapsPackageName = "com.google.android.apps.maps"
+        if (isPackageInstalled(gmapsPackageName, packageManager)) {
+            val gmmLabel = Uri.encode(templeName)
+            val gmmGeoUri = "geo:0,0?q=$latitude,$longitude($gmmLabel)"
+            val gmmIntent = Intent(Intent.ACTION_VIEW, Uri.parse(gmmGeoUri))
+            // We'll set the package if Google Maps is chosen to go directly to it.
+            availableApps.add("Google Maps" to gmmIntent)
+            Log.d("NavChooser", "Google Maps (geo URI with label) added to chooser.")
+        }
+
+        if (availableApps.isEmpty()) {
+            Toast.makeText(context, getString(R.string.no_map_app_found), Toast.LENGTH_LONG).show()
+            Log.e("NavChooser", "Neither Waze nor Google Maps found.")
+            return
+        }
+
+        // --- Build and Show Chooser Dialog ---
+        val appNames = availableApps.map { it.first }.toTypedArray()
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Navigate with...")
+            .setItems(appNames) { _, which ->
+                val chosenPair = availableApps[which]
+                val selectedIntent = chosenPair.second
+
+                // Set package for explicit choices to go directly to the app
+                if (chosenPair.first == "Google Maps") {
+                    selectedIntent.setPackage(gmapsPackageName)
+                } else if (chosenPair.first == "Waze") {
+                    selectedIntent.setPackage(wazePackageName) // Good practice, though waze:// is usually specific enough
+                }
+
+                try {
+                    Log.d("NavChooser", "Starting activity for ${chosenPair.first}. Intent URI: ${selectedIntent.dataString}, Package: ${selectedIntent.getPackage()}")
+                    startActivity(selectedIntent)
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(context, "Could not launch ${appNames[which]}.", Toast.LENGTH_SHORT).show()
+                    Log.e("NavChooser", "ActivityNotFound for ${appNames[which]}. URI: ${selectedIntent.dataString}", e)
+                    // No generic fallback here as per request
+                }
+            }
+            .setNegativeButton("Cancel", null) // Only show explicit choices and a cancel
+            .show()
     }
 
     override fun onDestroyView() {

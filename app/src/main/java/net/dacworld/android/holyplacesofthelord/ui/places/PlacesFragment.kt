@@ -34,11 +34,15 @@ import net.dacworld.android.holyplacesofthelord.ui.SharedToolbarViewModel
 import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import kotlin.text.contains
 import android.app.AlertDialog // Import AlertDialog for getButton
+import android.graphics.Color
+import android.widget.EdgeEffect
 import androidx.core.content.ContextCompat // Import ContextCompat for getColor
+import androidx.core.text.color
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import net.dacworld.android.holyplacesofthelord.R // Import R for R.color.BaptismBlue
 import androidx.fragment.app.activityViewModels // For NavigationViewModel
+import androidx.recyclerview.widget.RecyclerView
 import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel // Import your ViewModel
 
 
@@ -91,10 +95,9 @@ class PlacesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d("PlacesFragment", "LIFECYCLE: onViewCreated")
-        // --- NEW: Call methods to setup Toolbar and SearchView ---
+        // --- Call methods to setup Toolbar and SearchView ---
         setupToolbar()
         setupSearchViewListeners()
-        // --- END NEW ---
         setupRecyclerView()
         Log.d("PlacesFragment", "OBSERVER_SETUP: Starting main UI content observer setup (combine).") // <<<
 
@@ -321,6 +324,7 @@ class PlacesFragment : Fragment() {
             adapter = templeAdapter
             layoutManager = LinearLayoutManager(context)
             itemAnimator = null
+
             Log.d("PlacesFragment", "RecyclerView adapter and layoutManager set.")
             // --- Add Divider Item Decoration START ---
             val dividerItemDecoration = DividerItemDecoration(
