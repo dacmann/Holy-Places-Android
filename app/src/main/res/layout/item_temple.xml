@@ -15,7 +15,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceListItem"
-        android:textSize="18sp"
+        android:textSize="14sp"
+        android:maxLines="1"
+        android:ellipsize="end"
         tools:text="Temple Name" />
 
     <TextView
@@ -23,7 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceListItemSecondary"
-        android:textSize="14sp"
+        android:textSize="10sp"
         android:maxLines="1"
         android:ellipsize="end"
         tools:text="123rd operating temple..." />

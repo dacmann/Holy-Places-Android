@@ -160,13 +160,11 @@
     <style name="AppTheme.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <!-- This will apply to the text of the positive button -->
         <item name="buttonBarPositiveButtonStyle">@style/AppTheme.DialogButton.BaptismBlue</item>
-
-        <!-- You could also try forcing the colorPrimary for the dialog theme,
-             though buttonBarPositiveButtonStyle is usually more direct for buttons.
-        <item name="colorPrimary">@color/BaptismBlue</item>
-        -->
     </style>
 
+    <style name="NoActiveIndicatorBottomNav" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@android:color/transparent</item>
+    </style>
 
     <!-- Review AppTheme.DialogButton.BaptismBlue, M3 dialog buttons are styled by Widget.Material3.Button.TextButton.Dialog -->
     <style name="AppTheme.DialogButton.BaptismBlue" parent="Widget.Material3.Button.TextButton.Dialog">
@@ -174,17 +172,4 @@
         <item name="rippleColor">@color/BaptismBlue</item> <!-- Adjust alpha for ripple -->
         <!-- backgroundTint is often not needed for M3 text buttons as they are transparent by default -->
     </style>
-<!--    <style name="AppTheme.DialogButton.BaptismBlue" parent="Widget.MaterialComponents.Button.TextButton.Dialog">-->
-<!--        <item name="android:textColor">@color/BaptismBlue</item>-->
-<!--        <item name="rippleColor">@color/BaptismBlue</item> &lt;!&ndash; Use BaptismBlue for ripple too, or a lighter/alpha version &ndash;&gt;-->
-<!--        &lt;!&ndash; Ensure background is transparent for a text button look &ndash;&gt;-->
-<!--        <item name="android:background">@android:color/transparent</item>-->
-<!--        <item name="backgroundTint">@android:color/transparent</item>-->
-<!--    </style>-->
-<!--    <style name="MyCustomTabTextAppearance" parent="TextAppearance.Design.Tab">-->
-<!--        <item name="android:fontFamily">@font/baskerville</item>-->
-<!--        <item name="android:textSize">14sp</item>-->
-<!--        <item name="textAllCaps">false</item>-->
-<!--        &lt;!&ndash; Add other attributes like android:textColor, android:textStyle if needed &ndash;&gt;-->
-<!--    </style>-->
 </resources>

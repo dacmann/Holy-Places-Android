@@ -28,6 +28,9 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:menu="@menu/main_bottom_menu"
         android:elevation="0dp"
+        app:itemIconTint="@color/tab_icon_color_selector_themed"
+        app:itemTextColor="@color/tab_text_color_selector_themed"
+        app:itemActiveIndicatorStyle="@style/NoActiveIndicatorBottomNav"
         app:itemBackground="@android:color/transparent"
         app:itemRippleColor="@android:color/transparent"
         android:background="@color/app_colorSurface" />

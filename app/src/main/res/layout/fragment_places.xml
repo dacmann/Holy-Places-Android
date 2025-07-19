@@ -28,7 +28,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text=""
-                android:textAppearance="?attr/textAppearanceHeadline6"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                 android:fontFamily="@font/baskerville_font_family"
                 android:textColor="?attr/appBarTextColor"
                 tools:text="Holy Places" />

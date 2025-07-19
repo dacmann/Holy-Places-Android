@@ -26,7 +26,7 @@
 
         <!-- Status bar color for dark mode -->
         <!-- M3 themes often handle this via colorSurface. If this doesn't work as expected, uncomment: -->
-        <!-- <item name="android:statusBarColor">@color/app_bar_background_color</item> -->
+        <item name="android:statusBarColor">@color/app_bar_background_color</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
 
         <!-- Custom attributes - Review if needed after M3 components adopt above roles -->

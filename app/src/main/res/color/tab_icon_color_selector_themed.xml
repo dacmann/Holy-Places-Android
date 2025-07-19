@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Selected state -->
-    <item android:color="?attr/tabSelectedIconColor" android:state_selected="true"/>
-    <!-- Default (unselected) state -->
+    <!-- Selected (Checked) state -->
+    <item android:color="?attr/tabSelectedIconColor" android:state_checked="true"/>
+    <!-- Default (unselected/unchecked) state -->
     <item android:color="?attr/tabIconColor"/>
 </selector>

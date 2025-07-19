@@ -1,5 +1,6 @@
 package net.dacworld.android.holyplacesofthelord
 
+import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
@@ -39,6 +40,9 @@ class MainActivity : AppCompatActivity() {
         // For example: setTheme(R.style.AppTheme) // Switch from splash theme to main app theme
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
+
+        // It's a phone, lock to portrait
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
