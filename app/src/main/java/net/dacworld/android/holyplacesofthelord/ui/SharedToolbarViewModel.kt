@@ -20,12 +20,6 @@ class SharedToolbarViewModel : ViewModel() {
     // Publicly exposed StateFlow that is read-only for observers
     val uiState: StateFlow<ToolbarUiState> = _uiState.asStateFlow()
 
-    // No longer need separate LiveData objects for title, count, and searchQuery
-    // Observers will collect the uiState StateFlow and access its properties.
-
-    // No init block needed to set default values for LiveData anymore,
-    // as defaults are handled by the ToolbarUiState data class constructor.
-
     fun updateToolbarInfo(title: String, count: Int) {
         // Use the .update extension function for atomic updates to the StateFlow
         _uiState.update { currentState ->

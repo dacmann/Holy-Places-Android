@@ -34,4 +34,14 @@
             app:argType="string" />
     </fragment>
 
+    <!-- ADD THIS FRAGMENT DESTINATION for OptionsFragment -->
+    <fragment
+        android:id="@+id/options_fragment_destination"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.places.OptionsFragment"
+        android:label="@string/button_text_options"
+        tools:layout="@layout/fragment_options" />
+        <action
+            android:id="@+id/action_placesFragment_to_optionsFragment"
+            app:destination="@id/options_fragment_destination" />
+
 </navigation>

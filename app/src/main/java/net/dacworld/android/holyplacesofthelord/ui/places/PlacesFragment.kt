@@ -44,7 +44,10 @@ import net.dacworld.android.holyplacesofthelord.R // Import R for R.color.Baptis
 import androidx.fragment.app.activityViewModels // For NavigationViewModel
 import androidx.recyclerview.widget.RecyclerView
 import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel // Import your ViewModel
-
+import android.widget.Toast
+import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
+import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
+import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModelFactory
 
 class PlacesFragment : Fragment() {
 
@@ -55,6 +58,9 @@ class PlacesFragment : Fragment() {
     private val dataViewModel: DataViewModel by activityViewModels {
         val application = requireActivity().application as MyApplication
         DataViewModelFactory(application,application.templeDao, application.userPreferencesManager)
+    }
+    private val sharedOptionsViewModel: SharedOptionsViewModel by activityViewModels {
+        SharedOptionsViewModelFactory(dataViewModel) // Use the same factory
     }
 
     // ViewModel for Toolbar communication (title, count, search query)
@@ -101,83 +107,154 @@ class PlacesFragment : Fragment() {
         setupRecyclerView()
         Log.d("PlacesFragment", "OBSERVER_SETUP: Starting main UI content observer setup (combine).") // <<<
 
-        // Main observer for UI content (temples, loading state, search filtering)
-        viewLifecycleOwner.lifecycleScope.launch {
-            Log.d("PlacesFragment", "OBSERVER_SETUP: Main UI content observer coroutine LAUNCHED.") // <<<
+        // --- SETUP FOR THE NEW TEXTVIEW OPTIONS "BUTTON" ---
+        binding.textViewOptions.setOnClickListener { // <<--- IMPORTANT: Use the new ID
+            Log.d("PlacesFragment", "Options TextView (styled as button) clicked!")
+            // TODO: Navigate to OptionsFragment
+            // Use the action ID defined in main_nav_graph.xml
+            findNavController().navigate(R.id.action_placesFragment_to_optionsFragment)
+        }
 
+        // Main observer for UI content (temples, loading state, search filtering)
+        // In PlacesFragment.kt - modify the main observer
+        viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                Log.d("PlacesFragment", "OBSERVER_SETUP: Main UI content observer REPEATING on STARTED.") // <<<
-                // Combine relevant flows:
                 combine(
-                    dataViewModel.isLoading,  // StateFlow<Boolean>
-                    dataViewModel.allTemples,   // StateFlow<List<Temple>>
-                    sharedToolbarViewModel.uiState.map { it.searchQuery }.distinctUntilChanged() // Flow<String>
-                ) { isLoading: Boolean, temples: List<Temple>, searchQuery: String -> // Explicit types HERE
-                    Log.d("PlacesFragment", "Combine Triggered: isLoading=$isLoading, templesCount=${temples.size}, searchQuery='$searchQuery', templesInstance=${System.identityHashCode(temples)}")
-                    val filteredTemples = if (searchQuery.isBlank()) {
-                        temples
+                    dataViewModel.isLoading, // Keep for loading state if needed, or get from sharedOptionsViewModel if it manages it
+                    sharedOptionsViewModel.uiState.map {
+                        Log.d("PlacesFragment", "Source List from SharedOptionsVM: ${it.displayedTemples.size} items, Filter: ${it.currentFilter}, Sort: ${it.currentSort}")
+                        it.displayedTemples
+                    }.distinctUntilChanged(), // <<< USE THIS AS THE SOURCE OF TEMPLES
+                    sharedToolbarViewModel.uiState.map { it.searchQuery }.distinctUntilChanged()
+                ) { isLoading, templesFromOptionsVM, searchQuery -> // Renamed for clarity
+                    Log.d("PlacesFragment", "Combine Triggered: isLoading=$isLoading, templesFromOptionsVMCount=${templesFromOptionsVM.size}, searchQuery='$searchQuery'")
+
+                    val searchFilteredTemples = if (searchQuery.isBlank()) {
+                        templesFromOptionsVM
                     } else {
-                        temples.filter { temple ->
-                            // Use properties from Temple.kt
+                        templesFromOptionsVM.filter { temple ->
                             (temple.name.contains(searchQuery, ignoreCase = true)) ||
                                     (temple.snippet.contains(searchQuery, ignoreCase = true)) ||
                                     (temple.cityState.contains(searchQuery, ignoreCase = true))
-                            // Add more fields as needed for your search logic
-                            // If these fields can be null, use safe calls: temple.name?.contains(...) == true
                         }
                     }
-                    Log.i("PlacesFragment_COMBINE", "FILTERED_RESULT: filteredCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)})")
-                    // --- MODIFIED PART within the combine block ---
-                    // Determine the title based on search state
+                    Log.i("PlacesFragment_COMBINE", "SEARCH_FILTERED_RESULT: count=${searchFilteredTemples.size}")
+
+                    // Update toolbar title and count based on this final list
                     val currentScreenTitle = if (searchQuery.isBlank()) {
-                        // Assuming you have a string resource like <string name="title_places">Places</string>
-                        getString(R.string.tab_label_places) // Or your preferred default title
+                        // Title could also come from sharedOptionsViewModel.uiState.currentFilter.displayName
+                        sharedOptionsViewModel.uiState.value.currentFilter.displayName // Example
                     } else {
-                        getString(R.string.tab_label_places) // e.g., "Search Results"
+                        getString(R.string.search_results_title) // Example: "Search Results"
                     }
-                    // Update the SharedToolbarViewModel with this title and count
-                    // This call was already here, ensure it uses the determined title
-                    Log.i("PlacesFragment_COMBINE", "FILTERED: filteredCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)})")
-                    sharedToolbarViewModel.updateToolbarInfo(currentScreenTitle, filteredTemples.size)
-                    // --- END MODIFIED PART ---
+                    sharedToolbarViewModel.updateToolbarInfo(currentScreenTitle, searchFilteredTemples.size)
 
-                    Triple(isLoading, filteredTemples, searchQuery)
-                }.collectLatest { (isLoading: Boolean, filteredTemples: List<Temple>, searchQuery: String) -> // Explicit types also good here
-                    Log.w("PlacesFragment_COLLECT", "RECEIVED_FOR_UI: listCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)}), isLoading=$isLoading, searchQuery='$searchQuery'")
-                    val currentFilterName = if (searchQuery.isBlank()) "All Places" else "Search Results"
-                    Log.d(
-                        "PlacesFragment",
-                        "Combined UI State: isLoading=$isLoading, filteredTemplesCount=${filteredTemples.size}, searchQuery='$searchQuery'"
-                    )
+                    // Pass isLoading, the searchFilteredTemples, and the original searchQuery
+                    Triple(isLoading, searchFilteredTemples, searchQuery) // Note: isLoading might need rethinking if sharedOptionsViewModel also handles it
+                }.collectLatest { (isLoading, finalTemplesToShow, originalSearchQuery) ->
+                    Log.w("PlacesFragment_COLLECT", "RECEIVED_FOR_UI: listCount=${finalTemplesToShow.size}, isLoading=$isLoading, searchQuery='$originalSearchQuery'")
 
-                    //sharedToolbarViewModel.updateToolbarInfo(currentFilterName, filteredTemples.size)
-
-                    // Simplified progress bar logic - show if loading AND list is currently empty
                     binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0) View.VISIBLE else View.GONE
 
-                    val listToSubmit = filteredTemples.toList() // Your existing .toList() call
-                    Log.w("PlacesFragment_SUBMIT", "PREP_FOR_ADAPTER: listToSubmitCount=${listToSubmit.size} (ID: ${System.identityHashCode(listToSubmit)})")
-                    Log.w("PlacesFragment_SUBMIT", "CALLING submitList with ${listToSubmit.size} items.")
+                    templeAdapter.submitList(finalTemplesToShow.toList()) // Use .toList() to ensure a new list for DiffUtil if needed
 
-                    templeAdapter.submitList(listToSubmit)
-                    if (filteredTemples.isEmpty() && !isLoading) { // Only show empty view if not loading and list is empty
+                    if (finalTemplesToShow.isEmpty() && !isLoading) {
                         binding.placesRecyclerView.visibility = View.GONE
                         binding.emptyViewTextView.visibility = View.VISIBLE
-                        binding.emptyViewTextView.text = if (searchQuery.isNotBlank()) {
+                        binding.emptyViewTextView.text = if (originalSearchQuery.isNotBlank()) {
                             "No places match your search."
+                        } else if (sharedOptionsViewModel.uiState.value.currentFilter != PlaceFilter.HOLY_PLACES) { // Example: be more specific based on filter
+                            "No places match the current filter '${sharedOptionsViewModel.uiState.value.currentFilter.displayName}'."
                         } else {
                             "No places available."
                         }
-                    } else if (filteredTemples.isNotEmpty()) {
+                    } else if (finalTemplesToShow.isNotEmpty()) {
                         binding.placesRecyclerView.visibility = View.VISIBLE
                         binding.emptyViewTextView.visibility = View.GONE
-                    } else if (isLoading && filteredTemples.isEmpty()){ // still loading and no data yet
+                    } else if (isLoading && finalTemplesToShow.isEmpty()) {
                         binding.placesRecyclerView.visibility = View.GONE
-                        binding.emptyViewTextView.visibility = View.GONE // Hide empty text while loading
+                        binding.emptyViewTextView.visibility = View.GONE
                     }
                 }
             }
         }
+
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            Log.d("PlacesFragment", "OBSERVER_SETUP: Main UI content observer coroutine LAUNCHED.") // <<<
+//
+//            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+//                Log.d("PlacesFragment", "OBSERVER_SETUP: Main UI content observer REPEATING on STARTED.") // <<<
+//                // Combine relevant flows:
+//                combine(
+//                    dataViewModel.isLoading,  // StateFlow<Boolean>
+//                    dataViewModel.allTemples,   // StateFlow<List<Temple>>
+//                    sharedToolbarViewModel.uiState.map { it.searchQuery }.distinctUntilChanged() // Flow<String>
+//                ) { isLoading: Boolean, temples: List<Temple>, searchQuery: String -> // Explicit types HERE
+//                    Log.d("PlacesFragment", "Combine Triggered: isLoading=$isLoading, templesCount=${temples.size}, searchQuery='$searchQuery', templesInstance=${System.identityHashCode(temples)}")
+//                    val filteredTemples = if (searchQuery.isBlank()) {
+//                        temples
+//                    } else {
+//                        temples.filter { temple ->
+//                            // Use properties from Temple.kt
+//                            (temple.name.contains(searchQuery, ignoreCase = true)) ||
+//                                    (temple.snippet.contains(searchQuery, ignoreCase = true)) ||
+//                                    (temple.cityState.contains(searchQuery, ignoreCase = true))
+//                            // Add more fields as needed for your search logic
+//                            // If these fields can be null, use safe calls: temple.name?.contains(...) == true
+//                        }
+//                    }
+//                    Log.i("PlacesFragment_COMBINE", "FILTERED_RESULT: filteredCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)})")
+//                    // --- MODIFIED PART within the combine block ---
+//                    // Determine the title based on search state
+//                    val currentScreenTitle = if (searchQuery.isBlank()) {
+//                        // Assuming you have a string resource like <string name="title_places">Places</string>
+//                        getString(R.string.tab_label_places) // Or your preferred default title
+//                    } else {
+//                        getString(R.string.tab_label_places) // e.g., "Search Results"
+//                    }
+//                    // Update the SharedToolbarViewModel with this title and count
+//                    // This call was already here, ensure it uses the determined title
+//                    Log.i("PlacesFragment_COMBINE", "FILTERED: filteredCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)})")
+//                    sharedToolbarViewModel.updateToolbarInfo(currentScreenTitle, filteredTemples.size)
+//                    // --- END MODIFIED PART ---
+//
+//                    Triple(isLoading, filteredTemples, searchQuery)
+//                }.collectLatest { (isLoading: Boolean, filteredTemples: List<Temple>, searchQuery: String) -> // Explicit types also good here
+//                    Log.w("PlacesFragment_COLLECT", "RECEIVED_FOR_UI: listCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)}), isLoading=$isLoading, searchQuery='$searchQuery'")
+//                    val currentFilterName = if (searchQuery.isBlank()) "All Places" else "Search Results"
+//                    Log.d(
+//                        "PlacesFragment",
+//                        "Combined UI State: isLoading=$isLoading, filteredTemplesCount=${filteredTemples.size}, searchQuery='$searchQuery'"
+//                    )
+//
+//                    //sharedToolbarViewModel.updateToolbarInfo(currentFilterName, filteredTemples.size)
+//
+//                    // Simplified progress bar logic - show if loading AND list is currently empty
+//                    binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0) View.VISIBLE else View.GONE
+//
+//                    val listToSubmit = filteredTemples.toList() // Your existing .toList() call
+//                    Log.w("PlacesFragment_SUBMIT", "PREP_FOR_ADAPTER: listToSubmitCount=${listToSubmit.size} (ID: ${System.identityHashCode(listToSubmit)})")
+//                    Log.w("PlacesFragment_SUBMIT", "CALLING submitList with ${listToSubmit.size} items.")
+//
+//                    templeAdapter.submitList(listToSubmit)
+//                    if (filteredTemples.isEmpty() && !isLoading) { // Only show empty view if not loading and list is empty
+//                        binding.placesRecyclerView.visibility = View.GONE
+//                        binding.emptyViewTextView.visibility = View.VISIBLE
+//                        binding.emptyViewTextView.text = if (searchQuery.isNotBlank()) {
+//                            "No places match your search."
+//                        } else {
+//                            "No places available."
+//                        }
+//                    } else if (filteredTemples.isNotEmpty()) {
+//                        binding.placesRecyclerView.visibility = View.VISIBLE
+//                        binding.emptyViewTextView.visibility = View.GONE
+//                    } else if (isLoading && filteredTemples.isEmpty()){ // still loading and no data yet
+//                        binding.placesRecyclerView.visibility = View.GONE
+//                        binding.emptyViewTextView.visibility = View.GONE // Hide empty text while loading
+//                    }
+//                }
+//            }
+//        }
 
         // Observer for Remote XML Update Dialog
         viewLifecycleOwner.lifecycleScope.launch {

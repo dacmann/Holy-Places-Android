@@ -29,4 +29,9 @@
     <string name="web_site_button_text">Web Site</string>
     <string name="no_map_app_found">No Map App Found</string>
     <string name="no_dialer_app_found">No Dialer App Found!</string>
+    <string name="button_text_options">Options</string>
+    <string name="filter_by">Filter Options:</string>
+    <string name="sort_by">Sort Options:</string>
+    <string name="done">Done</string>
+    <string name="search_results_title">Search Results</string>
 </resources>

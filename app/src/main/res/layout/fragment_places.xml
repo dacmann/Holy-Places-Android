@@ -32,6 +32,23 @@
                 android:fontFamily="@font/baskerville_font_family"
                 android:textColor="?attr/appBarTextColor"
                 tools:text="Holy Places" />
+
+            <TextView
+                android:id="@+id/text_view_options"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="16dp"
+                android:text="@string/button_text_options"
+                android:textColor="@color/BaptismBlue"
+                android:fontFamily="@font/baskerville_font_family"
+                android:textAppearance="@style/TextAppearance.App.LabelMedium"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+            />
         </androidx.appcompat.widget.Toolbar>
 
         <androidx.appcompat.widget.SearchView

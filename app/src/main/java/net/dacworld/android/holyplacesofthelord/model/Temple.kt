@@ -57,10 +57,57 @@ data class Temple(
 ) {
     // The calculateDistance methods remain the same
 
-    fun calculateDistance(fromLat: Double, fromLon: Double, inKilometers: Boolean = true) {
+    /**
+     * Calculates and sets `this.distance` to the distance (in meters) from this temple
+     * to the given device location.
+     */
+    fun setDistanceInMeters(deviceLocation: Location?) {
+        this.distance = deviceLocation?.let { devLoc ->
+            if (this.latitude == 0.0 && this.longitude == 0.0) { // Or however you check for invalid/missing lat/lon
+                return@let null // Cannot calculate distance if temple's own location is invalid
+            }
+            val templeLocation = Location("TempleLocationProvider").apply {
+                latitude = this@Temple.latitude
+                longitude = this@Temple.longitude
+            }
+            templeLocation.distanceTo(devLoc).toDouble() // distanceTo() returns Float meters
+        }
+    }
+
+    // Optional: A getter that returns the distance without modifying state, also in meters
+    fun getDistanceInMeters(deviceLocation: Location?): Double? {
+        return deviceLocation?.let { devLoc ->
+            if (this.latitude == 0.0 && this.longitude == 0.0) {
+                return@let null
+            }
+            val templeLocation = Location("TempleLocationProvider").apply {
+                latitude = this@Temple.latitude
+                longitude = this@Temple.longitude
+            }
+            templeLocation.distanceTo(devLoc).toDouble()
+        }
+    }
+
+    fun calculateDistance(fromLocation: Location?, inKilometers: Boolean = true): Double? { // Add return type
+        return fromLocation?.let { deviceLoc ->
+            val templeLocation = Location("TempleLocationProvider").apply {
+                latitude = this@Temple.latitude
+                longitude = this@Temple.longitude
+            }
+            var calculatedDistance = templeLocation.distanceTo(deviceLoc).toDouble()
+            if (inKilometers) {
+                calculatedDistance /= 1000.0
+            }
+            // Instead of setting this.distance here, return the value
+            calculatedDistance // This is now the return value of the let block (and the function)
+        } // If fromLocation is null, this let block is skipped, and null is returned (matching Double?)
+    }
+
+    // You might also want to modify the other calculateDistance if you use it similarly elsewhere
+    fun calculateDistance(fromLat: Double, fromLon: Double, inKilometers: Boolean = true): Double { // Add return type
         val templeLocation = Location("TempleLocationProvider").apply {
-            latitude = this@Temple.latitude // Assumes latitude will be set
-            longitude = this@Temple.longitude // Assumes longitude will be set
+            latitude = this@Temple.latitude
+            longitude = this@Temple.longitude
         }
         val fromPointLocation = Location("FromPointLocationProvider").apply {
             latitude = fromLat
@@ -70,21 +117,8 @@ data class Temple(
         if (inKilometers) {
             calculatedDistance /= 1000.0
         }
-        this.distance = calculatedDistance
-    }
-
-    fun calculateDistance(fromLocation: Location?, inKilometers: Boolean = true) {
-        fromLocation?.let {
-            val templeLocation = Location("TempleLocationProvider").apply {
-                latitude = this@Temple.latitude // Assumes latitude will be set
-                longitude = this@Temple.longitude // Assumes longitude will be set
-            }
-            var calculatedDistance = templeLocation.distanceTo(it).toDouble()
-            if (inKilometers) {
-                calculatedDistance /= 1000.0
-            }
-            this.distance = calculatedDistance
-        }
+        // this.distance = calculatedDistance // Remove this side-effect if the function is meant to just return
+        return calculatedDistance // Return the value
     }
 
     override fun equals(other: Any?): Boolean {
