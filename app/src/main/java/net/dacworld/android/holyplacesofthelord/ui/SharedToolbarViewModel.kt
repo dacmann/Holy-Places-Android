@@ -1,5 +1,6 @@
 package net.dacworld.android.holyplacesofthelord.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,7 +11,8 @@ import kotlinx.coroutines.flow.update // Required for the .update {} extension
 data class ToolbarUiState(
     val title: String = "Holy Places", // Default title
     val count: Int = 0,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val subtitle: String = ""
 )
 
 class SharedToolbarViewModel : ViewModel() {
@@ -20,14 +22,33 @@ class SharedToolbarViewModel : ViewModel() {
     // Publicly exposed StateFlow that is read-only for observers
     val uiState: StateFlow<ToolbarUiState> = _uiState.asStateFlow()
 
-    fun updateToolbarInfo(title: String, count: Int) {
-        // Use the .update extension function for atomic updates to the StateFlow
+    fun updateToolbarInfo(
+        title: String,
+        count: Int,
+        subtitle: String, // <<< ADD THIS PARAMETER
+        currentSearchQuery: String? = null // <<< ADD THIS PARAMETER (make it nullable with a default if desired)
+    ) {
         _uiState.update { currentState ->
             currentState.copy(
                 title = title,
-                count = count
+                count = count,
+                subtitle = subtitle, // Now 'subtitle' (on the right) refers to the new function parameter
+                searchQuery = currentSearchQuery
+                    ?: currentState.searchQuery // Now 'currentSearchQuery' (on the right) refers to the new function parameter
+                // And 'searchQuery' (on the left) refers to the field in ToolbarUiState
             )
         }
+        Log.d(
+            "SharedToolbarVM",
+            "Toolbar updated: Title='$title', Count=$count, Subtitle='$subtitle', Query='${_uiState.value.searchQuery}'"
+        ) // Optional: update log
+    }
+    // Optional: If you need to update only the subtitle sometimes
+    fun updateSubtitle(newSubtitle: String) { // Changed parameter name to avoid confusion
+        _uiState.update { currentState ->
+            currentState.copy(subtitle = newSubtitle) // This copy is fine
+        }
+        Log.d("SharedToolbarVM", "Subtitle updated: '$newSubtitle'")
     }
 
     fun setSearchQuery(query: String) {

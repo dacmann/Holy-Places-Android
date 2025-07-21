@@ -34,4 +34,11 @@
     <string name="sort_by">Sort Options:</string>
     <string name="done">Done</string>
     <string name="search_results_title">Search Results</string>
+    <string name="sort_label_alphabetical">Alphabetical Order</string>
+    <string name="sort_label_nearest">Nearest to Current Location</string>
+    <string name="sort_label_country">By Country</string>
+    <string name="sort_label_dedication_date">By Dedication Date</string>
+    <string name="sort_label_size">By Size</string>
+    <string name="sort_label_announced_date">By Announced Date</string>
+    <string name="sort_label_unknown">Unknown Sort Order</string>
 </resources>

@@ -22,18 +22,40 @@
             app:popupTheme="?attr/actionBarPopupTheme"
             app:title=""> <!-- Clear default title to use the centered TextView -->
 
-            <TextView
-                android:id="@+id/places_toolbar_title_centered"
+            <!-- START: LinearLayout for Centered Title and Subtitle -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:orientation="vertical"
                 android:layout_gravity="center"
-                android:text=""
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                android:fontFamily="@font/baskerville_font_family"
-                android:textColor="?attr/appBarTextColor"
-                tools:text="Holy Places" />
+                android:gravity="center_horizontal"> <!-- This centers content within LinearLayout -->
 
-            <TextView
+                <TextView
+                    android:id="@+id/places_toolbar_title_centered"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:fontFamily="@font/baskerville_font_family"
+                    android:textColor="?attr/appBarTextColor"
+                    tools:text="Holy Places (10)" />
+
+                <TextView
+                    android:id="@+id/placesToolbarSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    tools:text="Nearest to Current Location"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/appBarTextColor"
+                    android:fontFamily="@font/baskerville_font_family"
+                    android:visibility="gone"
+                    tools:visibility="visible"/>
+            </LinearLayout>
+        <!-- END: LinearLayout for Centered Title and Subtitle -->
+
+
+        <TextView
                 android:id="@+id/text_view_options"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"

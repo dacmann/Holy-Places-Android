@@ -1,5 +1,9 @@
 package net.dacworld.android.holyplacesofthelord.ui.places
 
+import android.Manifest // <<< ADD
+import android.annotation.SuppressLint // <<< ADD if not present
+import android.content.pm.PackageManager // <<< ADD
+import android.location.Location // <<< ADD
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -17,6 +21,9 @@ import androidx.lifecycle.map
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.gms.location.FusedLocationProviderClient // <<< ADD
+import com.google.android.gms.location.LocationServices // <<< ADD
+import com.google.android.gms.location.Priority // <<< ADD
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.MyApplication // Import MyApplication
 import net.dacworld.android.holyplacesofthelord.data.DataViewModel
@@ -46,6 +53,7 @@ import androidx.recyclerview.widget.RecyclerView
 import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel // Import your ViewModel
 import android.widget.Toast
 import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
+import net.dacworld.android.holyplacesofthelord.model.PlaceSort
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.dataStore
@@ -79,9 +87,17 @@ class PlacesFragment : Fragment() {
     // Keep track of active dialogs to prevent overlap if needed, though clearing the Flow source is primary
     private var isDialogShowing = false
 
+    // --- NEW: For passive location check ---
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var initialPassiveLocationCheckDone = false
+    // --- END NEW ---
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("PlacesFragment", "LIFECYCLE: onCreate")
+        // --- NEW: Initialize FusedLocationProviderClient ---
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
+        // --- END NEW ---
     }
 
     override fun onCreateView(
@@ -106,6 +122,9 @@ class PlacesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d("PlacesFragment", "LIFECYCLE: onViewCreated")
+        // --- NEW: Reset passive location check flag ---
+        initialPassiveLocationCheckDone = false
+        // --- END NEW ---
         // --- Call methods to setup Toolbar and SearchView ---
         setupToolbar()
         setupSearchViewListeners()
@@ -115,8 +134,6 @@ class PlacesFragment : Fragment() {
         // --- SETUP FOR THE NEW TEXTVIEW OPTIONS "BUTTON" ---
         binding.textViewOptions.setOnClickListener { // <<--- IMPORTANT: Use the new ID
             Log.d("PlacesFragment", "Options TextView (styled as button) clicked!")
-            // TODO: Navigate to OptionsFragment
-            // Use the action ID defined in main_nav_graph.xml
             findNavController().navigate(R.id.action_placesFragment_to_optionsFragment)
         }
 
@@ -125,14 +142,13 @@ class PlacesFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
-                    dataViewModel.isLoading, // Keep for loading state if needed, or get from sharedOptionsViewModel if it manages it
-                    sharedOptionsViewModel.uiState.map {
-                        Log.d("PlacesFragment", "Source List from SharedOptionsVM: ${it.displayedTemples.size} items, Filter: ${it.currentFilter}, Sort: ${it.currentSort}")
-                        it.displayedTemples
-                    }.distinctUntilChanged(), // <<< USE THIS AS THE SOURCE OF TEMPLES
+                    dataViewModel.isLoading,
+                    sharedOptionsViewModel.uiState.map { it.displayedTemples }.distinctUntilChanged(),
+                    sharedOptionsViewModel.uiState.map { it.currentSort }.distinctUntilChanged(),     // <<< ADD THIS
+                    sharedOptionsViewModel.uiState.map { it.currentFilter }.distinctUntilChanged(),   // <<< ADD THIS
                     sharedToolbarViewModel.uiState.map { it.searchQuery }.distinctUntilChanged()
-                ) { isLoading, templesFromOptionsVM, searchQuery -> // Renamed for clarity
-                    Log.d("PlacesFragment", "Combine Triggered: isLoading=$isLoading, templesFromOptionsVMCount=${templesFromOptionsVM.size}, searchQuery='$searchQuery'")
+                ) { isLoading, templesFromOptionsVM, currentSort, currentFilter, searchQuery ->        // <<< RECEIVE THEM HERE
+                    Log.d("PlacesFragment", "Combine Triggered: isLoading=$isLoading, templesCount=${templesFromOptionsVM.size}, sort=$currentSort, filter=$currentFilter, query='$searchQuery'")
 
                     val searchFilteredTemples = if (searchQuery.isBlank()) {
                         templesFromOptionsVM
@@ -145,14 +161,22 @@ class PlacesFragment : Fragment() {
                     }
                     Log.i("PlacesFragment_COMBINE", "SEARCH_FILTERED_RESULT: count=${searchFilteredTemples.size}")
 
-                    // Update toolbar title and count based on this final list
                     val currentScreenTitle = if (searchQuery.isBlank()) {
-                        // Title could also come from sharedOptionsViewModel.uiState.currentFilter.displayName
-                        sharedOptionsViewModel.uiState.value.currentFilter.displayName // Example
+                        currentFilter.displayName // Now you can use the 'currentFilter' parameter
                     } else {
-                        getString(R.string.search_results_title) // Example: "Search Results"
+                        getString(R.string.search_results_title)
                     }
-                    sharedToolbarViewModel.updateToolbarInfo(currentScreenTitle, searchFilteredTemples.size)
+
+                    // Determine subtitle based on currentSort
+                    val sortSubtitle = getSortOrderLabel(currentSort) // Now 'currentSort' parameter is used
+
+                    // Update sharedToolbarViewModel
+                    sharedToolbarViewModel.updateToolbarInfo(
+                        title = currentScreenTitle,
+                        count = searchFilteredTemples.size,
+                        subtitle = sortSubtitle,
+                        currentSearchQuery = searchQuery // Pass the current search query
+                    )
 
                     // Pass isLoading, the searchFilteredTemples, and the original searchQuery
                     Triple(isLoading, searchFilteredTemples, searchQuery) // Note: isLoading might need rethinking if sharedOptionsViewModel also handles it
@@ -161,7 +185,17 @@ class PlacesFragment : Fragment() {
 
                     binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0) View.VISIBLE else View.GONE
 
-                    templeAdapter.submitList(finalTemplesToShow.toList()) // Use .toList() to ensure a new list for DiffUtil if needed
+                    // Submit the list
+                    templeAdapter.submitList(finalTemplesToShow.toList()) {
+                        // This callback is executed when the PagedList (if you were using Paging)
+                        // has completed differencing and the UI has been updated.
+                        // For ListAdapter, this lambda is invoked after the diffing is complete and
+                        // the list is displayed. This is a good place to scroll.
+                        if (finalTemplesToShow.isNotEmpty()) { // Only scroll if there are items
+                            binding.placesRecyclerView.scrollToPosition(0)
+                            Log.d("PlacesFragment_Scroll", "Scrolled to top after list submission (via submitList callback).")
+                        }
+                    }
 
                     if (finalTemplesToShow.isEmpty() && !isLoading) {
                         binding.placesRecyclerView.visibility = View.GONE
@@ -184,82 +218,35 @@ class PlacesFragment : Fragment() {
             }
         }
 
-//        viewLifecycleOwner.lifecycleScope.launch {
-//            Log.d("PlacesFragment", "OBSERVER_SETUP: Main UI content observer coroutine LAUNCHED.") // <<<
-//
-//            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-//                Log.d("PlacesFragment", "OBSERVER_SETUP: Main UI content observer REPEATING on STARTED.") // <<<
-//                // Combine relevant flows:
-//                combine(
-//                    dataViewModel.isLoading,  // StateFlow<Boolean>
-//                    dataViewModel.allTemples,   // StateFlow<List<Temple>>
-//                    sharedToolbarViewModel.uiState.map { it.searchQuery }.distinctUntilChanged() // Flow<String>
-//                ) { isLoading: Boolean, temples: List<Temple>, searchQuery: String -> // Explicit types HERE
-//                    Log.d("PlacesFragment", "Combine Triggered: isLoading=$isLoading, templesCount=${temples.size}, searchQuery='$searchQuery', templesInstance=${System.identityHashCode(temples)}")
-//                    val filteredTemples = if (searchQuery.isBlank()) {
-//                        temples
-//                    } else {
-//                        temples.filter { temple ->
-//                            // Use properties from Temple.kt
-//                            (temple.name.contains(searchQuery, ignoreCase = true)) ||
-//                                    (temple.snippet.contains(searchQuery, ignoreCase = true)) ||
-//                                    (temple.cityState.contains(searchQuery, ignoreCase = true))
-//                            // Add more fields as needed for your search logic
-//                            // If these fields can be null, use safe calls: temple.name?.contains(...) == true
-//                        }
-//                    }
-//                    Log.i("PlacesFragment_COMBINE", "FILTERED_RESULT: filteredCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)})")
-//                    // --- MODIFIED PART within the combine block ---
-//                    // Determine the title based on search state
-//                    val currentScreenTitle = if (searchQuery.isBlank()) {
-//                        // Assuming you have a string resource like <string name="title_places">Places</string>
-//                        getString(R.string.tab_label_places) // Or your preferred default title
-//                    } else {
-//                        getString(R.string.tab_label_places) // e.g., "Search Results"
-//                    }
-//                    // Update the SharedToolbarViewModel with this title and count
-//                    // This call was already here, ensure it uses the determined title
-//                    Log.i("PlacesFragment_COMBINE", "FILTERED: filteredCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)})")
-//                    sharedToolbarViewModel.updateToolbarInfo(currentScreenTitle, filteredTemples.size)
-//                    // --- END MODIFIED PART ---
-//
-//                    Triple(isLoading, filteredTemples, searchQuery)
-//                }.collectLatest { (isLoading: Boolean, filteredTemples: List<Temple>, searchQuery: String) -> // Explicit types also good here
-//                    Log.w("PlacesFragment_COLLECT", "RECEIVED_FOR_UI: listCount=${filteredTemples.size} (ID: ${System.identityHashCode(filteredTemples)}), isLoading=$isLoading, searchQuery='$searchQuery'")
-//                    val currentFilterName = if (searchQuery.isBlank()) "All Places" else "Search Results"
-//                    Log.d(
-//                        "PlacesFragment",
-//                        "Combined UI State: isLoading=$isLoading, filteredTemplesCount=${filteredTemples.size}, searchQuery='$searchQuery'"
-//                    )
-//
-//                    //sharedToolbarViewModel.updateToolbarInfo(currentFilterName, filteredTemples.size)
-//
-//                    // Simplified progress bar logic - show if loading AND list is currently empty
-//                    binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0) View.VISIBLE else View.GONE
-//
-//                    val listToSubmit = filteredTemples.toList() // Your existing .toList() call
-//                    Log.w("PlacesFragment_SUBMIT", "PREP_FOR_ADAPTER: listToSubmitCount=${listToSubmit.size} (ID: ${System.identityHashCode(listToSubmit)})")
-//                    Log.w("PlacesFragment_SUBMIT", "CALLING submitList with ${listToSubmit.size} items.")
-//
-//                    templeAdapter.submitList(listToSubmit)
-//                    if (filteredTemples.isEmpty() && !isLoading) { // Only show empty view if not loading and list is empty
-//                        binding.placesRecyclerView.visibility = View.GONE
-//                        binding.emptyViewTextView.visibility = View.VISIBLE
-//                        binding.emptyViewTextView.text = if (searchQuery.isNotBlank()) {
-//                            "No places match your search."
-//                        } else {
-//                            "No places available."
-//                        }
-//                    } else if (filteredTemples.isNotEmpty()) {
-//                        binding.placesRecyclerView.visibility = View.VISIBLE
-//                        binding.emptyViewTextView.visibility = View.GONE
-//                    } else if (isLoading && filteredTemples.isEmpty()){ // still loading and no data yet
-//                        binding.placesRecyclerView.visibility = View.GONE
-//                        binding.emptyViewTextView.visibility = View.GONE // Hide empty text while loading
-//                    }
-//                }
-//            }
-//        }
+        // --- NEW: Observer for Passive Location Check ---
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Observe changes specifically relevant to this logic
+                sharedOptionsViewModel.uiState
+                    .map { Triple(it.currentSort, it.currentDeviceLocation, it.hasLocationPermission) } // Assuming hasLocationPermission is in your OptionsUiState
+                    .distinctUntilChanged()
+                    .collect { (currentSort, currentDeviceLocation, _) -> // hasLocationPermission from VM is not directly used here, we check fresh
+                        Log.d("PlacesFragment_PassiveObs", "Passive Check State: Sort=${currentSort.displayName}, VM.LocationSet=${currentDeviceLocation != null}, CheckDone=$initialPassiveLocationCheckDone")
+
+                        if (currentSort == PlaceSort.NEAREST &&
+                            currentDeviceLocation == null &&
+                            !initialPassiveLocationCheckDone) {
+
+                            initialPassiveLocationCheckDone = true // Mark that we're attempting this check once per fragment instance
+                            Log.i("PlacesFragment_PassiveLogic", "NEAREST sort is active, location missing in VM. Checking permissions passively.")
+
+                            if (hasLocationPermission()) {
+                                Log.i("PlacesFragment_PassiveLogic", "Location permission IS ALREADY GRANTED. Fetching location for NEAREST sort.")
+                                fetchLocationForNearestSortPassively() // New method name for clarity
+                            } else {
+                                Log.i("PlacesFragment_PassiveLogic", "Location permission NOT granted. ViewModel will use fallback sort.")
+                                // No action needed here; ViewModel should already be providing a fallback-sorted list.
+                            }
+                        }
+                    }
+            }
+        }
+        // --- END NEW ---
 
         // Observer for Remote XML Update Dialog
         viewLifecycleOwner.lifecycleScope.launch {
@@ -295,7 +282,14 @@ class PlacesFragment : Fragment() {
                         getString(R.string.toolbar_search_results_format, toolbarState.count)
                     }
                     binding.placesToolbarTitleCentered?.text = titleText // Use safe call as binding might be null during quick exit
-
+                    // --- NEW: Update the subtitle view ---
+                    if (toolbarState.subtitle.isNotBlank() && toolbarState.searchQuery.isBlank()) { // Only show subtitle if not searching
+                        binding.placesToolbarSubtitle?.text = toolbarState.subtitle
+                        binding.placesToolbarSubtitle?.visibility = View.VISIBLE
+                    } else {
+                        binding.placesToolbarSubtitle?.visibility = View.GONE
+                    }
+                    // --- END NEW ---
                     // Initialize SearchView text if it hasn't been set by user interaction yet
                     // and if it differs from the ViewModel's state (e.g., on configuration change)
                     if (binding.placesSearchView?.query?.toString() != toolbarState.searchQuery) {
@@ -330,6 +324,58 @@ class PlacesFragment : Fragment() {
 
     }
 
+    // --- NEW: Add this helper function within PlacesFragment ---
+    private fun getSortOrderLabel(sortOrder: PlaceSort): String {
+        return when (sortOrder) {
+            PlaceSort.ALPHABETICAL -> getString(R.string.sort_label_alphabetical)
+            PlaceSort.NEAREST -> getString(R.string.sort_label_nearest)
+            PlaceSort.COUNTRY -> getString(R.string.sort_label_country) // Assuming COUNTRY_THEN_NAME maps to "By Country"
+            PlaceSort.DEDICATION_DATE -> getString(R.string.sort_label_dedication_date)
+            PlaceSort.SIZE -> getString(R.string.sort_label_size)
+            PlaceSort.ANNOUNCED_DATE -> getString(R.string.sort_label_announced_date)
+            // Add other cases if your PlaceSort enum has more options
+            else -> {
+                Log.w("PlacesFragment", "Unknown sort order encountered: $sortOrder")
+                getString(R.string.sort_label_unknown) // Fallback for any unhandled or new sort orders
+            }
+        }
+    }
+
+    // --- NEW: Helper method to check for location permission ---
+    private fun hasLocationPermission(): Boolean {
+        val fineLocationGranted = ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseLocationGranted = ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        Log.d("PlacesFragment_PermCheck", "Passive Check - FineGranted: $fineLocationGranted, CoarseGranted: $coarseLocationGranted")
+        return fineLocationGranted || coarseLocationGranted
+    }
+    // --- END NEW ---
+    // --- NEW: Helper method to fetch location if permission is already granted ---
+    @SuppressLint("MissingPermission") // We call this only after hasLocationPermission() returns true
+    private fun fetchLocationForNearestSortPassively() {
+        Log.d("PlacesFragment_FetchLocP", "Attempting to fetch current location (passively).")
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { location: Location? ->
+                if (location != null) {
+                    Log.i("PlacesFragment_FetchLocP", "Location fetched successfully (passively): ${location.latitude}, ${location.longitude}")
+                    sharedOptionsViewModel.setDeviceLocation(location)
+                    // The sharedOptionsViewModel.setDeviceLocation call should trigger
+                    // its internal combine logic to re-sort the list if currentSort is NEAREST.
+                } else {
+                    Log.w("PlacesFragment_FetchLocP", "Fetched location is null (passively). ViewModel will use fallback sort.")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("PlacesFragment_FetchLocP", "Failed to fetch location (passively).", e)
+                // ViewModel will use fallback sort.
+            }
+    }
+    // --- END NEW ---
     private fun setupToolbar() {
         // Set the new toolbar as the support action bar
         val appCompatActivity = (activity as? AppCompatActivity)
