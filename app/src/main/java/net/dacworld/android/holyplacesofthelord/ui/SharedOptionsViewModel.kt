@@ -3,6 +3,9 @@ package net.dacworld.android.holyplacesofthelord.ui
 
 import android.location.Location // You have this
 import android.util.Log         // For logging, uncomment or add if you use Log.d/e
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.update
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -15,6 +18,7 @@ import kotlinx.coroutines.flow.catch              // *** ADD THIS ***
 import kotlinx.coroutines.flow.combine             // *** ADD THIS ***
 import kotlinx.coroutines.flow.collect            // *** ADD THIS ***
 import kotlinx.coroutines.flow.distinctUntilChanged // *** ADD THIS ***
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map                // *** ADD THIS ***
 import kotlinx.coroutines.launch       // *** ADD THIS (or uncomment) ***
@@ -24,30 +28,35 @@ import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
 import net.dacworld.android.holyplacesofthelord.model.PlaceSort
 import net.dacworld.android.holyplacesofthelord.model.Temple // Assuming OptionsUiState needs it for displayedTemples
 import net.dacworld.android.holyplacesofthelord.model.getSortOptionsForFilter
+import androidx.datastore.preferences.core.edit
+import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 
 class SharedOptionsViewModelFactory(
-    private val dataViewModel: DataViewModel
+    private val dataViewModel: DataViewModel,
+    private val userPreferencesManager: UserPreferencesManager // INJECT UserPreferencesManager
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SharedOptionsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SharedOptionsViewModel(dataViewModel) as T
+            return SharedOptionsViewModel(dataViewModel, userPreferencesManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+
 data class OptionsUiState(
     val currentFilter: PlaceFilter = PlaceFilter.HOLY_PLACES,
     val currentSort: PlaceSort = PlaceSort.ALPHABETICAL,
     val availableSortOptions: List<PlaceSort> = getSortOptionsForFilter(PlaceFilter.HOLY_PLACES),
-    val triggerLocationSetup: Boolean = false, // For "Nearest"
+    //val triggerLocationSetup: Boolean = false, // For "Nearest"
     val hasLocationPermission: Boolean = false, // Added for completeness based on logic
     val currentDeviceLocation: Location? = null,
     val displayedTemples: List<Temple> = emptyList() // Make sure Temple is imported
 )
 
 class SharedOptionsViewModel(
-    private val dataViewModel: DataViewModel // Inject DataViewModel
+    private val dataViewModel: DataViewModel,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OptionsUiState())
@@ -66,6 +75,46 @@ class SharedOptionsViewModel(
 
         // --- NEW: Reactive logic for displayedTemples ---
         viewModelScope.launch {
+            // Load initial filter and sort preferences using UserPreferencesManager
+            val initialFilterName = userPreferencesManager.selectedFilterFlow.first()
+                ?: PlaceFilter.HOLY_PLACES.name // Default if flow emits null or is empty
+
+            val loadedFilter = try {
+                PlaceFilter.valueOf(initialFilterName)
+            } catch (e: IllegalArgumentException) {
+                Log.w("SharedVM_Init", "Failed to parse stored filter: '$initialFilterName'. Defaulting.")
+                PlaceFilter.HOLY_PLACES
+            }
+
+            val defaultSortForLoadedFilter = getSortOptionsForFilter(loadedFilter).firstOrNull() ?: PlaceSort.ALPHABETICAL
+            val initialSortName = userPreferencesManager.selectedSortFlow.first()
+                ?: defaultSortForLoadedFilter.name // Default
+
+            var loadedSort = try {
+                PlaceSort.valueOf(initialSortName)
+            } catch (e: IllegalArgumentException) {
+                Log.w("SharedVM_Init", "Failed to parse stored sort: '$initialSortName'. Defaulting.")
+                defaultSortForLoadedFilter
+            }
+
+            val availableSortsForLoadedFilter = getSortOptionsForFilter(loadedFilter)
+            if (!availableSortsForLoadedFilter.contains(loadedSort)) {
+                Log.w("SharedVM_Init", "Loaded sort ${loadedSort.displayName} is not valid for loaded filter ${loadedFilter.displayName}. Resetting sort.")
+                loadedSort = availableSortsForLoadedFilter.firstOrNull() ?: PlaceSort.ALPHABETICAL
+            }
+
+            //val shouldTriggerLocationSetup = (loadedSort == PlaceSort.NEAREST)
+
+            _uiState.update { currentState ->
+                currentState.copy(
+                    currentFilter = loadedFilter,
+                    currentSort = loadedSort,
+                    availableSortOptions = availableSortsForLoadedFilter,
+                    //triggerLocationSetup = if (shouldTriggerLocationSetup) true else currentState.triggerLocationSetup
+                )
+            }
+            Log.d("SharedVM_Init", "Initial state from UPM: Filter=${loadedFilter.displayName}, Sort=${loadedSort.displayName}")
+
             combine<Triple<PlaceFilter, PlaceSort, Location?>, List<Temple>, List<Temple>>(
                 _uiState.map { state ->
                     Triple(state.currentFilter, state.currentSort, state.currentDeviceLocation)
@@ -93,22 +142,33 @@ class SharedOptionsViewModel(
                 }
         }
 
-        // Ensure initial sort option is valid for initial filter
-        val initialFilter = _uiState.value.currentFilter
+        // This block for ensuring initial sort is valid might run before the launch block above fully updates state from preferences.
+        // It's generally better to handle this within the same launch block that loads preferences.
+        // However, if kept, ensure it doesn't prematurely overwrite things.
+        // The launch block above is now the primary source for initial filter/sort state.
+        // We can simplify or remove this if the launch block correctly sets availableSortOptions based on loadedFilter.
+
+        // Consider if this is still needed or if the launch block above handles it sufficiently.
+        // If the launch block sets currentFilter, currentSort, and availableSortOptions based on loaded preferences,
+        // this might be redundant or could even cause a brief incorrect state.
+        // For now, let's assume the launch block correctly initializes everything.
+        // If issues arise, we might need to ensure this logic is correctly sequenced or integrated.
+        /*
+        val initialFilter = _uiState.value.currentFilter // This will be the default PlaceFilter.HOLY_PLACES initially
         val initialAvailableSorts = getSortOptionsForFilter(initialFilter)
         _uiState.update { currentState ->
-            // Ensure we don't accidentally overwrite displayedTemples if the launch block above
-            // hasn't run yet or is in the process of running.
-            // Best practice is to only update specific fields if the update is targeted.
             currentState.copy(
                 availableSortOptions = initialAvailableSorts,
                 currentSort = if (initialAvailableSorts.contains(currentState.currentSort)) {
                     currentState.currentSort
                 } else {
-                    initialAvailableSorts.firstOrNull() ?: PlaceSort.ALPHABETICAL // Handle empty list
+                    initialAvailableSorts.firstOrNull() ?: PlaceSort.ALPHABETICAL
                 }
             )
         }
+        */
+        // The primary initialization of currentFilter, currentSort, and availableSortOptions
+        // now happens within the viewModelScope.launch block using loaded preferences.
     }
 
     private fun applyFilterAndSort(
@@ -125,17 +185,17 @@ class SharedOptionsViewModel(
                 // Assuming HOLY_PLACES means all types T, H, A, C, V (adjust if different)
                 allTemples // Or further filter if HOLY_PLACES is a specific subset
             }
-            PlaceFilter.ACTIVE_TEMPLES -> allTemples.filter { it.type == SharedOptionsViewModel.TYPE_ACTIVE_TEMPLE }
-            PlaceFilter.HISTORICAL_SITES -> allTemples.filter { it.type == SharedOptionsViewModel.TYPE_HISTORICAL_SITE }
-            PlaceFilter.VISITORS_CENTERS -> allTemples.filter { it.type == SharedOptionsViewModel.TYPE_VISITORS_CENTER }
-            PlaceFilter.TEMPLES_UNDER_CONSTRUCTION -> allTemples.filter { it.type == SharedOptionsViewModel.TYPE_CONSTRUCTION_TEMPLE }
-            PlaceFilter.ANNOUNCED_TEMPLES -> allTemples.filter { it.type == SharedOptionsViewModel.TYPE_ANNOUNCED_TEMPLE }
+            PlaceFilter.ACTIVE_TEMPLES -> allTemples.filter { it.type == TYPE_ACTIVE_TEMPLE }
+            PlaceFilter.HISTORICAL_SITES -> allTemples.filter { it.type == TYPE_HISTORICAL_SITE }
+            PlaceFilter.VISITORS_CENTERS -> allTemples.filter { it.type == TYPE_VISITORS_CENTER }
+            PlaceFilter.TEMPLES_UNDER_CONSTRUCTION -> allTemples.filter { it.type == TYPE_CONSTRUCTION_TEMPLE }
+            PlaceFilter.ANNOUNCED_TEMPLES -> allTemples.filter { it.type == TYPE_ANNOUNCED_TEMPLE }
             PlaceFilter.ALL_TEMPLES -> {
                 // Assuming ALL_TEMPLES means only actual temple structures (T, A, C)
                 allTemples.filter {
-                    it.type == SharedOptionsViewModel.TYPE_ACTIVE_TEMPLE ||
-                            it.type == SharedOptionsViewModel.TYPE_CONSTRUCTION_TEMPLE ||
-                            it.type == SharedOptionsViewModel.TYPE_ANNOUNCED_TEMPLE
+                    it.type == TYPE_ACTIVE_TEMPLE ||
+                            it.type == TYPE_CONSTRUCTION_TEMPLE ||
+                            it.type == TYPE_ANNOUNCED_TEMPLE
                 }
             }
             // Add other PlaceFilter cases if any
@@ -178,7 +238,7 @@ class SharedOptionsViewModel(
         return sortedList
     }
     fun setFilter(filterType: PlaceFilter) {
-        Log.d("SharedVM", "setFilter called with: ${PlaceFilter.values().toList()}")
+        Log.d("SharedVM", "setFilter called with: ${filterType.displayName}")
         val newAvailableSorts = getSortOptionsForFilter(filterType)
         _uiState.update {
             it.copy(
@@ -186,8 +246,13 @@ class SharedOptionsViewModel(
                 availableSortOptions = newAvailableSorts,
                 // Reset sort if current sort is no longer valid, or keep if still valid
                 currentSort = if (newAvailableSorts.contains(it.currentSort)) it.currentSort else newAvailableSorts.first(),
-                triggerLocationSetup = false // Reset location trigger
+                // triggerLocationSetup = false // Reset location trigger
             )
+        }
+        // --- ADD THIS BLOCK TO SAVE THE FILTER ---
+        viewModelScope.launch {
+            userPreferencesManager.saveSelectedFilter(filterType.name) // Use UPM
+            Log.d("SharedVM", "Saved filter preference via UPM: ${filterType.name}")
         }
     }
 
@@ -195,12 +260,28 @@ class SharedOptionsViewModel(
         _uiState.update {
             it.copy(
                 currentSort = sortType,
-                triggerLocationSetup = (sortType == PlaceSort.NEAREST && !it.triggerLocationSetup) // Trigger only once per selection
+                // triggerLocationSetup = (sortType == PlaceSort.NEAREST && !it.triggerLocationSetup) // Trigger only once per selection
             )
+        }
+        // Save to DataStore
+        viewModelScope.launch {
+            userPreferencesManager.saveSelectedSort(sortType.name) // Use UPM
+            Log.d("SharedVM", "Saved sort preference via UPM: ${sortType.name}")
         }
     }
 
-    fun locationSetupTriggerConsumed() {
-        _uiState.update { it.copy(triggerLocationSetup = false) }
+    fun setDeviceLocation(location: Location?) {
+        Log.e("!!!!_SharedVM_SETLOC", "ENTERED setDeviceLocation. Location: ${location?.latitude}") // High visibility log
+        _uiState.update { currentState ->
+            currentState.copy(currentDeviceLocation = location)
+        }
+        Log.d("SharedVM_SetDeviceLoc", "_uiState.currentDeviceLocation is now: ${_uiState.value.currentDeviceLocation?.latitude}") // Log exit
     }
+
+//    fun locationSetupTriggerConsumed() {
+//        _uiState.update { currentState ->
+//            currentState.copy(triggerLocationSetup = false)
+//        }
+//        Log.d("SharedVM", "Location setup trigger consumed.") // Optional: for debugging
+//    }
 }

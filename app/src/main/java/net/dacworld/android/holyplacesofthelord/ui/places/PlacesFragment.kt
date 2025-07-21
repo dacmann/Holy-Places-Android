@@ -48,6 +48,7 @@ import android.widget.Toast
 import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModelFactory
+import net.dacworld.android.holyplacesofthelord.data.dataStore
 
 class PlacesFragment : Fragment() {
 
@@ -60,7 +61,11 @@ class PlacesFragment : Fragment() {
         DataViewModelFactory(application,application.templeDao, application.userPreferencesManager)
     }
     private val sharedOptionsViewModel: SharedOptionsViewModel by activityViewModels {
-        SharedOptionsViewModelFactory(dataViewModel) // Use the same factory
+        val application = requireActivity().application as MyApplication // Get UPM from Application
+        SharedOptionsViewModelFactory(
+            dataViewModel,
+            application.userPreferencesManager // Pass UserPreferencesManager instance
+        )
     }
 
     // ViewModel for Toolbar communication (title, count, search query)

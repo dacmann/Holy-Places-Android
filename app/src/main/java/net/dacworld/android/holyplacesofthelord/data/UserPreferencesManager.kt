@@ -16,7 +16,7 @@ import java.io.IOException
 
 // This top-level property delegate is what makes `context.dataStore` work within this file.
 // It needs to be at the top level, or accessible in the scope where it's used.
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "holy_places_settings")
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "holy_places_settings")
 
 class UserPreferencesManager private constructor(private val dataStoreInstance: DataStore<Preferences>) {
 
@@ -32,6 +32,10 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val SHOW_INITIAL_SEED_DIALOG = booleanPreferencesKey("show_initial_seed_dialog")
         val INITIAL_SEED_DIALOG_TITLE = stringPreferencesKey("initial_seed_dialog_title")
         val INITIAL_SEED_DIALOG_MESSAGES = stringSetPreferencesKey("initial_seed_dialog_messages")
+
+        val SELECTED_FILTER = stringPreferencesKey("selected_filter")
+
+        val SELECTED_SORT = stringPreferencesKey("selected_sort")
     }
 
     // Storing details for the one-time initial seed dialog
@@ -71,6 +75,44 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
             // though keeping them might be useful for debugging or history if ever needed.
             // preferences.remove(PreferencesKeys.INITIAL_SEED_DIALOG_TITLE)
             // preferences.remove(PreferencesKeys.INITIAL_SEED_DIALOG_MESSAGES)
+        }
+    }
+
+    // --- Flow for Selected Filter ---
+    val selectedFilterFlow: Flow<String?> = dataStoreInstance.data
+        .map { preferences ->
+            preferences[PreferencesKeys.SELECTED_FILTER]
+        }
+        .catch { exception -> // Best practice: add catch block
+            if (exception is IOException) {
+                emit(null) // Or a default enum.name if you prefer
+            } else {
+                throw exception
+            }
+        }
+
+    suspend fun saveSelectedFilter(filterName: String) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.SELECTED_FILTER] = filterName
+        }
+    }
+
+    // --- Flow for Selected Sort ---
+    val selectedSortFlow: Flow<String?> = dataStoreInstance.data
+        .map { preferences ->
+            preferences[PreferencesKeys.SELECTED_SORT]
+        }
+        .catch { exception -> // Best practice: add catch block
+            if (exception is IOException) {
+                emit(null) // Or a default enum.name
+            } else {
+                throw exception
+            }
+        }
+
+    suspend fun saveSelectedSort(sortName: String) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.SELECTED_SORT] = sortName
         }
     }
 
