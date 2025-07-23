@@ -34,6 +34,8 @@ import net.dacworld.android.holyplacesofthelord.model.PlaceSort
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.dataStore
+// Add a constant for the tag key
+private const val SPINNER_TAG_PROGRAMMATIC_SELECTION = "programmatic_selection"
 
 class OptionsFragment : Fragment() {
 
@@ -176,15 +178,30 @@ class OptionsFragment : Fragment() {
 
         binding.spinnerFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedItem = parent?.getItemAtPosition(position)
+                val selectedFilter = selectedItem as? PlaceFilter
+
+                Log.d("OptionsFragment_Filter", ">>>> Filter Spinner: onItemSelected ENTERED. Position: $position, Selected: ${selectedFilter?.displayName ?: selectedItem?.toString() ?: "NULL"}. isInitialFilterSetup_WAS: $isInitialFilterSetup.")
+
                 if (isInitialFilterSetup) {
-                    isInitialFilterSetup = false // Don't trigger update on initial ViewModel load
+                    isInitialFilterSetup = false
+                    Log.d("OptionsFragment_Filter", "Filter Spinner: isInitialFilterSetup was true. Now false. Listener is returning (programmatic/initial setup). <<<<")
                     return
                 }
-                val selectedFilter = parent?.getItemAtPosition(position) as PlaceFilter
-                Log.d("OptionsFragment", "Filter Spinner selected: ${selectedFilter.displayName}")
+
+                if (selectedFilter == null) {
+                    Log.e("OptionsFragment_Filter", "Filter Spinner: Selected item is null or not PlaceFilter after initial setup check.")
+                    return
+                }
+
+                // Original Log: Log.d("OptionsFragment", "Filter Spinner selected: ${selectedFilter.displayName}")
+                Log.d("OptionsFragment_Filter", "Filter Spinner: User selected: ${selectedFilter.displayName}. Calling VM.setFilter.")
                 sharedOptionsViewModel.setFilter(selectedFilter)
+                Log.d("OptionsFragment_Filter", "Filter Spinner: onItemSelected EXITED NORMALLY for ${selectedFilter.displayName}. <<<<")
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                Log.d("OptionsFragment_Filter", "Filter Spinner: onNothingSelected triggered.")
+            }
         }
 
         // --- Sort Spinner ---
@@ -201,35 +218,58 @@ class OptionsFragment : Fragment() {
 
         binding.spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedItem = parent?.getItemAtPosition(position)
+                val selectedSort = selectedItem as? PlaceSort
+
+                // Check the tag
+                val isProgrammatic = parent?.tag == SPINNER_TAG_PROGRAMMATIC_SELECTION
+                if (isProgrammatic) {
+                    parent?.tag = null // Clear the tag immediately after consuming it
+                    Log.d("OptionsFragment_Sort", ">>>> Sort Spinner (TAGGED): onItemSelected ENTERED (Programmatic). Pos: $position, Sel: ${selectedSort?.displayName}. IGNORING.")
+                    return // Ignore programmatic selections based on tag
+                }
+
+                // If not tagged as programmatic, then it's either truly initial or user-driven
+                Log.d("OptionsFragment_Sort", ">>>> Sort Spinner (UNTAGGED or Initial): onItemSelected ENTERED. Pos: $position, Sel: ${selectedSort?.displayName}. isInitialSortSetup_WAS: $isInitialSortSetup. VM.currentSort: ${sharedOptionsViewModel.uiState.value.currentSort.displayName}")
+
                 if (isInitialSortSetup) {
                     isInitialSortSetup = false
-                    Log.d("OptionsFragment_Sort", "Initial sort setup, spinner listener returning. Current VM sort: ${sharedOptionsViewModel.uiState.value.currentSort.displayName}")
+                    Log.d("OptionsFragment_Sort", "Sort Spinner: isInitialSortSetup was true. Now false. Listener is returning (programmatic/initial setup). Current VM sort still: ${sharedOptionsViewModel.uiState.value.currentSort.displayName} <<<<")
                     return
                 }
 
-                val selectedSort = parent?.getItemAtPosition(position) as PlaceSort
-                Log.d("OptionsFragment_Sort", "User selected Sort from spinner: ${selectedSort.displayName}")
+                if (selectedSort == null) {
+                    Log.e("OptionsFragment_Sort", "Sort Spinner: Selected item is null or not PlaceSort after initial setup check. This is unexpected.")
+                    return
+                }
+
+                // Original Log: Log.d("OptionsFragment_Sort", "User selected Sort from spinner: ${selectedSort.displayName}")
+                Log.d("OptionsFragment_Sort", "Sort Spinner: User interaction presumed. Selected: ${selectedSort.displayName}. VM.currentSort_BEFORE_ACTION: ${sharedOptionsViewModel.uiState.value.currentSort.displayName}")
+
 
                 if (selectedSort == sharedOptionsViewModel.uiState.value.currentSort) {
-                    Log.d("OptionsFragment_Sort", "Spinner selection matches ViewModel's current sort. Ignoring.")
+                    Log.d("OptionsFragment_Sort", "Sort Spinner: User selected sort (${selectedSort.displayName}) matches ViewModel's current sort. Ignoring.")
                     return
                 }
 
                 if (selectedSort == PlaceSort.NEAREST) {
-                    // Store the sort we were on *before* attempting NEAREST
                     sortToRevertToIfNearestFails = sharedOptionsViewModel.uiState.value.currentSort.takeIf { it != PlaceSort.NEAREST } ?: PlaceSort.ALPHABETICAL
-                    Log.d("OptionsFragment_Loc", "User wants NEAREST from spinner. Storing previous sort: ${sortToRevertToIfNearestFails?.displayName}. Setting isAwaitingPermission.")
-                    isAwaitingPermissionForNearestSort = true // Signal that upcoming permission/fetch is for this user action
+                    // Original Log: Log.d("OptionsFragment_Loc", "User wants NEAREST from spinner. Storing previous sort: ${sortToRevertToIfNearestFails?.displayName}. Setting isAwaitingPermission.")
+                    Log.d("OptionsFragment_Loc", "Sort Spinner: User wants NEAREST. Storing previous sort: ${sortToRevertToIfNearestFails?.displayName}. Setting isAwaitingPermission.")
+                    isAwaitingPermissionForNearestSort = true
                     requestLocationPermissionOrFetchForNearest()
                 } else {
-                    Log.d("OptionsFragment_Sort", "Non-Nearest sort selected: ${selectedSort.displayName}. Updating ViewModel.")
+                    // Original Log: Log.d("OptionsFragment_Sort", "Non-Nearest sort selected: ${selectedSort.displayName}. Updating ViewModel.")
+                    Log.d("OptionsFragment_Sort", "Sort Spinner: Non-Nearest sort selected: ${selectedSort.displayName}. Calling VM.setSort.")
                     sharedOptionsViewModel.setSort(selectedSort)
-                    // If user explicitly moves away from NEAREST, clear flags related to a pending NEAREST operation.
                     isAwaitingPermissionForNearestSort = false
                     sortToRevertToIfNearestFails = null
                 }
+                Log.d("OptionsFragment_Sort", "Sort Spinner: onItemSelected EXITED NORMALLY for ${selectedSort.displayName}. <<<<")
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                Log.d("OptionsFragment_Sort", "Sort Spinner: onNothingSelected triggered.")
+            }
         }
     }
 
@@ -312,52 +352,114 @@ class OptionsFragment : Fragment() {
                 Log.d("!!!!_OptionsFragment_FLAUVFN", "Reset isAwaiting and sortToRevertToIfNearestFails after fetch failure listener.")
             }
     }
+
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 sharedOptionsViewModel.uiState.collect { uiState ->
-                    // CHANGE 4: Adjust log and remove triggerLocationSetup block
-                    Log.d("OptionsFragment_Observer", "Observed UI State: Filter=${uiState.currentFilter.displayName}, Sort=${uiState.currentSort.displayName}, Location: ${uiState.currentDeviceLocation != null}")
+                    Log.d("OptionsFragment_Observer", ">>>> Observer START. Filter=${uiState.currentFilter.displayName}, Sort=${uiState.currentSort.displayName}. Flags BEFORE: isInitialSort=$isInitialSortSetup, isInitialFilter=$isInitialFilterSetup. Spinner Tag: ${binding.spinnerSort.tag}")
 
-                    // --- Update Filter Spinner Selection ---
+                    // --- Filter Spinner ---
                     val filterPosition = filterAdapter.getPosition(uiState.currentFilter)
                     if (binding.spinnerFilter.selectedItemPosition != filterPosition && filterPosition != -1) {
-                        Log.d("OptionsFragment_Observer", "Updating Filter spinner to: ${uiState.currentFilter.displayName} at pos $filterPosition")
-                        isInitialFilterSetup = true // Prevent listener fire for this programmatic change
+                        // Log.d("OptionsFragment_Observer", "Observer: Filter spinner update. Setting isInitialFilterSetup = true.")
+                        isInitialFilterSetup = true // This flag seems to work well for the filter spinner
                         binding.spinnerFilter.setSelection(filterPosition, false)
                     }
 
-                    // --- Update Sort Spinner Adapter Content (Available Sort Options) ---
+                    // --- Sort Spinner ---
+                    var needsAdapterUpdate = false
                     val currentAdapterSortItems = (0 until sortAdapter.count).mapNotNull { sortAdapter.getItem(it) }
                     if (currentAdapterSortItems.toSet() != uiState.availableSortOptions.toSet()) {
-                        Log.i("OptionsFragment_Observer", "Updating sort adapter content. New options: ${uiState.availableSortOptions.joinToString { it.displayName }}")
-                        isInitialSortSetup = true // Prevent listener fire for selection change after adapter update
+                        Log.i("OptionsFragment_Observer", "Observer: Sort adapter content changing.")
                         sortAdapter.clear()
                         sortAdapter.addAll(uiState.availableSortOptions)
-                        // sortAdapter.notifyDataSetChanged() // Not needed with addAll if adapter handles it
+                        needsAdapterUpdate = true // If adapter changes, we'll likely need to set selection
+                    }
 
-                        // After adapter content changes, re-apply the current sort selection from ViewModel
-                        val sortPositionInNewAdapter = sortAdapter.getPosition(uiState.currentSort)
-                        if (sortPositionInNewAdapter != -1) {
-                            Log.d("OptionsFragment_Observer", "Restoring Sort spinner selection to: ${uiState.currentSort.displayName} at pos $sortPositionInNewAdapter after adapter update.")
-                            // isInitialSortSetup = true; // Already set above
-                            binding.spinnerSort.setSelection(sortPositionInNewAdapter, false)
+                    val targetSortPositionInAdapter = sortAdapter.getPosition(uiState.currentSort)
+                    val currentSortSpinnerPosition = binding.spinnerSort.selectedItemPosition
+                    var sortNeedsProgrammaticSetSelectionCall = false
+
+                    if (needsAdapterUpdate) {
+                        // If adapter was updated, we always need to ensure selection is correct.
+                        // Target could be -1 if currentSort is not in new adapter.
+                        sortNeedsProgrammaticSetSelectionCall = true
+                        Log.d("OptionsFragment_Observer", "Observer: Sort adapter changed. Will ensure selection.")
+                    } else if (targetSortPositionInAdapter != -1 && currentSortSpinnerPosition != targetSortPositionInAdapter) {
+                        // Adapter same, but selection in UI doesn't match VM state.
+                        sortNeedsProgrammaticSetSelectionCall = true
+                        Log.d("OptionsFragment_Observer", "Observer: Sort selection differs from VM. Will set selection.")
+                    } else if (targetSortPositionInAdapter == -1 && uiState.availableSortOptions.isNotEmpty()) {
+                        // Adapter same, VM sort not in adapter (shouldn't happen if VM state is consistent).
+                        // Default to 0 if possible.
+                        sortNeedsProgrammaticSetSelectionCall = true
+                        Log.w("OptionsFragment_Observer", "Observer: Current VM sort not in adapter. Will try to select 0.")
+                    }
+
+
+                    if (sortNeedsProgrammaticSetSelectionCall) {
+                        val finalTargetPosition = if (targetSortPositionInAdapter != -1) {
+                            targetSortPositionInAdapter
+                        } else if (sortAdapter.count > 0) {
+                            0 // Default to first item if current VM sort not found
                         } else {
-                            Log.w("OptionsFragment_Observer", "Could not find current sort ${uiState.currentSort.displayName} in new adapter options.")
+                            -1 // No items to select
+                        }
+
+                        if (finalTargetPosition != -1) {
+                            Log.d("OptionsFragment_Observer", "Observer: Preparing to set sort spinner to pos $finalTargetPosition (${sortAdapter.getItem(finalTargetPosition)?.displayName}). Current spinner pos: $currentSortSpinnerPosition.")
+                            if (currentSortSpinnerPosition != finalTargetPosition) {
+                                Log.d("OptionsFragment_Observer", "Observer: Position differs. TAGGING and calling setSelection.")
+                                binding.spinnerSort.tag = SPINNER_TAG_PROGRAMMATIC_SELECTION
+                                binding.spinnerSort.setSelection(finalTargetPosition, false)
+                                // isInitialSortSetup will be handled by the listener via the tag path or its own check
+                            } else {
+                                // Target position is already selected. Listener won't fire.
+                                Log.d("OptionsFragment_Observer", "Observer: Target position $finalTargetPosition is already selected. Listener likely won't fire.")
+                                if (binding.spinnerSort.tag == SPINNER_TAG_PROGRAMMATIC_SELECTION) {
+                                    Log.w("OptionsFragment_Observer", "Observer: Clearing STALE tag because target item already selected and listener won't fire to clear it.")
+                                    binding.spinnerSort.tag = null
+                                }
+                                // If this observer pass was meant to satisfy the initial setup condition
+                                // (e.g., on fragment start, or after a significant state change like adapter reload),
+                                // and the spinner is already in the correct state, then the "initial setup"
+                                // for the sort spinner can be considered done.
+                                if (isInitialSortSetup) { // <--- NEW CONDITION CHECK
+                                    Log.w("OptionsFragment_Observer", "Observer: Spinner already matches VM for initial setup. Resetting isInitialSortSetup to false.")
+                                    isInitialSortSetup = false
+                                }
+                            }
+                        } else {
+                            Log.w("OptionsFragment_Observer", "Observer: No valid final target position for sort spinner.")
+                            if (isInitialSortSetup) { // Also handle if adapter is empty but was initial setup
+                                Log.w("OptionsFragment_Observer", "Observer: No target pos, but was initial setup. Resetting isInitialSortSetup to false.")
+                                isInitialSortSetup = false
+                            }
+                            if (binding.spinnerSort.tag == SPINNER_TAG_PROGRAMMATIC_SELECTION) { // Clear tag if adapter empty
+                                Log.w("OptionsFragment_Observer", "Observer: Clearing STALE tag, no target pos.")
+                                binding.spinnerSort.tag = null
+                            }
                         }
                     } else {
-                        // --- Update Sort Spinner Selection (if adapter content didn't change but selection might need to) ---
-                        val sortPositionInAdapter = sortAdapter.getPosition(uiState.currentSort)
-                        if (binding.spinnerSort.selectedItemPosition != sortPositionInAdapter && sortPositionInAdapter != -1) {
-                            Log.d("OptionsFragment_Observer", "Updating Sort spinner selection to: ${uiState.currentSort.displayName} at pos $sortPositionInAdapter")
-                            isInitialSortSetup = true // Prevent listener fire for this programmatic change
-                            binding.spinnerSort.setSelection(sortPositionInAdapter, false)
+                        Log.d("OptionsFragment_Observer", "Observer: No programmatic sort selection change needed for ${uiState.currentSort.displayName}.")
+                        if (binding.spinnerSort.tag == SPINNER_TAG_PROGRAMMATIC_SELECTION) {
+                            Log.w("OptionsFragment_Observer", "Observer: Clearing STALE tag because no programmatic update was needed in this pass.")
+                            binding.spinnerSort.tag = null
+                        }
+                        // If no programmatic update was needed at all, and isInitialSortSetup is still true,
+                        // it means the initial state from the VM matches the default spinner state.
+                        // Consider the initial setup satisfied.
+                        if (isInitialSortSetup && binding.spinnerSort.selectedItemPosition == targetSortPositionInAdapter && targetSortPositionInAdapter != -1) { // Check that it matches VM
+                            Log.w("OptionsFragment_Observer", "Observer: No programmatic update needed, current UI matches VM for initial state. Resetting isInitialSortSetup.")
+                            isInitialSortSetup = false
                         }
                     }
                 }
             }
         }
     }
+
 
     private fun setupDoneButton() {
         binding.buttonDoneOptions.setOnClickListener {
