@@ -11,6 +11,5 @@
     android:paddingBottom="12dp"
     android:singleLine="true"
     android:textAlignment="center"
-    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-    android:textSize="20sp" />
-    
+    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+    android:textSize="18sp" />

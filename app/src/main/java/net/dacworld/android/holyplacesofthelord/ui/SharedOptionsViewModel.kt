@@ -141,34 +141,6 @@ class SharedOptionsViewModel(
                     }
                 }
         }
-
-        // This block for ensuring initial sort is valid might run before the launch block above fully updates state from preferences.
-        // It's generally better to handle this within the same launch block that loads preferences.
-        // However, if kept, ensure it doesn't prematurely overwrite things.
-        // The launch block above is now the primary source for initial filter/sort state.
-        // We can simplify or remove this if the launch block correctly sets availableSortOptions based on loadedFilter.
-
-        // Consider if this is still needed or if the launch block above handles it sufficiently.
-        // If the launch block sets currentFilter, currentSort, and availableSortOptions based on loaded preferences,
-        // this might be redundant or could even cause a brief incorrect state.
-        // For now, let's assume the launch block correctly initializes everything.
-        // If issues arise, we might need to ensure this logic is correctly sequenced or integrated.
-        /*
-        val initialFilter = _uiState.value.currentFilter // This will be the default PlaceFilter.HOLY_PLACES initially
-        val initialAvailableSorts = getSortOptionsForFilter(initialFilter)
-        _uiState.update { currentState ->
-            currentState.copy(
-                availableSortOptions = initialAvailableSorts,
-                currentSort = if (initialAvailableSorts.contains(currentState.currentSort)) {
-                    currentState.currentSort
-                } else {
-                    initialAvailableSorts.firstOrNull() ?: PlaceSort.ALPHABETICAL
-                }
-            )
-        }
-        */
-        // The primary initialization of currentFilter, currentSort, and availableSortOptions
-        // now happens within the viewModelScope.launch block using loaded preferences.
     }
 
     private fun applyFilterAndSort(
@@ -218,7 +190,7 @@ class SharedOptionsViewModel(
             PlaceSort.ANNOUNCED_DATE -> {
                 // Ensure temples without announced dates are handled
                 filteredList.filter { it.announcedDate != null }
-                    .sortedBy { it.announcedDate }
+                    .sortedByDescending { it.announcedDate }
             }
             PlaceSort.NEAREST -> {
                 if (currentDeviceLocation != null) {

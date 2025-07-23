@@ -319,20 +319,6 @@ class OptionsFragment : Fragment() {
                     // CHANGE 4: Adjust log and remove triggerLocationSetup block
                     Log.d("OptionsFragment_Observer", "Observed UI State: Filter=${uiState.currentFilter.displayName}, Sort=${uiState.currentSort.displayName}, Location: ${uiState.currentDeviceLocation != null}")
 
-                    // CHANGE 4: REMOVE THIS ENTIRE BLOCK
-                    /*
-                    if (uiState.triggerLocationSetup && uiState.currentSort == PlaceSort.NEAREST) {
-                        // This logic is now handled by onStart() or direct user interaction
-                        Log.e("!!!!_OptionsFragment_TRIGGER", "Old TRIGGER DETECTED for NEAREST - THIS SHOULD NOT HAPPEN.")
-                        // sortToRevertToIfNearestFails = uiState.availableSortOptions.firstOrNull { it != PlaceSort.NEAREST } ?: PlaceSort.ALPHABETICAL
-                        // requestLocationPermissionOrFetchForNearest()
-                        // sharedOptionsViewModel.locationSetupTriggerConsumed()
-                    } else if (uiState.triggerLocationSetup) {
-                        Log.w("!!!!_OptionsFragment_TRIGGER", "Old TriggerLoc was true, but currentSort is ${uiState.currentSort.displayName}. Consuming. THIS SHOULD NOT HAPPEN")
-                        // sharedOptionsViewModel.locationSetupTriggerConsumed() // Consume even if not NEAREST to prevent stale trigger
-                    }
-                    */
-
                     // --- Update Filter Spinner Selection ---
                     val filterPosition = filterAdapter.getPosition(uiState.currentFilter)
                     if (binding.spinnerFilter.selectedItemPosition != filterPosition && filterPosition != -1) {
@@ -368,59 +354,6 @@ class OptionsFragment : Fragment() {
                             binding.spinnerSort.setSelection(sortPositionInAdapter, false)
                         }
                     }
-                    // --- Update Sort Spinner Adapter Content (Available Sort Options) ---
-                    // This ensures the spinner shows the correct list of sort options for the current filter.
-//                    val currentAdapterSortItems = (0 until sortAdapter.count).mapNotNull { sortAdapter.getItem(it) }
-//                    if (currentAdapterSortItems.toSet() != uiState.availableSortOptions.toSet()) { // Compare sets for order independence
-//                        Log.i("OptionsFragment_Observer", "Updating sort adapter data. ViewModel has: ${uiState.availableSortOptions.map { it.displayName }}")
-//                        val currentSortBeforeAdapterUpdate = binding.spinnerSort.selectedItem as? PlaceSort
-//
-//                        isInitialSortSetup = true // Temporarily set to true to prevent listener firing during adapter data change
-//                        sortAdapter.clear()
-//                        sortAdapter.addAll(uiState.availableSortOptions)
-//                        // sortAdapter.notifyDataSetChanged() // Not always needed with clear/addAll but good practice
-//
-//                        // Attempt to restore selection if the previously selected sort is still available
-//                        // This is important because changing adapter data can reset selection.
-//                        val newPositionOfOldSort = if (currentSortBeforeAdapterUpdate != null) {
-//                            sortAdapter.getPosition(currentSortBeforeAdapterUpdate)
-//                        } else {
-//                            -1
-//                        }
-//
-//                        if (newPositionOfOldSort != -1) {
-//                            binding.spinnerSort.setSelection(newPositionOfOldSort, false)
-//                        } else if (uiState.availableSortOptions.isNotEmpty()) {
-//                            // If old sort not available, select the current sort from ViewModel (should be valid)
-//                            val sortPositionInNewAdapter = sortAdapter.getPosition(uiState.currentSort)
-//                            if (sortPositionInNewAdapter != -1) {
-//                                binding.spinnerSort.setSelection(sortPositionInNewAdapter, false)
-//                            } else if (sortAdapter.count > 0) {
-//                                binding.spinnerSort.setSelection(0, false) // Fallback to first item
-//                            }
-//                        }
-//                        // isInitialSortSetup should be reset by the listener itself,
-//                        // but we set it true here to ensure this programmatic change is ignored.
-//                        // The spinner's onItemSelected listener will set it to false on its first actual run.
-//                    }
-//
-//
-//                    // --- Update Sort Spinner Selection (Based on ViewModel's currentSort) ---
-//                    // This ensures the spinner's selected item matches the ViewModel's currentSort,
-//                    // especially after adapter data might have changed or if VM state changed for other reasons.
-//                    val sortPositionInAdapter = sortAdapter.getPosition(uiState.currentSort)
-//                    if (binding.spinnerSort.selectedItemPosition != sortPositionInAdapter && sortPositionInAdapter != -1) {
-//                        Log.d("OptionsFragment_Observer", "Updating Sort spinner to: ${uiState.currentSort.displayName} (pos: $sortPositionInAdapter)")
-//                        isInitialSortSetup = true // Crucial before programmatic selection
-//                        binding.spinnerSort.setSelection(sortPositionInAdapter, false)
-//                    } else if (sortPositionInAdapter == -1 && uiState.availableSortOptions.isNotEmpty() && sortAdapter.count > 0) {
-//                        // This case might happen if currentSort from VM is somehow not in the (newly updated) adapter.
-//                        // Should be rare if availableSortOptions is always kept in sync.
-//                        Log.w("OptionsFragment_Observer", "Could not find currentSort ${uiState.currentSort.displayName} in adapter. Defaulting to first option in adapter.")
-//                        isInitialSortSetup = true
-//                        binding.spinnerSort.setSelection(0, false)
-//                    }
-                    // The spinner's onItemSelected listener should set isInitialSortSetup = false.
                 }
             }
         }

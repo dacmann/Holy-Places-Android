@@ -162,7 +162,8 @@ class PlacesFragment : Fragment() {
                     Log.i("PlacesFragment_COMBINE", "SEARCH_FILTERED_RESULT: count=${searchFilteredTemples.size}")
 
                     val currentScreenTitle = if (searchQuery.isBlank()) {
-                        currentFilter.displayName // Now you can use the 'currentFilter' parameter
+                        //currentFilter.displayName // Now you can use the 'currentFilter' parameter
+                        getDisplayTitleForFilter(currentFilter, resources)
                     } else {
                         getString(R.string.search_results_title)
                     }
@@ -267,31 +268,59 @@ class PlacesFragment : Fragment() {
                 }
             }
         }
-        // --- NEW: Observer for SharedToolbarViewModel's title and initial SearchView query ---
+        // Observer for SharedToolbarViewModel's UI state AND SharedOptionsViewModel's currentFilter (for color)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sharedToolbarViewModel.uiState.collectLatest { toolbarState ->
-                    // Update the centered title
+                // Combine toolbarState with the currentFilter to get color information
+                sharedToolbarViewModel.uiState.combine(sharedOptionsViewModel.uiState.map { it.currentFilter }.distinctUntilChanged()) { toolbarState, currentFilter ->
+                    Pair(toolbarState, currentFilter) // Pass them together
+                }.collectLatest { (toolbarState, currentFilter) -> // Destructure the pair
+                    val titleTextView = binding.placesToolbarTitleCentered ?: return@collectLatest
+
+                    // --- APPLYING COLOR TO TITLE BASED ON currentFilter.customColorRes ---
+                    if (toolbarState.searchQuery.isBlank()) { // Only apply custom color if not searching
+                        val colorRes = currentFilter.customColorRes
+                        if (colorRes != null) {
+                            titleTextView.setTextColor(ContextCompat.getColor(requireContext(), colorRes))
+                        } else {
+                            // Fallback to a default theme color if customColorRes is null for the current filter
+                            val typedValue = android.util.TypedValue()
+                            requireContext().theme.resolveAttribute(R.attr.appBarTextColor, typedValue, true) // Or your default title color attribute
+                            if (typedValue.resourceId != 0) {
+                                titleTextView.setTextColor(ContextCompat.getColor(requireContext(), typedValue.resourceId))
+                            } else {
+                                titleTextView.setTextColor(typedValue.data)
+                            }
+                        }
+                    } else {
+                        // Default color for search results title (e.g., from theme attribute)
+                        val typedValue = android.util.TypedValue()
+                        requireContext().theme.resolveAttribute(R.attr.appBarTextColor, typedValue, true) // Or your default title color attribute
+                        if (typedValue.resourceId != 0) {
+                            titleTextView.setTextColor(ContextCompat.getColor(requireContext(), typedValue.resourceId))
+                        } else {
+                            titleTextView.setTextColor(typedValue.data)
+                        }
+                    }
+                    // --- END APPLYING COLOR ---
+
+                    // Update the centered title text
                     val titleText = if (toolbarState.searchQuery.isBlank()) {
-                        // Example: "Places (150)"
-                        // Ensure you have R.string.toolbar_title_format = "%1$s (%2$d)"
                         getString(R.string.toolbar_title_format, toolbarState.title, toolbarState.count)
                     } else {
-                        // Example: "Search Results (10)"
-                        // Ensure you have R.string.toolbar_search_results_format = "Search Results (%1$d)"
                         getString(R.string.toolbar_search_results_format, toolbarState.count)
                     }
-                    binding.placesToolbarTitleCentered?.text = titleText // Use safe call as binding might be null during quick exit
-                    // --- NEW: Update the subtitle view ---
-                    if (toolbarState.subtitle.isNotBlank() && toolbarState.searchQuery.isBlank()) { // Only show subtitle if not searching
+                    titleTextView.text = titleText
+
+                    // Update the subtitle view
+                    if (toolbarState.subtitle.isNotBlank() && toolbarState.searchQuery.isBlank()) {
                         binding.placesToolbarSubtitle?.text = toolbarState.subtitle
                         binding.placesToolbarSubtitle?.visibility = View.VISIBLE
                     } else {
                         binding.placesToolbarSubtitle?.visibility = View.GONE
                     }
-                    // --- END NEW ---
-                    // Initialize SearchView text if it hasn't been set by user interaction yet
-                    // and if it differs from the ViewModel's state (e.g., on configuration change)
+
+                    // Update SearchView query if necessary
                     if (binding.placesSearchView?.query?.toString() != toolbarState.searchQuery) {
                         binding.placesSearchView?.setQuery(toolbarState.searchQuery, false)
                     }
@@ -338,6 +367,17 @@ class PlacesFragment : Fragment() {
                 Log.w("PlacesFragment", "Unknown sort order encountered: $sortOrder")
                 getString(R.string.sort_label_unknown) // Fallback for any unhandled or new sort orders
             }
+        }
+    }
+
+    // Helper function to get the display title (could be in PlacesFragment or a utility file)
+    private fun getDisplayTitleForFilter(filter: PlaceFilter, resources: android.content.res.Resources): String {
+        return when (filter) {
+            PlaceFilter.TEMPLES_UNDER_CONSTRUCTION -> "Construction" // Shorter title
+            PlaceFilter.ANNOUNCED_TEMPLES -> "Announced"       // Shorter title
+            // Add other specific short titles if needed
+            // PlaceFilter.OPERATING_TEMPLES -> "Operating" // Example
+            else -> filter.displayName // Default to the existing displayName for other filters
         }
     }
 
