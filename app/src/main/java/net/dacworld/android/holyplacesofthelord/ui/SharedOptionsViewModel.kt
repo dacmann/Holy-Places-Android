@@ -30,6 +30,7 @@ import net.dacworld.android.holyplacesofthelord.model.Temple // Assuming Options
 import net.dacworld.android.holyplacesofthelord.model.getSortOptionsForFilter
 import androidx.datastore.preferences.core.edit
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
+import net.dacworld.android.holyplacesofthelord.ui.places.DisplayListItem
 
 class SharedOptionsViewModelFactory(
     private val dataViewModel: DataViewModel,
@@ -51,7 +52,7 @@ data class OptionsUiState(
     //val triggerLocationSetup: Boolean = false, // For "Nearest"
     val hasLocationPermission: Boolean = false, // Added for completeness based on logic
     val currentDeviceLocation: Location? = null,
-    val displayedTemples: List<Temple> = emptyList() // Make sure Temple is imported
+    val displayedListItems: List<DisplayListItem> = emptyList() // Changed from displayedTemples
 )
 
 class SharedOptionsViewModel(
@@ -115,100 +116,297 @@ class SharedOptionsViewModel(
             }
             Log.d("SharedVM_Init", "Initial state from UPM: Filter=${loadedFilter.displayName}, Sort=${loadedSort.displayName}")
 
-            combine<Triple<PlaceFilter, PlaceSort, Location?>, List<Temple>, List<Temple>>(
+            combine<Triple<PlaceFilter, PlaceSort, Location?>, List<Temple>, List<DisplayListItem>>( // Output type changed
                 _uiState.map { state ->
                     Triple(state.currentFilter, state.currentSort, state.currentDeviceLocation)
                 }.distinctUntilChanged(),
-                dataViewModel.allTemples
-            ) {
-                // Explicitly typed parameters (already correct from previous steps):
-                    (filter: PlaceFilter, sort: PlaceSort, location: Location?),
-                    allTemplesFromDataVM: List<Temple>
-                ->
+                dataViewModel.allTemples // Source of all temples
+            ) { (filter, sort, location), allTemplesFromDataVM -> // Parameters from the combine
 
                 Log.d("SharedVM", "Combining: Filter=${filter.displayName}, Sort=${sort.displayName}, AllTemplesCount=${allTemplesFromDataVM.size}")
-                applyFilterAndSort(allTemplesFromDataVM, filter, sort, location)
+
+                // 1. Apply Filter (existing logic is good, result is List<Temple>)
+                val filteredTemples = applyFilter(allTemplesFromDataVM, filter)
+                Log.d("SharedVM", "After filtering (${filter.displayName}): Count=${filteredTemples.size}")
+
+                // 2. Apply Sort (existing logic is good, result is List<Temple>)
+                //    The applySort function will need to be slightly modified if it previously modified
+                //    the list in place for 'NEAREST' sort by calling temple.setDistanceInMeters.
+                //    It's better if applySort returns a NEW sorted list.
+                val sortedTemples = applySort(filteredTemples, sort, location)
+                Log.d("SharedVM", "After sorting (${sort.displayName}): Count=${sortedTemples.size}")
+
+                // 3. NEW STEP: Insert Headers into the sorted list
+                val listWithHeaders = insertHeadersIntoSortedList(sortedTemples, sort)
+                Log.d("SharedVM", "After inserting headers: Count=${listWithHeaders.size}")
+
+                listWithHeaders // This is the List<DisplayListItem>
             }
-                .distinctUntilChanged()
+                .distinctUntilChanged() // On List<DisplayListItem>
                 .catch { e ->
-                    Log.e("SharedVM", "Error combining flows for displayedTemples: ${e.message}", e)
-                    _uiState.update { it.copy(displayedTemples = emptyList()) }
+                    Log.e("SharedVM", "Error combining flows for displayedListItems: ${e.message}", e)
+                    _uiState.update { it.copy(displayedListItems = emptyList()) } // Update correct field
                 }
-                .collect { resultList: List<Temple> ->
-                    Log.d("SharedVM_Reverted", "Collected List<Temple>: Size=${resultList.size}")
+                .collect { resultListWithHeaders: List<DisplayListItem> -> // Type changed
+                    Log.d("SharedVM_Collect", "Collected List<DisplayListItem>: Size=${resultListWithHeaders.size}")
                     _uiState.update { currentUiState ->
-                        currentUiState.copy(displayedTemples = resultList)
+                        currentUiState.copy(displayedListItems = resultListWithHeaders) // Update correct field
                     }
                 }
         }
     }
 
-    private fun applyFilterAndSort(
-        allTemples: List<Temple>,
-        filter: PlaceFilter,
-        sort: PlaceSort,
-        currentDeviceLocation: Location? // This is the Location from _uiState.currentDeviceLocation
-    ): List<Temple> {
-        Log.d("SharedVM_FilterSort", "Applying Filter: ${filter.displayName}, Sort: ${sort.displayName}")
 
-        // 1. Apply Filter
-        val filteredList = when (filter) {
-            PlaceFilter.HOLY_PLACES -> {
-                // Assuming HOLY_PLACES means all types T, H, A, C, V (adjust if different)
-                allTemples // Or further filter if HOLY_PLACES is a specific subset
-            }
+    // This function applies ONLY the filter, returns List<Temple>
+    private fun applyFilter(
+        allTemples: List<Temple>,
+        filter: PlaceFilter
+    ): List<Temple> {
+        return when (filter) {
+            PlaceFilter.HOLY_PLACES -> allTemples // Or apply specific logic for HOLY_PLACES
             PlaceFilter.ACTIVE_TEMPLES -> allTemples.filter { it.type == TYPE_ACTIVE_TEMPLE }
             PlaceFilter.HISTORICAL_SITES -> allTemples.filter { it.type == TYPE_HISTORICAL_SITE }
             PlaceFilter.VISITORS_CENTERS -> allTemples.filter { it.type == TYPE_VISITORS_CENTER }
             PlaceFilter.TEMPLES_UNDER_CONSTRUCTION -> allTemples.filter { it.type == TYPE_CONSTRUCTION_TEMPLE }
             PlaceFilter.ANNOUNCED_TEMPLES -> allTemples.filter { it.type == TYPE_ANNOUNCED_TEMPLE }
-            PlaceFilter.ALL_TEMPLES -> {
-                // Assuming ALL_TEMPLES means only actual temple structures (T, A, C)
-                allTemples.filter {
-                    it.type == TYPE_ACTIVE_TEMPLE ||
-                            it.type == TYPE_CONSTRUCTION_TEMPLE ||
-                            it.type == TYPE_ANNOUNCED_TEMPLE
-                }
+            PlaceFilter.ALL_TEMPLES -> allTemples.filter {
+                it.type == TYPE_ACTIVE_TEMPLE ||
+                        it.type == TYPE_CONSTRUCTION_TEMPLE ||
+                        it.type == TYPE_ANNOUNCED_TEMPLE
             }
-            // Add other PlaceFilter cases if any
         }
-        Log.d("SharedVM_FilterSort", "After filtering (${filter.displayName}): Count=${filteredList.size}")
+    }
 
-        // 2. Apply Sort
-        val sortedList = when (sort) {
-            PlaceSort.ALPHABETICAL -> filteredList.sortedBy { it.name }
-            PlaceSort.COUNTRY -> filteredList.sortedWith(compareBy<Temple> { it.country }.thenBy { it.name })
+    // This function applies ONLY the sort, returns List<Temple>
+    // Make sure it returns a NEW list and handles distance calculation for NEAREST appropriately.
+    private fun applySort(
+        filteredTemples: List<Temple>,
+        sort: PlaceSort,
+        currentDeviceLocation: Location?
+    ): List<Temple> {
+        return when (sort) {
+            PlaceSort.ALPHABETICAL -> filteredTemples.sortedBy { it.name }
+            PlaceSort.COUNTRY -> filteredTemples.sortedWith(compareBy<Temple> { it.country }.thenBy { it.name })
             PlaceSort.DEDICATION_DATE -> {
-                // Ensure temples without dedication dates are handled (e.g., sorted last or filtered out if not applicable)
-                filteredList.filter { it.order != null } // Example: only sort those with an order/dedication
-                    .sortedBy { it.order }
+                filteredTemples.filter { it.order != null }.sortedBy { it.order }
             }
             PlaceSort.SIZE -> {
-                // Handle null sqFt values (e.g. sort them last or give a default smallest value)
-                filteredList.sortedWith(compareByDescending { it.sqFt ?: Int.MIN_VALUE })
+                filteredTemples.sortedWith(compareByDescending { it.sqFt ?: Int.MIN_VALUE })
             }
             PlaceSort.ANNOUNCED_DATE -> {
-                // Ensure temples without announced dates are handled
-                filteredList.filter { it.announcedDate != null }
-                    .sortedByDescending { it.announcedDate }
+                filteredTemples.filter { it.announcedDate != null }.sortedByDescending { it.announcedDate }
             }
             PlaceSort.NEAREST -> {
                 if (currentDeviceLocation != null) {
-                    filteredList.map { temple ->
-                        temple.setDistanceInMeters(currentDeviceLocation) // Sets temple.distance in meters
+                    // Important: map to a new list if setDistanceInMeters modifies the Temple object,
+                    // or ensure Temple is a data class and setDistanceInMeters returns a new Temple instance.
+                    // For simplicity, let's assume setDistanceInMeters is okay or we handle immutability.
+                    filteredTemples.map { temple ->
+                        // If Temple is a data class, it's better to create a new instance with distance
+                        // e.g., temple.copy(distance = calculatedDistance)
+                        // For now, assuming current implementation is acceptable for distance calculation.
+                        temple.setDistanceInMeters(currentDeviceLocation) // This mutates temple.distance
                         temple
-                    }.sortedWith(compareBy(nullsLast()) { it.distance }) // Sort by meters, nulls (no location/calc error) last
+                    }.sortedWith(compareBy(nullsLast()) { it.distance })
                 } else {
-                    Log.w("SharedVM_FilterSort", "NEAREST sort: device location not available. Defaulting to alphabetical.")
-                    filteredList.sortedBy { it.name } // Fallback sort
+                    Log.w("SharedVM_Sort", "NEAREST sort: device location not available. Defaulting to alphabetical.")
+                    filteredTemples.sortedBy { it.name } // Fallback
                 }
             }
-            // Add other PlaceSort cases if any
         }
-        Log.d("SharedVM_FilterSort", "After sorting (${sort.displayName}): Count=${sortedList.size}")
-
-        return sortedList
     }
+//
+// NEW FUNCTION to insert headers
+private fun insertHeadersIntoSortedList(
+    sortedTemples: List<Temple>,
+    sortType: PlaceSort // Using your existing PlaceSort enum
+): List<DisplayListItem> {
+    if (sortedTemples.isEmpty()) return emptyList()
+
+    val displayItems = mutableListOf<DisplayListItem>()
+    Log.d("SharedVM_Headers", "Inserting headers for sort: ${sortType.displayName}, ${sortedTemples.size} temples")
+
+    when (sortType) {
+        PlaceSort.ALPHABETICAL -> {
+            Log.d("SharedVM_Headers", "Alphabetical sort selected. Skipping header insertion.")
+            sortedTemples.forEach { temple ->
+                displayItems.add(DisplayListItem.TempleRowItem(temple))
+            }
+            return displayItems
+        }
+        PlaceSort.COUNTRY -> {
+            var currentCountry = ""
+            var countryStartIndex = 0
+            for (i in sortedTemples.indices) { // sortedTemples is already sorted by country then name by applySort
+                val temple = sortedTemples[i]
+                if (temple.country != currentCountry) {
+                    if (currentCountry.isNotEmpty()) {
+                        val itemsInCountry = sortedTemples.subList(countryStartIndex, i)
+                        if (itemsInCountry.isNotEmpty()){
+                            displayItems.add(DisplayListItem.HeaderItem(currentCountry, itemsInCountry.size))
+                            itemsInCountry.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
+                        }
+                    }
+                    currentCountry = temple.country
+                    countryStartIndex = i
+                }
+            }
+            if (currentCountry.isNotEmpty() && countryStartIndex < sortedTemples.size) {
+                val itemsInLastCountry = sortedTemples.subList(countryStartIndex, sortedTemples.size)
+                if (itemsInLastCountry.isNotEmpty()){
+                    displayItems.add(DisplayListItem.HeaderItem(currentCountry, itemsInLastCountry.size))
+                    itemsInLastCountry.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
+                }
+            }
+        }
+        PlaceSort.DEDICATION_DATE -> {
+            // Your iOS code for "Eras" based on `templeOrder`
+            // sortedTemples is already sorted by 'order' from applySort
+            if (sortedTemples.isEmpty()) return emptyList()
+            var currentEra = ""
+            var eraStartIndex = 0
+
+            val getEraForOrder: (Short) -> String = { order ->
+                when (order) {
+                    in 1..4 -> "Pioneer Era ~ 1877-1893"
+                    in 5..12 -> "Expansion Era ~ 1919-1958"
+                    in 13..20 -> "Strengthening Era ~ 1964-1981"
+                    in 21..53 -> "Growth Era ~ 1983-1998"
+                    in 54..114 -> "Explosive Era ~ 1999-2002"
+                    in 115..161 -> "Hastening Era ~ 2003-2018"
+                    // else -> "Unparalleled Era ~ 2019-Present" // Handle current year if needed
+                    else -> {
+                        val currentYear = java.time.Year.now().value // Requires API 26 for java.time.Year
+                        "Unparalleled Era ~ 2019-$currentYear"
+                    }
+                }
+            }
+
+            for (i in sortedTemples.indices) {
+                val temple = sortedTemples[i]
+                val era = getEraForOrder(temple.order ?: 0) // Handle null order safely
+
+                if (era != currentEra) {
+                    if (currentEra.isNotEmpty()) {
+                        val itemsInEra = sortedTemples.subList(eraStartIndex, i)
+                        if (itemsInEra.isNotEmpty()) {
+                            displayItems.add(DisplayListItem.HeaderItem(currentEra, itemsInEra.size))
+                            itemsInEra.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
+                        }
+                    }
+                    currentEra = era
+                    eraStartIndex = i
+                }
+            }
+            // Add the last era's group
+            if (currentEra.isNotEmpty() && eraStartIndex < sortedTemples.size) {
+                val itemsInLastEra = sortedTemples.subList(eraStartIndex, sortedTemples.size)
+                if (itemsInLastEra.isNotEmpty()) {
+                    displayItems.add(DisplayListItem.HeaderItem(currentEra, itemsInLastEra.size))
+                    itemsInLastEra.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
+                }
+            }
+        }
+        PlaceSort.SIZE -> {
+            // Your iOS code for size categories based on `templeSqFt`
+            // sortedTemples is already sorted by sqFt (desc) from applySort
+            if (sortedTemples.isEmpty()) return emptyList()
+            Log.d("SharedVM_Headers", "Size sort selected. Preparing items with size prefix in snippet.")
+            var currentSizeCategory = ""
+            var categoryStartIndex = 0
+
+            val getSizeCategory: (Int?) -> String = { sqFt ->
+                when (sqFt) {
+                    null -> "Unknown Size" // Or handle as smallest/largest
+                    in 100000..Int.MAX_VALUE -> "Over 100K sqft"
+                    in 60000..99999 -> "60K - 100K sqft"
+                    in 30000..59999 -> "30K - 60K sqft"
+                    in 12000..29999 -> "12K - 30K sqft"
+                    else -> "Under 12K sqft"
+                }
+            }
+
+            // Helper function for creating the modified TempleRowItem
+            fun createModifiedTempleRowItem(temple: Temple): DisplayListItem.TempleRowItem {
+                val formattedSqFt = temple.sqFt?.let { String.format("%,d sq ft", it) } ?: "Unknown size"
+                // temple.snippet will be an empty string if null originally, thanks to your default value.
+                val newSnippet = "$formattedSqFt - ${temple.snippet}".trimEnd(' ', '-')
+                val templeForDisplay = temple.copy(snippet = newSnippet)
+                return DisplayListItem.TempleRowItem(templeForDisplay)
+            }
+
+            for (i in sortedTemples.indices) {
+                val temple = sortedTemples[i]
+                val category = getSizeCategory(temple.sqFt)
+
+                if (category != currentSizeCategory) {
+                    if (currentSizeCategory.isNotEmpty()) {
+                        val itemsInCategory = sortedTemples.subList(categoryStartIndex, i)
+                        if (itemsInCategory.isNotEmpty()) {
+                            displayItems.add(DisplayListItem.HeaderItem(currentSizeCategory, itemsInCategory.size))
+                            itemsInCategory.forEach { item -> displayItems.add(createModifiedTempleRowItem(item)) }
+                        }
+                    }
+                    currentSizeCategory = category
+                    categoryStartIndex = i
+                }
+            }
+            if (currentSizeCategory.isNotEmpty() && categoryStartIndex < sortedTemples.size) {
+                val itemsInLastCategory = sortedTemples.subList(categoryStartIndex, sortedTemples.size)
+                if (itemsInLastCategory.isNotEmpty()) {
+                    displayItems.add(DisplayListItem.HeaderItem(currentSizeCategory, itemsInLastCategory.size))
+                    itemsInLastCategory.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
+                }
+            }
+        }
+        PlaceSort.ANNOUNCED_DATE -> {
+            // Your iOS code for grouping by formatted announced date string
+            // sortedTemples is already sorted by announcedDate (desc) from applySort
+            if (sortedTemples.isEmpty()) return emptyList()
+            var currentDateString = ""
+            var dateStartIndex = 0
+            // Requires API 26. If lower, use java.text.SimpleDateFormat
+            val formatter = java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy", java.util.Locale.getDefault())
+
+            for (i in sortedTemples.indices) {
+                val temple = sortedTemples[i]
+                val dateString = temple.announcedDate?.format(formatter) ?: "Date Unknown"
+
+                if (dateString != currentDateString) {
+                    if (currentDateString.isNotEmpty() && !currentDateString.equals("Date Unknown", ignoreCase = true)) { // Don't group "Date Unknown" items under a single header unless intended
+                        val itemsForDate = sortedTemples.subList(dateStartIndex, i)
+                        if (itemsForDate.isNotEmpty()) {
+                            displayItems.add(DisplayListItem.HeaderItem(currentDateString, itemsForDate.size))
+                            itemsForDate.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
+                        }
+                    }
+                    currentDateString = dateString
+                    dateStartIndex = i
+                }
+            }
+            if (currentDateString.isNotEmpty() && dateStartIndex < sortedTemples.size && !currentDateString.equals("Date Unknown", ignoreCase = true)) {
+                val itemsForLastDate = sortedTemples.subList(dateStartIndex, sortedTemples.size)
+                if (itemsForLastDate.isNotEmpty()){
+                    displayItems.add(DisplayListItem.HeaderItem(currentDateString, itemsForLastDate.size))
+                    itemsForLastDate.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
+                }
+            } else if (currentDateString.equals("Date Unknown", ignoreCase = true) && dateStartIndex < sortedTemples.size) {
+                // Handle all "Date Unknown" items - perhaps add them without a header, or a specific "Unknown Date" header
+                sortedTemples.subList(dateStartIndex, sortedTemples.size).forEach {
+                    displayItems.add(DisplayListItem.TempleRowItem(it))
+                }
+            }
+        }
+        PlaceSort.NEAREST -> {
+            // Typically, "Nearest" sort in your iOS app did not have internal section headers.
+            // So, we just convert the sortedTemples to TempleRowItems without headers.
+            sortedTemples.forEach { temple ->
+                displayItems.add(DisplayListItem.TempleRowItem(temple))
+            }
+        }
+    }
+    return displayItems
+}
     fun setFilter(filterType: PlaceFilter) {
         Log.d("SharedVM", "setFilter called with: ${filterType.displayName}")
         val newAvailableSorts = getSortOptionsForFilter(filterType)

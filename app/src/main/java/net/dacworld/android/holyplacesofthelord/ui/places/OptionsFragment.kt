@@ -218,55 +218,63 @@ class OptionsFragment : Fragment() {
 
         binding.spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val selectedItem = parent?.getItemAtPosition(position)
-                val selectedSort = selectedItem as? PlaceSort
-
-                // Check the tag
-                val isProgrammatic = parent?.tag == SPINNER_TAG_PROGRAMMATIC_SELECTION
-                if (isProgrammatic) {
-                    parent?.tag = null // Clear the tag immediately after consuming it
-                    Log.d("OptionsFragment_Sort", ">>>> Sort Spinner (TAGGED): onItemSelected ENTERED (Programmatic). Pos: $position, Sel: ${selectedSort?.displayName}. IGNORING.")
-                    return // Ignore programmatic selections based on tag
+                //val selectedItem = parent?.getItemAtPosition(position)
+                val selectedSort = parent?.getItemAtPosition(position) as? PlaceSort
+                if (selectedSort == null) {
+                    Log.w("OptionsFragment_Sort", "Sort Spinner: selectedItem is null or not PlaceSort at position $position. This is unexpected.")
+                    return
                 }
 
-                // If not tagged as programmatic, then it's either truly initial or user-driven
-                Log.d("OptionsFragment_Sort", ">>>> Sort Spinner (UNTAGGED or Initial): onItemSelected ENTERED. Pos: $position, Sel: ${selectedSort?.displayName}. isInitialSortSetup_WAS: $isInitialSortSetup. VM.currentSort: ${sharedOptionsViewModel.uiState.value.currentSort.displayName}")
+                // More detailed initial log for onItemSelected
+                Log.d("OptionsFragment_Sort", ">>>> Sort Spinner: ENTERED onItemSelected. Selected: ${selectedSort.displayName}, Pos: $position. TAG_WAS: ${binding.spinnerSort.tag}, isInitialSortSetup_WAS: $isInitialSortSetup")
+
+                if (binding.spinnerSort.tag == SPINNER_TAG_PROGRAMMATIC_SELECTION) {
+                    // Log before clearing tag and changing isInitialSortSetup
+                    Log.d("OptionsFragment_Sort", "Sort Spinner: TAGGED path detected. isInitialSortSetup_BEFORE_CHANGE_IN_TAGGED_PATH: $isInitialSortSetup. Clearing tag.")
+                    binding.spinnerSort.tag = null // Clear the tag
+                    if (isInitialSortSetup) {
+                        Log.d("OptionsFragment_Sort", "Sort Spinner: TAGGED path and isInitialSortSetup was true. Now setting isInitialSortSetup = false.")
+                        isInitialSortSetup = false
+                    }
+                    // Log after potential change to isInitialSortSetup and before returning
+                    Log.d("OptionsFragment_Sort", "Sort Spinner: TAGGED path FINISHED. isInitialSortSetup_NOW: $isInitialSortSetup. Returning. Current VM sort: ${sharedOptionsViewModel.uiState.value.currentSort.displayName}")
+                    return
+                }
 
                 if (isInitialSortSetup) {
+                    // This is the path where a user click might be mistakenly consumed
+                    Log.d("OptionsFragment_Sort", "Sort Spinner: UNTAGGED path, but isInitialSortSetup_WAS_TRUE. Setting isInitialSortSetup = false and returning. This 'eats' user click. Selected: ${selectedSort.displayName}. VM.currentSort: ${sharedOptionsViewModel.uiState.value.currentSort.displayName}")
                     isInitialSortSetup = false
-                    Log.d("OptionsFragment_Sort", "Sort Spinner: isInitialSortSetup was true. Now false. Listener is returning (programmatic/initial setup). Current VM sort still: ${sharedOptionsViewModel.uiState.value.currentSort.displayName} <<<<")
                     return
                 }
 
-                if (selectedSort == null) {
-                    Log.e("OptionsFragment_Sort", "Sort Spinner: Selected item is null or not PlaceSort after initial setup check. This is unexpected.")
-                    return
+                // --- If we reach here, it's a genuine user interaction after initial setup has been handled ---
+                Log.d("OptionsFragment_Sort", "Sort Spinner: User interaction presumed (passed tag and initial setup checks). Selected: ${selectedSort.displayName}. VM.currentSort_BEFORE_ACTION: ${sharedOptionsViewModel.uiState.value.currentSort.displayName}")
+
+
+                if (binding.root.isLayoutRequested || !binding.root.isAttachedToWindow) { // This check might be too aggressive or need refinement
+                    Log.w("OptionsFragment_Sort", "Sort Spinner: View is not ready (layout requested or not attached). Deferring/ignoring action for ${selectedSort.displayName}.")
+                    // return@setOnItemSelectedListener // original code did not return here, be cautious if re-adding
                 }
-
-                // Original Log: Log.d("OptionsFragment_Sort", "User selected Sort from spinner: ${selectedSort.displayName}")
-                Log.d("OptionsFragment_Sort", "Sort Spinner: User interaction presumed. Selected: ${selectedSort.displayName}. VM.currentSort_BEFORE_ACTION: ${sharedOptionsViewModel.uiState.value.currentSort.displayName}")
-
 
                 if (selectedSort == sharedOptionsViewModel.uiState.value.currentSort) {
-                    Log.d("OptionsFragment_Sort", "Sort Spinner: User selected sort (${selectedSort.displayName}) matches ViewModel's current sort. Ignoring.")
+                    Log.d("OptionsFragment_Sort", "Sort Spinner: User selected sort (${selectedSort.displayName}) matches ViewModel's current sort. IGNORING.")
                     return
                 }
 
                 if (selectedSort == PlaceSort.NEAREST) {
                     sortToRevertToIfNearestFails = sharedOptionsViewModel.uiState.value.currentSort.takeIf { it != PlaceSort.NEAREST } ?: PlaceSort.ALPHABETICAL
-                    // Original Log: Log.d("OptionsFragment_Loc", "User wants NEAREST from spinner. Storing previous sort: ${sortToRevertToIfNearestFails?.displayName}. Setting isAwaitingPermission.")
                     Log.d("OptionsFragment_Loc", "Sort Spinner: User wants NEAREST. Storing previous sort: ${sortToRevertToIfNearestFails?.displayName}. Setting isAwaitingPermission.")
                     isAwaitingPermissionForNearestSort = true
                     requestLocationPermissionOrFetchForNearest()
                 } else {
-                    // Original Log: Log.d("OptionsFragment_Sort", "Non-Nearest sort selected: ${selectedSort.displayName}. Updating ViewModel.")
                     Log.d("OptionsFragment_Sort", "Sort Spinner: Non-Nearest sort selected: ${selectedSort.displayName}. Calling VM.setSort.")
                     sharedOptionsViewModel.setSort(selectedSort)
                     isAwaitingPermissionForNearestSort = false
                     sortToRevertToIfNearestFails = null
                 }
                 Log.d("OptionsFragment_Sort", "Sort Spinner: onItemSelected EXITED NORMALLY for ${selectedSort.displayName}. <<<<")
-            }
+            } // End of onItemSelected
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 Log.d("OptionsFragment_Sort", "Sort Spinner: onNothingSelected triggered.")
             }

@@ -42,6 +42,7 @@ import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import kotlin.text.contains
 import android.app.AlertDialog // Import AlertDialog for getButton
 import android.graphics.Color
+import android.os.Parcelable
 import android.widget.EdgeEffect
 import androidx.core.content.ContextCompat // Import ContextCompat for getColor
 import androidx.core.text.color
@@ -52,6 +53,7 @@ import androidx.fragment.app.activityViewModels // For NavigationViewModel
 import androidx.recyclerview.widget.RecyclerView
 import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel // Import your ViewModel
 import android.widget.Toast
+import androidx.room.Update
 import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
 import net.dacworld.android.holyplacesofthelord.model.PlaceSort
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
@@ -82,15 +84,23 @@ class PlacesFragment : Fragment() {
     // Get the NavigationViewModel, scoped to the Activity
     private val navigationViewModel: NavigationViewModel by activityViewModels()
 
-    private lateinit var templeAdapter: TempleAdapter
+    private lateinit var placeAdapter: PlaceDisplayAdapter
 
     // Keep track of active dialogs to prevent overlap if needed, though clearing the Flow source is primary
     private var isDialogShowing = false
 
-    // --- NEW: For passive location check ---
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var initialPassiveLocationCheckDone = false
-    // --- END NEW ---
+
+    private var savedRecyclerLayoutState: Parcelable? = null // For LayoutManager state
+
+    // Add a flag to indicate if a scroll restoration is pending after returning to the fragment
+    private var pendingScrollRestore = false
+
+    private var previousSort: PlaceSort? = null
+    private var previousFilter: PlaceFilter? = null
+    private var isInitialLoad = true // To prevent scrolling to top on the very first load
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -116,20 +126,49 @@ class PlacesFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        Log.d("PlacesFragment", "LIFECYCLE: onResume") // Add if not present
+        // The logic to set pendingScrollRestore is now in onViewCreated.
+        Log.d("PlacesFragment_Scroll", "onResume: Current state: pendingScrollRestore=$pendingScrollRestore, savedStateIsNull=${savedRecyclerLayoutState == null}")
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d("PlacesFragment", "LIFECYCLE: onViewCreated")
-        // --- NEW: Reset passive location check flag ---
         initialPassiveLocationCheckDone = false
-        // --- END NEW ---
-        // --- Call methods to setup Toolbar and SearchView ---
+        // --- START: MODIFIED SECTION - Set pendingScrollRestore early ---
+        // This logic is placed right after your initial lines in onViewCreated.
+        // _binding is not strictly needed for this specific logic, but it's good to ensure
+        // this runs before UI elements that might depend on this state are fully processed.
+        if (savedRecyclerLayoutState != null) {
+            pendingScrollRestore = true
+            isInitialLoad = false
+            Log.d("PlacesFragment_Scroll", "onViewCreated: Found savedRecyclerLayoutState. Set pendingScrollRestore = true.")
+        } else {
+            // Ensure it's false if no state; it should be initialized to false as a class member.
+            pendingScrollRestore = false
+            Log.d("PlacesFragment_Scroll", "onViewCreated: No savedRecyclerLayoutState or it was null. pendingScrollRestore is now $pendingScrollRestore.")
+        }
+        // --- END: MODIFIED SECTION ---
         setupToolbar()
         setupSearchViewListeners()
-        setupRecyclerView()
-        Log.d("PlacesFragment", "OBSERVER_SETUP: Starting main UI content observer setup (combine).") // <<<
+        //setupRecyclerView()
+        //Log.d("PlacesFragment", "OBSERVER_SETUP: Starting main UI content observer setup (combine).") // <<<
+
+        // ADAPTER INITIALIZATION - Ensure this uses PlaceDisplayAdapter
+        // and its click listener still makes sense (receives a Temple for TempleRowItem)
+        placeAdapter = PlaceDisplayAdapter { temple -> // Or templeAdapter if that's the variable name
+            // Your existing click logic
+            Log.d("PlacesFragment", "Temple clicked: ${temple.name}, ID: ${temple.id}")
+            navigationViewModel.requestNavigationToPlaceDetail(temple.id) // Example from your code
+        }
+        binding.placesRecyclerView.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = placeAdapter // Assign the correct adapter instance
+            // Add DividerItemDecoration if needed, but be mindful of headers.
+            // You might want a custom decoration that skips drawing dividers for header items.
+            if (itemDecorationCount == 0) { // Add decoration only once
+                addItemDecoration(DividerItemDecoration(requireContext(), LinearLayoutManager.VERTICAL))
+            }
+        }
 
         // --- SETUP FOR THE NEW TEXTVIEW OPTIONS "BUTTON" ---
         binding.textViewOptions.setOnClickListener { // <<--- IMPORTANT: Use the new ID
@@ -143,77 +182,203 @@ class PlacesFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     dataViewModel.isLoading,
-                    sharedOptionsViewModel.uiState.map { it.displayedTemples }.distinctUntilChanged(),
-                    sharedOptionsViewModel.uiState.map { it.currentSort }.distinctUntilChanged(),     // <<< ADD THIS
-                    sharedOptionsViewModel.uiState.map { it.currentFilter }.distinctUntilChanged(),   // <<< ADD THIS
+                    // IMPORTANT CHANGE HERE: Use displayedListItems from SharedOptionsViewModel's UiState
+                    sharedOptionsViewModel.uiState.map { it.displayedListItems }.distinctUntilChanged(),
+                    sharedOptionsViewModel.uiState.map { it.currentSort }.distinctUntilChanged(),
+                    sharedOptionsViewModel.uiState.map { it.currentFilter }.distinctUntilChanged(),
                     sharedToolbarViewModel.uiState.map { it.searchQuery }.distinctUntilChanged()
-                ) { isLoading, templesFromOptionsVM, currentSort, currentFilter, searchQuery ->        // <<< RECEIVE THEM HERE
-                    Log.d("PlacesFragment", "Combine Triggered: isLoading=$isLoading, templesCount=${templesFromOptionsVM.size}, sort=$currentSort, filter=$currentFilter, query='$searchQuery'")
+                ) { isLoading,                                 // Boolean
+                    displayItemsFromOptionsVM,               // THIS IS NOW List<DisplayListItem>
+                    currentSort,                             // PlaceSort
+                    currentFilter,                           // PlaceFilter
+                    searchQuery ->                          // String
 
-                    val searchFilteredTemples = if (searchQuery.isBlank()) {
-                        templesFromOptionsVM
+                    Log.d("PlacesFragment_Scroll", "Combine triggered. PrevSort: $previousSort, PrevFilter: $previousFilter, isInitialLoad: $isInitialLoad, query: '$searchQuery'")
+
+                    Log.d("PlacesFragment_Combine", "Combine: isLoading=$isLoading, displayItemsCount=${displayItemsFromOptionsVM.size}, sort=$currentSort, filter=$currentFilter, query='$searchQuery'")
+
+                    // Search filtering needs to be adapted if it's done AFTER headers are inserted.
+                    // Ideally, search filtering should happen in SharedOptionsViewModel BEFORE headers are inserted.
+                    // If search must happen here on List<DisplayListItem>:
+                    val searchFilteredDisplayItems = if (searchQuery.isBlank()) {
+                        displayItemsFromOptionsVM
                     } else {
-                        templesFromOptionsVM.filter { temple ->
-                            (temple.name.contains(searchQuery, ignoreCase = true)) ||
-                                    (temple.snippet.contains(searchQuery, ignoreCase = true)) ||
-                                    (temple.cityState.contains(searchQuery, ignoreCase = true))
+                        // This filtering is more complex as you need to preserve headers
+                        // and only filter TempleRowItems.
+                        // OPTION 1: Filter temples first, then re-insert headers (complex here)
+                        // OPTION 2: Filter the List<DisplayListItem> carefully
+                        val filteredItems = mutableListOf<DisplayListItem>()
+                        var currentHeader: DisplayListItem.HeaderItem? = null
+                        val itemsUnderCurrentHeader = mutableListOf<DisplayListItem.TempleRowItem>()
+
+                        for (item in displayItemsFromOptionsVM) {
+                            if (item is DisplayListItem.HeaderItem) {
+                                // If we have a pending header and collected items for it, add them if any temples matched
+                                if (currentHeader != null && itemsUnderCurrentHeader.isNotEmpty()) {
+                                    filteredItems.add(currentHeader.copy(count = itemsUnderCurrentHeader.size)) // Update count
+                                    filteredItems.addAll(itemsUnderCurrentHeader)
+                                }
+                                currentHeader = item // Store the new header
+                                itemsUnderCurrentHeader.clear()
+                            } else if (item is DisplayListItem.TempleRowItem) {
+                                if (item.temple.name.contains(searchQuery, ignoreCase = true) ||
+                                    item.temple.snippet.contains(searchQuery, ignoreCase = true) ||
+                                    item.temple.cityState.contains(searchQuery, ignoreCase = true)
+                                ) {
+                                    itemsUnderCurrentHeader.add(item)
+                                }
+                            }
+                        }
+                        // Add any remaining items from the last header group
+                        if (currentHeader != null && itemsUnderCurrentHeader.isNotEmpty()) {
+                            filteredItems.add(currentHeader.copy(count = itemsUnderCurrentHeader.size))
+                            filteredItems.addAll(itemsUnderCurrentHeader)
+                        }
+                        // If no headers were involved (e.g. NEAREST sort), simple filter:
+                        if (displayItemsFromOptionsVM.all { it is DisplayListItem.TempleRowItem } && filteredItems.isEmpty() && displayItemsFromOptionsVM.isNotEmpty()){
+                            displayItemsFromOptionsVM.filter { listItem ->
+                                (listItem as? DisplayListItem.TempleRowItem)?.temple?.let { temple ->
+                                    temple.name.contains(searchQuery, ignoreCase = true) ||
+                                            temple.snippet.contains(searchQuery, ignoreCase = true) ||
+                                            temple.cityState.contains(searchQuery, ignoreCase = true)
+                                } ?: false
+                            }
+                        } else {
+                            filteredItems
                         }
                     }
-                    Log.i("PlacesFragment_COMBINE", "SEARCH_FILTERED_RESULT: count=${searchFilteredTemples.size}")
+                    Log.i("PlacesFragment_Combine", "SEARCH_FILTERED_DISPLAY_ITEMS: count=${searchFilteredDisplayItems.size}")
+
+                    // Count for the toolbar should now be the number of actual temple items, not total display items
+                    val templeItemCount = searchFilteredDisplayItems.count { it is DisplayListItem.TempleRowItem }
 
                     val currentScreenTitle = if (searchQuery.isBlank()) {
-                        //currentFilter.displayName // Now you can use the 'currentFilter' parameter
                         getDisplayTitleForFilter(currentFilter, resources)
                     } else {
                         getString(R.string.search_results_title)
                     }
+                    val sortSubtitle = getSortOrderLabel(currentSort)
 
-                    // Determine subtitle based on currentSort
-                    val sortSubtitle = getSortOrderLabel(currentSort) // Now 'currentSort' parameter is used
-
-                    // Update sharedToolbarViewModel
                     sharedToolbarViewModel.updateToolbarInfo(
                         title = currentScreenTitle,
-                        count = searchFilteredTemples.size,
+                        count = templeItemCount, // Use temple item count
                         subtitle = sortSubtitle,
-                        currentSearchQuery = searchQuery // Pass the current search query
+                        currentSearchQuery = searchQuery
                     )
 
-                    // Pass isLoading, the searchFilteredTemples, and the original searchQuery
-                    Triple(isLoading, searchFilteredTemples, searchQuery) // Note: isLoading might need rethinking if sharedOptionsViewModel also handles it
-                }.collectLatest { (isLoading, finalTemplesToShow, originalSearchQuery) ->
-                    Log.w("PlacesFragment_COLLECT", "RECEIVED_FOR_UI: listCount=${finalTemplesToShow.size}, isLoading=$isLoading, searchQuery='$originalSearchQuery'")
+                    // Pass isLoading, the searchFilteredDisplayItems, and the original searchQuery
+                    object {
+                        val isLoadingVal = isLoading
+                        val itemsVal = searchFilteredDisplayItems // Assuming this is calculated in your combine block
+                        val queryVal = searchQuery
+                        val sortVal = currentSort     // Add currentSort from combine's scope
+                        val filterVal = currentFilter   // Add currentFilter from combine's scope
+                    }
+                    // --- END CHANGE 1 ---
 
-                    binding.progressBar.visibility = if (isLoading && templeAdapter.itemCount == 0) View.VISIBLE else View.GONE
+                }.collectLatest { collectedData -> // finalDisplayItemsToShow is List<DisplayListItem>
+                    // New: Unpack the properties from 'collectedData'
+                    val isLoading = collectedData.isLoadingVal
+                    val finalDisplayItemsToShow = collectedData.itemsVal
+                    val originalSearchQuery = collectedData.queryVal
+                    val currentSort = collectedData.sortVal     // <<< Now available
+                    val currentFilter = collectedData.filterVal
+                    Log.w("PlacesFragment_Collect", "RECEIVED_FOR_UI: listCount=${finalDisplayItemsToShow.size}, isLoading=$isLoading, searchQuery='$originalSearchQuery'")
 
-                    // Submit the list
-                    templeAdapter.submitList(finalTemplesToShow.toList()) {
-                        // This callback is executed when the PagedList (if you were using Paging)
-                        // has completed differencing and the UI has been updated.
-                        // For ListAdapter, this lambda is invoked after the diffing is complete and
-                        // the list is displayed. This is a good place to scroll.
-                        if (finalTemplesToShow.isNotEmpty()) { // Only scroll if there are items
-                            binding.placesRecyclerView.scrollToPosition(0)
-                            Log.d("PlacesFragment_Scroll", "Scrolled to top after list submission (via submitList callback).")
+                    // ProgressBar logic: Show if loading AND there are no items yet (adapter might be empty initially)
+                    binding.progressBar.visibility = if (isLoading && placeAdapter.itemCount == 0 && finalDisplayItemsToShow.isEmpty()) View.VISIBLE else View.GONE
+
+                    placeAdapter.submitList(finalDisplayItemsToShow.toList()) { // submitList is fine with a new list
+                        Log.d("PlacesFragment_Scroll", "submitList START_CALLBACK: pendingScrollRestore=$pendingScrollRestore, itemCount=${placeAdapter.itemCount}, listToSubmitSize=${finalDisplayItemsToShow.size}")
+                        Log.d("PlacesFragment_Scroll", "Callback values: currentSort=$currentSort, currentFilter=$currentFilter, prevSort=$previousSort, prevFilter=$previousFilter, isInitialLoad=$isInitialLoad, query='$originalSearchQuery'")
+
+                        val sortJustChanged = previousSort != null && previousSort != currentSort
+                        val filterJustChanged = previousFilter != null && previousFilter != currentFilter
+                        // Ensure isInitialLoad is only true for the very first data load, not subsequent returns to the fragment
+                        val isTrulyInitialLoad = isInitialLoad && (previousSort == null && previousFilter == null) // More robust isInitialLoad check
+                        val shouldScrollForSortOrFilterChange = (sortJustChanged || filterJustChanged) && !isInitialLoad
+
+                        if (shouldScrollForSortOrFilterChange) { // <<< CHECK THIS FIRST
+                            if (finalDisplayItemsToShow.isNotEmpty()) {
+                                binding.placesRecyclerView.scrollToPosition(0)
+                                Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top due to SORT/FILTER change.")
+                            } else {
+                                Log.d("PlacesFragment_Scroll", "submitList: Sort/Filter changed, but list is empty. No scroll action.")
+                            }
+                            // Since we scrolled to top due to sort/filter, any pending scroll restoration is now invalid
+                            pendingScrollRestore = false
+                            savedRecyclerLayoutState = null
+                            Log.d("PlacesFragment_Scroll", "Sort/Filter change scroll: Cleared pendingScrollRestore and savedRecyclerLayoutState.")
+
+                        } else if (pendingScrollRestore && placeAdapter.itemCount > 0 && finalDisplayItemsToShow.isNotEmpty()) {
+                            Log.d("PlacesFragment_Scroll", "submitList: ATTEMPTING RESTORE.")
+                            // Restore scroll state only if there are items to scroll to
+                            binding.placesRecyclerView.layoutManager?.onRestoreInstanceState(savedRecyclerLayoutState)
+                            Log.d("PlacesFragment_Scroll", "Scroll state restored. Item count: ${placeAdapter.itemCount}")
+                            savedRecyclerLayoutState = null // Consume the saved state
+                            pendingScrollRestore = false   // Reset flag
+                        } else if (pendingScrollRestore) {
+                            // If pending restore but conditions not met (e.g., list became empty), clear flags
+                            Log.d("PlacesFragment_Scroll", "Scroll restore was pending but conditions not met (e.g., adapter empty or final list empty). Resetting flags.")
+                            savedRecyclerLayoutState = null
+                            pendingScrollRestore = false
+                            // Potentially scroll to top if list is empty and was supposed to restore
+                            if (finalDisplayItemsToShow.isEmpty()) {
+                                binding.placesRecyclerView.scrollToPosition(0)
+                                Log.d("PlacesFragment_Scroll", "Scrolled to top as list became empty during pending restore.")
+                            }
+                        } else {
+                            // This 'else' branch handles cases where scroll restoration was NOT pending.
+                            // This is where your original logic for scrolling to top goes.
+                            Log.d("PlacesFragment_Scroll", "submitList: Not a sort/filter change scroll, not a pending restore.")
+                            if (finalDisplayItemsToShow.isNotEmpty()) {
+                                if (isTrulyInitialLoad) { // Use the more robust initial load check
+                                    binding.placesRecyclerView.scrollToPosition(0)
+                                    Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top (TRULY INITIAL LOAD).")
+                                } else if (originalSearchQuery.isBlank() && !sortJustChanged && !filterJustChanged) {
+                                    // This condition might be redundant now if sort/filter scroll is handled above,
+                                    // but keep for search query clearing if it's distinct.
+                                    // It might be better to only scroll to top if query *changes* to blank.
+                                    // binding.placesRecyclerView.scrollToPosition(0)
+                                    // Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top (original logic - search cleared, no sort/filter change).")
+                                    Log.d("PlacesFragment_Scroll", "submitList: Search is blank, no sort/filter change, not initial load, not restoring. No specific scroll action here.")
+                                } else {
+                                    Log.d("PlacesFragment_Scroll", "submitList: NOT scrolling to top (other conditions).")
+                                }
+                            } else {
+                                Log.d("PlacesFragment_Scroll", "submitList: List is empty, no scroll to top action by original logic.")
+                            }
                         }
+                        // Update previous states and isInitialLoad AFTER all logic for the current submission
+                        if (isInitialLoad && finalDisplayItemsToShow.isNotEmpty()) {
+                            isInitialLoad = false
+                            Log.d("PlacesFragment_Scroll", "Marked isInitialLoad = false as list is now populated.")
+                        }
+                        previousSort = currentSort // 'currentSort' from .collectLatest scope
+                        previousFilter = currentFilter // 'currentFilter' from .collectLatest scope
+                        // --- END OF MODIFIED/NEW LOGIC WITHIN THE CALLBACK ---
+
+                        Log.d("PlacesFragment_Scroll", "submitList END_CALLBACK: pendingScrollRestore=$pendingScrollRestore, savedStateIsNull=${savedRecyclerLayoutState == null}") // Your existing log
                     }
 
-                    if (finalTemplesToShow.isEmpty() && !isLoading) {
+                    val templeItemCountInFinalList = finalDisplayItemsToShow.count { it is DisplayListItem.TempleRowItem }
+
+                    if (templeItemCountInFinalList == 0 && !isLoading) {
                         binding.placesRecyclerView.visibility = View.GONE
                         binding.emptyViewTextView.visibility = View.VISIBLE
                         binding.emptyViewTextView.text = if (originalSearchQuery.isNotBlank()) {
                             "No places match your search."
-                        } else if (sharedOptionsViewModel.uiState.value.currentFilter != PlaceFilter.HOLY_PLACES) { // Example: be more specific based on filter
-                            "No places match the current filter '${sharedOptionsViewModel.uiState.value.currentFilter.displayName}'."
-                        } else {
-                            "No places available."
+                        } else { // Using currentFilter from uiState as it's more robust
+                            val currentFilterFromState = sharedOptionsViewModel.uiState.value.currentFilter
+                            "No places match the current filter '${getDisplayTitleForFilter(currentFilterFromState, resources)}'."
                         }
-                    } else if (finalTemplesToShow.isNotEmpty()) {
+                    } else if (templeItemCountInFinalList > 0) {
                         binding.placesRecyclerView.visibility = View.VISIBLE
                         binding.emptyViewTextView.visibility = View.GONE
-                    } else if (isLoading && finalTemplesToShow.isEmpty()) {
+                    } else if (isLoading && templeItemCountInFinalList == 0) {
+                        // Still loading and list is empty (or only headers)
                         binding.placesRecyclerView.visibility = View.GONE
-                        binding.emptyViewTextView.visibility = View.GONE
+                        binding.emptyViewTextView.visibility = View.GONE // Hide empty text while loading
                     }
                 }
             }
@@ -481,32 +646,16 @@ class PlacesFragment : Fragment() {
         Log.d("PlacesFragment", "Showing update dialog: ${details.updateTitle}")
     }
 
-    private fun setupRecyclerView() {
-        Log.d("PlacesFragment", "setupRecyclerView called")
-        templeAdapter = TempleAdapter { temple ->
-            Log.d("PlacesFragmentNav", "Item clicked: ${temple.name}, ID: ${temple.id}. Requesting navigation via ViewModel.")
-            navigationViewModel.requestNavigationToPlaceDetail(temple.id) // <<<< CHANGE HERE
-        }
-        binding.placesRecyclerView.apply {
-            Log.d("PlacesFragment", "setupRecyclerView: Configuring RecyclerView.") // <<< ADDED
-            adapter = templeAdapter
-            layoutManager = LinearLayoutManager(context)
-            itemAnimator = null
-
-            Log.d("PlacesFragment", "RecyclerView adapter and layoutManager set.")
-            // --- Add Divider Item Decoration START ---
-            val dividerItemDecoration = DividerItemDecoration(
-                context, // Use requireContext() if context might be null, but here it should be fine
-                (layoutManager as LinearLayoutManager).orientation
-            )
-            addItemDecoration(dividerItemDecoration)
-            // --- Add Divider Item Decoration END ---
-        }
-    }
-
-    override fun onPause() { // Added onPause
+    override fun onPause() {
         super.onPause()
         Log.d("PlacesFragment", "LIFECYCLE: onPause")
+        // Save RecyclerView layout state
+        _binding?.let { binding -> // Check if binding is not null
+            binding.placesRecyclerView.layoutManager?.let { layoutManager ->
+                savedRecyclerLayoutState = layoutManager.onSaveInstanceState()
+                Log.d("PlacesFragment_Scroll", "onPause: Scroll state ${if (savedRecyclerLayoutState != null) "SAVED" else "NOT SAVED (null)"}. PendingRestore was: $pendingScrollRestore")
+            }
+        }
     }
 
     override fun onStop() { // Added onStop
