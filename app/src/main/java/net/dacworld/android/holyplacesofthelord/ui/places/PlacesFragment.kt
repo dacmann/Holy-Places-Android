@@ -12,6 +12,10 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 //import androidx.compose.ui.semantics.dismiss
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels // Keep this
 import androidx.lifecycle.Lifecycle
@@ -101,6 +105,8 @@ class PlacesFragment : Fragment() {
     private var previousFilter: PlaceFilter? = null
     private var isInitialLoad = true // To prevent scrolling to top on the very first load
 
+    private var stableRestingBottomPadding: Int? = null
+    private var isInitialInsetApplication = true // Helper to capture initial stable padding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,10 +140,6 @@ class PlacesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         Log.d("PlacesFragment", "LIFECYCLE: onViewCreated")
         initialPassiveLocationCheckDone = false
-        // --- START: MODIFIED SECTION - Set pendingScrollRestore early ---
-        // This logic is placed right after your initial lines in onViewCreated.
-        // _binding is not strictly needed for this specific logic, but it's good to ensure
-        // this runs before UI elements that might depend on this state are fully processed.
         if (savedRecyclerLayoutState != null) {
             pendingScrollRestore = true
             isInitialLoad = false
@@ -147,14 +149,10 @@ class PlacesFragment : Fragment() {
             pendingScrollRestore = false
             Log.d("PlacesFragment_Scroll", "onViewCreated: No savedRecyclerLayoutState or it was null. pendingScrollRestore is now $pendingScrollRestore.")
         }
-        // --- END: MODIFIED SECTION ---
+
         setupToolbar()
         setupSearchViewListeners()
-        //setupRecyclerView()
-        //Log.d("PlacesFragment", "OBSERVER_SETUP: Starting main UI content observer setup (combine).") // <<<
 
-        // ADAPTER INITIALIZATION - Ensure this uses PlaceDisplayAdapter
-        // and its click listener still makes sense (receives a Temple for TempleRowItem)
         placeAdapter = PlaceDisplayAdapter { temple -> // Or templeAdapter if that's the variable name
             // Your existing click logic
             Log.d("PlacesFragment", "Temple clicked: ${temple.name}, ID: ${temple.id}")
@@ -252,11 +250,12 @@ class PlacesFragment : Fragment() {
                     // Count for the toolbar should now be the number of actual temple items, not total display items
                     val templeItemCount = searchFilteredDisplayItems.count { it is DisplayListItem.TempleRowItem }
 
-                    val currentScreenTitle = if (searchQuery.isBlank()) {
-                        getDisplayTitleForFilter(currentFilter, resources)
-                    } else {
-                        getString(R.string.search_results_title)
-                    }
+                    val currentScreenTitle = getDisplayTitleForFilter(currentFilter, resources)
+//                    val currentScreenTitle = if (searchQuery.isBlank()) {
+//                        getDisplayTitleForFilter(currentFilter, resources)
+//                    } else {
+//                        getString(R.string.search_results_title)
+//                    }
                     val sortSubtitle = getSortOrderLabel(currentSort)
 
                     sharedToolbarViewModel.updateToolbarInfo(
@@ -443,22 +442,11 @@ class PlacesFragment : Fragment() {
                     val titleTextView = binding.placesToolbarTitleCentered ?: return@collectLatest
 
                     // --- APPLYING COLOR TO TITLE BASED ON currentFilter.customColorRes ---
-                    if (toolbarState.searchQuery.isBlank()) { // Only apply custom color if not searching
-                        val colorRes = currentFilter.customColorRes
-                        if (colorRes != null) {
-                            titleTextView.setTextColor(ContextCompat.getColor(requireContext(), colorRes))
-                        } else {
-                            // Fallback to a default theme color if customColorRes is null for the current filter
-                            val typedValue = android.util.TypedValue()
-                            requireContext().theme.resolveAttribute(R.attr.appBarTextColor, typedValue, true) // Or your default title color attribute
-                            if (typedValue.resourceId != 0) {
-                                titleTextView.setTextColor(ContextCompat.getColor(requireContext(), typedValue.resourceId))
-                            } else {
-                                titleTextView.setTextColor(typedValue.data)
-                            }
-                        }
+                    val colorRes = currentFilter.customColorRes
+                    if (colorRes != null) {
+                        titleTextView.setTextColor(ContextCompat.getColor(requireContext(), colorRes))
                     } else {
-                        // Default color for search results title (e.g., from theme attribute)
+                        // Fallback to a default theme color if customColorRes is null for the current filter
                         val typedValue = android.util.TypedValue()
                         requireContext().theme.resolveAttribute(R.attr.appBarTextColor, typedValue, true) // Or your default title color attribute
                         if (typedValue.resourceId != 0) {
@@ -470,15 +458,10 @@ class PlacesFragment : Fragment() {
                     // --- END APPLYING COLOR ---
 
                     // Update the centered title text
-                    val titleText = if (toolbarState.searchQuery.isBlank()) {
-                        getString(R.string.toolbar_title_format, toolbarState.title, toolbarState.count)
-                    } else {
-                        getString(R.string.toolbar_search_results_format, toolbarState.count)
-                    }
-                    titleTextView.text = titleText
+                    titleTextView.text = getString(R.string.toolbar_title_format, toolbarState.title, toolbarState.count)
 
                     // Update the subtitle view
-                    if (toolbarState.subtitle.isNotBlank() && toolbarState.searchQuery.isBlank()) {
+                    if (toolbarState.subtitle.isNotBlank()) {
                         binding.placesToolbarSubtitle?.text = toolbarState.subtitle
                         binding.placesToolbarSubtitle?.visibility = View.VISIBLE
                     } else {
@@ -515,6 +498,91 @@ class PlacesFragment : Fragment() {
                 }
             }
         }
+// <<<<<<<<<<<< START: ADD THIS CODE AT THE VERY END OF onViewCreated >>>>>>>>>>>>>>>>
+        Log.d("PlacesFragmentInsets", "Setting up inset handling for RecyclerView at the end of onViewCreated.")
+        val recyclerViewToPad = binding.placesRecyclerView
+
+        ViewCompat.setOnApplyWindowInsetsListener(recyclerViewToPad) { view, windowInsets ->
+            Log.d("PlacesFragmentInsets", "--- Inset Listener Triggered ---") // Marker for when it's called
+
+            val systemNavigationBars = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val imeInsets = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
+            // val systemBarsForSides = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars()) // Optional
+            Log.d("PlacesFragmentInsets", "Reported SystemNav.bottom: ${systemNavigationBars.bottom}")
+            Log.d("PlacesFragmentInsets", "Reported IME.bottom: ${imeInsets.bottom}")
+
+            var effectiveNavHeight = systemNavigationBars.bottom
+            // Minimal logging for brevity in this specific example, you can add more if needed
+            Log.d("PlacesFragmentInsets", "Initial systemNavigationBars.bottom: $effectiveNavHeight")
+
+            val activityRootView = requireActivity().window.decorView
+            val appBottomNavView = activityRootView.findViewById<BottomNavigationView>(net.dacworld.android.holyplacesofthelord.R.id.main_bottom_navigation) // Ensure this ID is correct
+
+            if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
+                Log.d("PlacesFragmentInsets", "App's BottomNavView found: Height=${appBottomNavView.height}, Visible=true")
+                if (appBottomNavView.height > 0) {
+                    effectiveNavHeight = appBottomNavView.height
+                    Log.d("PlacesFragmentInsets", "Using App's BottomNavView height ($effectiveNavHeight) as effectiveNavHeight")
+                } else {
+                    Log.d("PlacesFragmentInsets", "Not using AppBottomNavView height. Current effectiveNavHeight (from system): $effectiveNavHeight")
+                }
+            } else {
+                Log.d("PlacesFragmentInsets", "App's BottomNavView not found or not visible.")
+            }
+
+            // Capture the stable resting bottom padding ONCE when IME is not visible
+            // and we haven't captured it yet, or if we want to allow it to update if nav bar itself changes (less common)
+            if (imeInsets.bottom == 0 && (stableRestingBottomPadding == null || isInitialInsetApplication)) {
+                stableRestingBottomPadding = effectiveNavHeight
+                isInitialInsetApplication = false // Set to false after first capture
+                Log.d("PlacesFragmentInsets", "CAPTURED/UPDATED Stable Resting Bottom Padding: $stableRestingBottomPadding")
+            }
+
+            //val desiredBottomPadding = kotlin.math.max(effectiveNavHeight, imeInsets.bottom)
+            val desiredBottomPadding: Int
+            if (stableRestingBottomPadding != null) {
+                if (imeInsets.bottom > 0) {
+                    // Keyboard is visible, use the greater of its height or our stable resting padding
+                    // (Usually IME is taller, but this handles cases where resting padding might be unusually large)
+                    desiredBottomPadding = kotlin.math.max(stableRestingBottomPadding!!, imeInsets.bottom)
+                    Log.d("PlacesFragmentInsets", "Keyboard visible. DesiredPadding = max(stable: $stableRestingBottomPadding, IME: ${imeInsets.bottom}) = $desiredBottomPadding")
+                } else {
+                    // Keyboard is not visible, revert to the stable resting padding
+                    desiredBottomPadding = stableRestingBottomPadding!!
+                    Log.d("PlacesFragmentInsets", "Keyboard NOT visible. Reverting to Stable Resting Padding: $desiredBottomPadding")
+                }
+            } else {
+                // Fallback if stableRestingBottomPadding hasn't been captured yet (should be rare after first few calls)
+                desiredBottomPadding = kotlin.math.max(effectiveNavHeight, imeInsets.bottom)
+                Log.d("PlacesFragmentInsets", "Stable resting padding not yet captured. Using fallback calculation. DesiredPadding = $desiredBottomPadding")
+            }
+            Log.d("PlacesFragmentInsets", "Final Calculation: effectiveNavHeight=$effectiveNavHeight, imeInsets.bottom=${imeInsets.bottom} => desiredBottomPadding=$desiredBottomPadding")
+
+            view.updatePadding(
+                // left = systemBarsForSides.left, // Uncomment for side padding
+                // right = systemBarsForSides.right, // Uncomment for side padding
+                bottom = desiredBottomPadding
+            )
+            Log.d("PlacesFragmentInsets", "View's actual paddingBottom after update: ${view.paddingBottom}")
+            Log.d("PlacesFragmentInsets", "--- Inset Listener End ---")
+
+            windowInsets
+        }
+
+        // Request insets to be applied initially
+        if (recyclerViewToPad.isAttachedToWindow) {
+            ViewCompat.requestApplyInsets(recyclerViewToPad)
+        } else {
+            recyclerViewToPad.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    v.removeOnAttachStateChangeListener(this)
+                    ViewCompat.requestApplyInsets(v)
+                }
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+        }
+        Log.d("PlacesFragmentInsets", "Finished setting up inset handling for RecyclerView.")
+        // <<<<<<<<<<<< END: ADD THIS CODE AT THE VERY END OF onViewCreated >>>>>>>>>>>>>>>>
 
     }
 
