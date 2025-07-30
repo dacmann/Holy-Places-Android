@@ -1,0 +1,32 @@
+<!-- menu/menu_visits_toolbar.xml -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_sort_visits"
+        android:title="@string/sort_by"
+        android:icon="@drawable/ic_sort"
+        app:showAsAction="ifRoom">
+        <!-- Submenu for sort options -->
+        <menu>
+            <item
+                android:id="@+id/sort_visits_by_date_desc"
+                android:title="@string/sort_by_date_latest_first" />
+            <item
+                android:id="@+id/sort_visits_by_date_asc"
+                android:title="@string/sort_by_date_oldest_first" />
+            <item
+                android:id="@+id/sort_visits_by_place_asc"
+                android:title="@string/sort_by_place_a_z" />
+            <item
+                android:id="@+id/sort_visits_by_place_desc"
+                android:title="@string/sort_by_place_z_a" />
+        </menu>
+    </item>
+
+    <item
+    android:id="@+id/action_filter_visits"
+    android:icon="@drawable/ic_filter_list"
+    android:title="@string/button_text_options"
+    app:showAsAction="ifRoom" />
+</menu>

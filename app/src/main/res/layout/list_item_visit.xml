@@ -1,0 +1,47 @@
+<!-- layout/list_item_visit.xml -->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:background="?android:attr/selectableItemBackground">
+
+    <TextView
+        android:id="@+id/visitItemPlaceName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceListItem"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Salt Lake Temple" />
+
+    <TextView
+        android:id="@+id/visitItemDate"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textAppearance="?attr/textAppearanceListItemSecondary"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/visitItemPlaceName"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Monday, January 15, 2024" />
+
+    <TextView
+        android:id="@+id/visitItemOrdinances"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textAppearance="?attr/textAppearanceListItemSecondary"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/visitItemDate"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="~ B C I E S 3 hrs  📷 ⭐" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -191,11 +191,15 @@
             style="?attr/materialIconButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
             android:text="@string/more_info_button_text"
+            app:layout_constraintTop_toBottomOf="@+id/guideline_bottom_section_top"
             app:layout_constraintBottom_toTopOf="@+id/buttonSchedule"
-            app:layout_constraintStart_toStartOf="@id/buttonSchedule"
-            app:layout_constraintEnd_toEndOf="@id/buttonSchedule"
+            app:layout_constraintStart_toStartOf="@id/guideline_buttons_start"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp"
             /> <!-- This button will inherit start/end margins from buttonSchedule due to constraints -->
 
         <Button
@@ -204,6 +208,21 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="@string/schedule_button_text"
+            app:layout_constraintTop_toBottomOf="@id/buttonMoreInfo"
+            app:layout_constraintBottom_toTopOf="@+id/buttonRecordVisit"
+            app:layout_constraintStart_toEndOf="@+id/guideline_buttons_start"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="4dp"/>
+
+        <Button
+            android:id="@+id/buttonRecordVisit"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/record_visit_button_text"
+            app:layout_constraintTop_toBottomOf="@id/buttonSchedule"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@+id/guideline_buttons_start"
             app:layout_constraintEnd_toEndOf="parent"

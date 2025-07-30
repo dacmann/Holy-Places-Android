@@ -32,9 +32,11 @@
         <argument
             android:name="templeId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_placeDetailFragment_to_recordVisitFragment"
+            app:destination="@id/recordVisitFragment" />
     </fragment>
 
-    <!-- ADD THIS FRAGMENT DESTINATION for OptionsFragment -->
     <fragment
         android:id="@+id/options_fragment_destination"
         android:name="net.dacworld.android.holyplacesofthelord.ui.places.OptionsFragment"
@@ -43,5 +45,38 @@
         <action
             android:id="@+id/action_placesFragment_to_optionsFragment"
             app:destination="@id/options_fragment_destination" />
+
+    <fragment
+        android:id="@+id/visits_fragment_destination"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.visits.VisitsFragment"
+        android:label="@string/title_visits_tab"
+        tools:layout="@layout/fragment_visits" >
+    </fragment>
+
+    <fragment
+        android:id="@+id/recordVisitFragment"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.visits.RecordVisitFragment"
+        android:label="@string/title_record_visit"
+        tools:layout="@layout/fragment_record_visit">
+
+        <argument
+            android:name="visitId"
+            app:argType="long"
+            android:defaultValue="-1L" /> <!-- -1L or 0L to indicate a new visit -->
+
+        <argument
+            android:name="placeId"
+            app:argType="string" />
+
+        <argument
+            android:name="placeName"
+            app:argType="string" />
+
+        <argument
+            android:name="placeType"
+            app:argType="string" />
+        <!-- Example: "T" for Temple, "H" for Historic Site, etc. -->
+    </fragment>
+
 
 </navigation>

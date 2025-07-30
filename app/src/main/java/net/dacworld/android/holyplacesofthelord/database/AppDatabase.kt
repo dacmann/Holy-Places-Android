@@ -24,7 +24,6 @@ abstract class AppDatabase : RoomDatabase() {
     // Abstract methods to get your DAOs. Room will generate the implementations.
     abstract fun templeDao(): TempleDao
     abstract fun visitDao(): VisitDao
-    // TODO: Uncomment the above lines once you create TempleDao and VisitDao interfaces
 
     companion object {
         // Singleton prevents multiple instances of database opening at the same time.

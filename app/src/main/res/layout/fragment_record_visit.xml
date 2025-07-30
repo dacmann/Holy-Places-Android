@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.visits.RecordVisitFragment">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true"
+        android:theme="?attr/actionBarTheme">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/title_record_visit" />
+        <!-- Save action will be a menu item -->
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/text_view_place_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:fontFamily="@font/baskerville_font_family"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/button_favorite"
+                app:layout_constraintHorizontal_bias="0.0"
+                android:layout_marginEnd="8dp"
+                tools:text="Salt Lake Temple" />
+
+            <ImageButton
+                android:id="@+id/button_favorite"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_mark_as_favorite"
+                app:srcCompat="@drawable/ic_star_outline"
+                app:layout_constraintTop_toTopOf="@id/text_view_place_name"
+                app:layout_constraintBottom_toBottomOf="@id/text_view_place_name"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:scaleType="centerInside"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_visit_date"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:icon="@drawable/ic_calendar_month"
+                android:textAlignment="viewStart"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                app:layout_constraintTop_toBottomOf="@id/text_view_place_name"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:text="Saturday, March 30, 2024" />
+
+            <!-- Temple Ordinances Section (conditionally visible) -->
+            <androidx.constraintlayout.widget.Group
+                android:id="@+id/group_temple_ordinances"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:constraint_referenced_ids="label_temple_work, layout_baptisms, layout_confirmations, layout_initiatories, layout_endowments, layout_sealings"
+                android:visibility="visible"
+                tools:visibility="visible"/>
+
+            <TextView
+                android:id="@+id/label_temple_work"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/label_temple_ordinances"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                app:layout_constraintTop_toBottomOf="@id/button_visit_date"
+                app:layout_constraintStart_toStartOf="parent"/>
+
+            <!-- Baptisms -->
+            <LinearLayout
+                android:id="@+id/layout_baptisms"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                app:layout_constraintTop_toBottomOf="@id/label_temple_work"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_baptisms"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_baptisms_decrement"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_decrement"
+                    app:srcCompat="@drawable/ic_remove_circle_outline"/>
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_baptisms"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="0"
+                    android:gravity="center"
+                    android:maxLength="3"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_baptisms_increment"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_increment"
+                    app:srcCompat="@drawable/ic_add_circle_outline"/>
+            </LinearLayout>
+
+            <!-- Confirmations -->
+            <LinearLayout
+                android:id="@+id/layout_confirmations"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                app:layout_constraintTop_toBottomOf="@id/layout_baptisms"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_confirmations"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_confirmations_decrement"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_decrement"
+                    app:srcCompat="@drawable/ic_remove_circle_outline"/>
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_confirmations"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="0"
+                    android:gravity="center"
+                    android:maxLength="3"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_confirmations_increment"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_increment"
+                    app:srcCompat="@drawable/ic_add_circle_outline"/>
+            </LinearLayout>
+
+            <!-- Initiatories -->
+            <LinearLayout
+                android:id="@+id/layout_initiatories"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                app:layout_constraintTop_toBottomOf="@id/layout_confirmations"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_initiatories"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_initiatories_decrement"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_decrement"
+                    app:srcCompat="@drawable/ic_remove_circle_outline"/>
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_initiatories"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="0"
+                    android:gravity="center"
+                    android:maxLength="3"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_initiatories_increment"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_increment"
+                    app:srcCompat="@drawable/ic_add_circle_outline"/>
+            </LinearLayout>
+
+            <!-- Endowments -->
+            <LinearLayout
+                android:id="@+id/layout_endowments"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                app:layout_constraintTop_toBottomOf="@id/layout_initiatories"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_endowments"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_endowments_decrement"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_decrement"
+                    app:srcCompat="@drawable/ic_remove_circle_outline"/>
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_endowments"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="0"
+                    android:gravity="center"
+                    android:maxLength="3"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_endowments_increment"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_increment"
+                    app:srcCompat="@drawable/ic_add_circle_outline"/>
+            </LinearLayout>
+
+            <!-- Sealings -->
+            <LinearLayout
+                android:id="@+id/layout_sealings"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                app:layout_constraintTop_toBottomOf="@id/layout_endowments"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_sealings"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_sealings_decrement"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_decrement"
+                    app:srcCompat="@drawable/ic_remove_circle_outline"/>
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_sealings"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="0"
+                    android:gravity="center"
+                    android:maxLength="3"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_sealings_increment"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_increment"
+                    app:srcCompat="@drawable/ic_add_circle_outline"/>
+            </LinearLayout>
+
+
+            <!-- Ordinance Worker Section (conditionally visible) -->
+            <androidx.constraintlayout.widget.Group
+                android:id="@+id/group_ordinance_worker"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:constraint_referenced_ids="label_ordinance_worker, layout_hours_worked"
+                android:visibility="gone"
+                tools:visibility="visible"/>
+
+            <TextView
+                android:id="@+id/label_ordinance_worker"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/label_ordinance_worker"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                app:layout_constraintTop_toBottomOf="@id/layout_sealings"
+                app:layout_constraintStart_toStartOf="parent"/>
+
+            <LinearLayout
+                android:id="@+id/layout_hours_worked"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                app:layout_constraintTop_toBottomOf="@id/label_ordinance_worker"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_hours_worked"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_hours_decrement"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_decrement"
+                    app:srcCompat="@drawable/ic_remove_circle_outline"/>
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_hours_worked"
+                    android:layout_width="70dp"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberDecimal"
+                    android:text="0.0"
+                    android:gravity="center"
+                    android:maxLength="4"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"/>
+
+                <ImageButton
+                    android:id="@+id/button_hours_increment"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_increment"
+                    app:srcCompat="@drawable/ic_add_circle_outline"/>
+            </LinearLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/text_input_layout_comments"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="@string/hint_comments"
+                app:layout_constraintTop_toBottomOf="@id/layout_hours_worked"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_text_comments"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minLines="3"
+                    android:gravity="top"
+                    android:inputType="textMultiLine|textCapSentences" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <ImageView
+                android:id="@+id/image_view_visit_picture"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_marginTop="16dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                tools:srcCompat="@tools:sample/backgrounds/scenic"
+                tools:visibility="visible"
+                app:layout_constraintTop_toBottomOf="@id/text_input_layout_comments"
+                app:layout_constraintStart_toStartOf="parent"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_add_remove_picture"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/button_add_picture"
+                app:layout_constraintTop_toTopOf="@id/image_view_visit_picture"
+                app:layout_constraintBottom_toBottomOf="@id/image_view_visit_picture"
+                app:layout_constraintStart_toEndOf="@id/image_view_visit_picture"
+                android:layout_marginStart="16dp"
+                app:icon="@drawable/ic_add_a_photo"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

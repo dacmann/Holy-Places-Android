@@ -51,6 +51,8 @@ class PlaceDetailFragment : Fragment() {
 
     private val args: PlaceDetailFragmentArgs by navArgs()
 
+    private var currentTemple: Temple? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -62,13 +64,7 @@ class PlaceDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Keep the view.post for initial setup if it helped the "navigate to" crash,
-        // or set up directly if that crash is no longer observed.
-        // For this specific test, let's try direct setup first to simplify.
-        // If the "navigate to" crash returns, we can re-add view.post around this.
-
         val navController = findNavController()
-        // val appBarConfiguration = AppBarConfiguration(navController.graph) // Not strictly needed for manual Up
 
         // 1. Set this fragment's toolbar as the SupportActionBar
         (requireActivity() as AppCompatActivity).setSupportActionBar(binding.placeDetailToolbar)
@@ -155,11 +151,31 @@ class PlaceDetailFragment : Fragment() {
             binding.textViewTempleNameDetail.text = getString(R.string.error_temple_not_found)
             // Hide other views or show an error state
         }
+
+        // --- Setup for the new "Record Visit" button ---
+        binding.buttonRecordVisit.setOnClickListener {
+            currentTemple?.let { temple ->
+                // Ensure temple.name and temple.type have fallbacks if they can be null
+                val action = PlaceDetailFragmentDirections.actionPlaceDetailFragmentToRecordVisitFragment(
+                    visitId = -1L, // -1L or 0L indicates a new visit
+                    placeId = temple.id, // Assuming temple.id is non-null
+                    placeName = temple.name ?: getString(R.string.unknown),
+                    placeType = temple.type ?: "U" // "U" for Unknown/Unspecified
+                )
+                findNavController().navigate(action)
+            } ?: run {
+                // This case should ideally not happen if a temple is loaded and displayed
+                Toast.makeText(context, getString(R.string.temple_details_not_available_for_visit), Toast.LENGTH_SHORT).show()
+                Log.e("PlaceDetailFragment", "Attempted to record visit but currentTemple is null.")
+            }
+        }
     }
 
     private fun loadTempleDetails(templeId: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             val temple = dataViewModel.getTempleDetailsWithPicture(templeId) // Assuming this fetches all needed details
+
+            currentTemple = temple
 
             if (temple != null) {
                 bindTempleData(temple)
@@ -167,10 +183,6 @@ class PlaceDetailFragment : Fragment() {
             } else {
                 Log.w("PlaceDetailFragment", "Temple with ID $templeId not found.")
                 binding.textViewTempleNameDetail.text = getString(R.string.error_temple_not_found)
-                // Optionally hide other views or display a more prominent error message
-                binding.textViewSnippetDetail.visibility = View.GONE
-                binding.textViewFhCodeDetail.visibility = View.GONE
-                // ... hide other elements ...
             }
         }
     }
@@ -262,6 +274,7 @@ class PlaceDetailFragment : Fragment() {
             Log.d("PlaceDetailDebug", "Temple type is '$templeType', setting button text to 'Schedule'")
             // e.g., scheduleButton.setOnClickListener { openScheduleScreen(temple.id) }
         }
+
         // --- End of Conditional Button Text ---
 
         // Make the address clickable for navigation
@@ -346,6 +359,7 @@ class PlaceDetailFragment : Fragment() {
                 }
             } ?: Toast.makeText(context, getString(R.string.schedule_url_not_available), Toast.LENGTH_SHORT).show()
         }
+        binding.buttonRecordVisit.isEnabled = true
     }
 
     private fun openUrl(urlString: String, noAppErrorMessage: String) {
@@ -441,5 +455,6 @@ class PlaceDetailFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null // Important for preventing memory leaks
+        currentTemple = null
     }
 }

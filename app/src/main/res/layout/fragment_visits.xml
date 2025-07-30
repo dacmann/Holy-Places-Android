@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.visits.VisitsFragment">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/visitsAppBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:fitsSystemWindows="true"
+        android:background="?attr/appBarBackgroundColor"
+        android:theme="?attr/actionBarTheme">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/visitsToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:popupTheme="?attr/actionBarPopupTheme"
+            app:title="">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:id="@+id/visits_toolbar_title_centered"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:fontFamily="@font/baskerville_font_family"
+                    android:textColor="?attr/appBarTextColor"
+                    tools:text="Visits (10)" />
+
+                <TextView
+                    android:id="@+id/visits_toolbar_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:fontFamily="@font/baskerville_font_family"
+                    android:textColor="?attr/appBarTextColor"
+                    android:visibility="gone"
+                    tools:text="Sorted by Date"
+                    tools:visibility="visible"/>
+            </LinearLayout>
+
+        </com.google.android.material.appbar.MaterialToolbar>
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/visitsSearchView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/search_view_background_themed"
+            app:iconifiedByDefault="false"
+            app:queryHint="@string/search_visits_hint" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/visitsRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintTop_toBottomOf="@id/visitsAppBar"
+        app:layout_constraintBottom_toTopOf="@+id/addVisitFab"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:listitem="@layout/list_item_visit"
+        android:clipToPadding="false"/>
+
+    <TextView
+        android:id="@+id/visitsEmptyTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/no_visits_yet"
+        android:textSize="18sp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:gravity="center_horizontal"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/visitsAppBar"
+        app:layout_constraintBottom_toTopOf="@+id/addVisitFab"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible"/>
+
+    <ProgressBar
+        android:id="@+id/visitsProgressBar"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        tools:visibility="visible"
+        app:layout_constraintTop_toBottomOf="@id/visitsAppBar"
+        app:layout_constraintBottom_toTopOf="@+id/addVisitFab"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/addVisitFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/add_new_visit"
+        app:srcCompat="@drawable/ic_add"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
