@@ -1,23 +1,28 @@
 package net.dacworld.android.holyplacesofthelord.ui.visits
 
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.*
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
-import androidx.core.view.isNotEmpty
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
-import androidx.lifecycle.observe
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs // Import for Safe Args
 import coil.load // Import Coil for image loading
@@ -30,6 +35,7 @@ import net.dacworld.android.holyplacesofthelord.data.OrdinanceType
 import net.dacworld.android.holyplacesofthelord.data.RecordVisitViewModel
 import net.dacworld.android.holyplacesofthelord.data.RecordVisitViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.VisitUiState
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -77,44 +83,121 @@ class RecordVisitFragment : Fragment() {
         return binding.root
     }
 
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         setupToolbar()
-        setupMenu()
         setupInitialUI()
         setupListeners()
         observeViewModel()
-    }
 
-    private fun setupToolbar() {
-        (activity as? AppCompatActivity)?.setSupportActionBar(binding.toolbar)
-        (activity as? AppCompatActivity)?.supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        // Title can be dynamic based on whether it's a new or existing visit
-        // This is handled in observeViewModel -> updateUi based on navArgs or ViewModel state.
-    }
-
-    private fun setupMenu() {
+        // << --- Add MenuProvider for Save action --- >>
         val menuHost: MenuHost = requireActivity()
         menuHost.addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                // Add menu items here
                 menuInflater.inflate(R.menu.menu_record_visit, menu)
             }
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                // Handle actions based on item ID
                 return when (menuItem.itemId) {
                     R.id.action_save_visit -> {
                         viewModel.saveVisit()
-                        true
+                        true // Consume the event
                     }
-                    android.R.id.home -> {
-                        findNavController().navigateUp()
-                        true
-                    }
-                    else -> false
+                    else -> false // Let other components handle the event
                 }
             }
-        }, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        }, viewLifecycleOwner, Lifecycle.State.RESUMED) // Observe while RESUMED
+        // << --- End MenuProvider --- >>
+
+        val contentViewToPad = binding.nestedScrollViewContent // Or the parent LinearLayout if needed
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarLayoutRecordVisit) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // Apply the top inset as padding to the AppBarLayout
+            view.setPadding(view.paddingLeft, insets.top, view.paddingRight, view.paddingBottom)
+            WindowInsetsCompat.CONSUMED // Or return the insets if you want them propagated further
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(contentViewToPad) { v, insets ->
+            val systemNavigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+
+            // Start with the height of the system's own navigation bar
+            var effectiveNavHeight = systemNavigationBars.bottom
+            Log.d("RecordVisitInsets", "Initial systemNavigationBars.bottom: $effectiveNavHeight")
+
+            val activityRootView = requireActivity().window.decorView
+            val appBottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
+
+            if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
+                Log.d("RecordVisitInsets", "App's BottomNavView found: Height=${appBottomNavView.height}, Visible=true")
+                if (effectiveNavHeight < appBottomNavView.height) {
+                    effectiveNavHeight = appBottomNavView.height
+                    Log.d("RecordVisitInsets", "Using App's BottomNavView height ($effectiveNavHeight) as effectiveNavHeight")
+                }
+            } else {
+                Log.d("RecordVisitInsets", "App's BottomNavView not found or not visible on this screen.")
+            }
+
+            val desiredBottomPadding = kotlin.math.max(effectiveNavHeight, imeInsets.bottom)
+            Log.d("RecordVisitInsets", "IME.bottom: ${imeInsets.bottom}, EffectiveNavHeight: $effectiveNavHeight, Final desiredBottomPadding: $desiredBottomPadding")
+
+            v.updatePadding(
+                // Keep original left, top, right padding
+                // Let the CoordinatorLayout and AppBarLayout handle top padding.
+                bottom = desiredBottomPadding
+            )
+            insets
+        }
+
+        // Request insets to be applied initially.
+        if (contentViewToPad.isAttachedToWindow) {
+            ViewCompat.requestApplyInsets(contentViewToPad)
+        } else {
+            contentViewToPad.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    v.removeOnAttachStateChangeListener(this)
+                    ViewCompat.requestApplyInsets(v)
+                }
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+        }
+        Log.d("RecordVisitInsets", "Finished setting up inset handling for RecordVisitFragment.")
+        // <<<<<<<<<<<< END: ADD INSET HANDLING CODE HERE >>>>>>>>>>>>>>>>
+    }
+
+    private fun setupToolbar() {
+        // The main toolbar (with centered title and save action)
+        val toolbar = binding.toolbarRecordVisit // Correct ID from new XML
+        (activity as? AppCompatActivity)?.setSupportActionBar(toolbar)
+        (activity as? AppCompatActivity)?.supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        (activity as? AppCompatActivity)?.supportActionBar?.title = getString(R.string.title_record_visit) // Add back temporarily
+
+        (activity as? AppCompatActivity)?.supportActionBar?.setDisplayShowTitleEnabled(true)
+//        (activity as? AppCompatActivity)?.supportActionBar?.setDisplayShowTitleEnabled(false) // Important: hide default title
+
+        // Set navigation icon listener for the close button
+        toolbar.setNavigationOnClickListener {
+            findNavController().navigateUp()
+        }
+
+        // Inflate and handle menu for the "Save" button
+//        toolbar.inflateMenu(R.menu.menu_record_visit) // Ensure this menu exists with the "Save" item
+//        toolbar.setOnMenuItemClickListener { menuItem ->
+//            when (menuItem.itemId) {
+//                R.id.action_save_visit -> {
+//                    viewModel.saveVisit()
+//                    true
+//                }
+//                else -> false
+//            }
+//        }
+
+        // The old setupMenu() using MenuHost is removed as we now handle menu directly on MaterialToolbar
     }
 
     private fun setupInitialUI() {
@@ -131,7 +214,7 @@ class RecordVisitFragment : Fragment() {
             showDatePicker()
         }
 
-        binding.buttonFavorite.setOnClickListener {
+        binding.buttonFavoriteVisit.setOnClickListener {
             viewModel.onToggleFavorite()
         }
 
@@ -214,24 +297,29 @@ class RecordVisitFragment : Fragment() {
 
         editText.addTextChangedListener(object : SimpleTextWatcher() {
             override fun afterTextChanged(s: Editable?) {
-                if (s.toString() == (if (isDecimal) String.format(Locale.US, "%.1f", 0.0) else "0") &&
-                    (viewModel.uiState.value == null ||
-                            (ordinanceType == OrdinanceType.BAPTISMS && viewModel.uiState.value?.baptisms == 0.toShort()) ||
-                            (ordinanceType == OrdinanceType.CONFIRMATIONS && viewModel.uiState.value?.confirmations == 0.toShort()) ||
-                            (ordinanceType == OrdinanceType.INITIATORIES && viewModel.uiState.value?.initiatories == 0.toShort()) ||
-                            (ordinanceType == OrdinanceType.ENDOWMENTS && viewModel.uiState.value?.endowments == 0.toShort()) ||
-                            (ordinanceType == OrdinanceType.SEALINGS && viewModel.uiState.value?.sealings == 0.toShort()) ||
-                            (ordinanceType == null && viewModel.uiState.value?.shiftHrs == 0.0))) {
-                    // Avoid sending "0" or "0.0" if it's already that in VM or it's the initial state,
-                    // mostly to prevent loops if uiState initially populates it as "0"
-                    // and then the text watcher immediately sends "0" back.
-                    // This can be refined. The core idea is that user-initiated changes are what we want to send.
+                // Simplified logic slightly, ensure it still prevents unwanted updates
+                val stringValue = s?.toString() ?: ""
+                val currentValueInVm: Any? = when(ordinanceType) {
+                    OrdinanceType.BAPTISMS -> viewModel.uiState.value?.baptisms
+                    OrdinanceType.CONFIRMATIONS -> viewModel.uiState.value?.confirmations
+                    OrdinanceType.INITIATORIES -> viewModel.uiState.value?.initiatories
+                    OrdinanceType.ENDOWMENTS -> viewModel.uiState.value?.endowments
+                    OrdinanceType.SEALINGS -> viewModel.uiState.value?.sealings
+                    null -> viewModel.uiState.value?.shiftHrs
                 }
 
-                if (ordinanceType != null) {
-                    viewModel.onOrdinanceCountChanged(ordinanceType, s.toString())
-                } else { // Hours worked
-                    viewModel.onHoursWorkedChanged(s.toString())
+                val vmValueString = if (isDecimal) String.format(Locale.US, "%.1f", (currentValueInVm as? Double) ?: 0.0)
+                else (currentValueInVm as? Short ?: 0).toString()
+
+                if (stringValue == vmValueString && stringValue == (if (isDecimal) "0.0" else "0")) {
+                    // Avoid redundant updates if the value is already "0" or "0.0" in both UI and VM
+                    // This helps prevent loops if initial state is 0 and text watcher fires.
+                } else {
+                    if (ordinanceType != null) {
+                        viewModel.onOrdinanceCountChanged(ordinanceType, stringValue)
+                    } else { // Hours worked
+                        viewModel.onHoursWorkedChanged(stringValue)
+                    }
                 }
             }
         })
@@ -263,14 +351,11 @@ class RecordVisitFragment : Fragment() {
     }
 
     private fun updateUi(state: VisitUiState) {
-        // Set Toolbar Title
-        binding.toolbar.title = if (navArgs.visitId != -1L && navArgs.visitId != 0L) {
-            getString(R.string.title_edit_visit)
-        } else {
-            getString(R.string.title_record_visit)
-        }
-
+        // Place Name and Color
         binding.textViewPlaceName.text = state.holyPlaceName
+        Log.d("RecordVisitFragment", "navArgs.placeType: ${navArgs.placeType}")
+        val placeNameColor = ColorUtils.getTextColorForTempleType(requireContext(), navArgs.placeType)
+        binding.textViewPlaceName.setTextColor(placeNameColor)
 
         updateEditTextIfChanged(binding.editTextComments, state.comments ?: "")
 
@@ -287,10 +372,22 @@ class RecordVisitFragment : Fragment() {
         updateEditTextIfChanged(binding.editTextSealings, state.sealings?.toString() ?: "0")
         updateEditTextIfChanged(binding.editTextHoursWorked, String.format(Locale.US, "%.1f", state.shiftHrs ?: 0.0))
 
-        binding.buttonFavorite.setImageResource(
-            if (state.isFavorite) R.drawable.ic_star_filled else R.drawable.ic_star_outline
+        // Favorite Button - use correct ID and smaller icons
+        binding.buttonFavoriteVisit.setImageResource(
+            if (state.isFavorite) R.drawable.ic_star_filled else R.drawable.ic_star_outline // Use small icons
         )
-        binding.buttonFavorite.contentDescription = if (state.isFavorite) getString(R.string.cd_remove_favorite) else getString(R.string.cd_add_favorite)
+        binding.buttonFavoriteVisit.contentDescription = if (state.isFavorite) getString(R.string.cd_remove_favorite) else getString(R.string.cd_add_favorite)
+
+        // Conditional Visibility of Ordinance Sections
+
+        if (navArgs.placeType == "T") {
+            binding.groupTempleOrdinances.visibility = View.VISIBLE
+            binding.groupOrdinanceWorker.visibility = View.VISIBLE // Or based on another flag like `isOrdinanceWorkerSession`
+        } else {
+            binding.groupTempleOrdinances.visibility = View.GONE
+            binding.groupOrdinanceWorker.visibility = View.GONE
+        }
+        // If you have a specific flag for Ordinance Worker sessions, use that for groupOrdinanceWorker's visibility
 
         // Image display logic using Coil
         when {
@@ -321,21 +418,22 @@ class RecordVisitFragment : Fragment() {
                 binding.buttonAddRemovePicture.setIconResource(R.drawable.ic_add_a_photo)
             }
         }
-
-        // Visibility of temple ordinance group based on initial placeType passed to ViewModel
-        if (navArgs.placeType != "T") { // Assuming "T" is for Temple, from navArgs
-            binding.groupTempleOrdinances.visibility = View.GONE
-        } else {
-            binding.groupTempleOrdinances.visibility = View.VISIBLE
-        }
     }
 
+    // Helper to prevent cursor jumps and unnecessary TextWatcher firings
     private fun updateEditTextIfChanged(editText: EditText, newValue: String) {
         if (editText.text.toString() != newValue) {
+            // Store cursor position
+            val selectionStart = editText.selectionStart
+            val selectionEnd = editText.selectionEnd
             editText.setText(newValue)
-            // Consider moving cursor to end only if the focus is not on this editText
-            // or if the change is significant, to avoid disrupting user typing.
-            // For programmatic updates like this, usually setting text is enough.
+            // Restore cursor position if possible and makes sense
+            if (selectionStart <= newValue.length && selectionEnd <= newValue.length) {
+                editText.setSelection(selectionStart, selectionEnd)
+            } else {
+                // If old selection is out of bounds for new text, move to end
+                editText.setSelection(newValue.length)
+            }
         }
     }
 
@@ -386,3 +484,4 @@ class EventObserver<T>(private val onEventUnhandledContent: (T) -> Unit) : Obser
         }
     }
 }
+

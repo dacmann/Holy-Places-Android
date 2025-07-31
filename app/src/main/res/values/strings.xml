@@ -65,7 +65,7 @@
     <string name="cd_increment">Increment</string>
     <string name="label_ordinance_worker">Ordinance Worker</string>
     <string name="label_hours_worked">Hours Worked</string>
-    <string name="hint_comments">Attended with...</string>
+    <string name="hint_comments">Notes</string>
     <string name="button_add_picture">Add Picture</string>
     <string name="button_remove_picture">Remove Picture</string>
     <string name="action_save">Save</string>
