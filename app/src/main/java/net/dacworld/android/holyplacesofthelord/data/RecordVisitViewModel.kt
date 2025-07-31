@@ -108,7 +108,7 @@ class RecordVisitViewModel(
     }
 
     fun onCommentsChanged(comments: String) {
-        _uiState.value = _uiState.value?.copy(comments = comments.trim().ifBlank { null })
+        _uiState.value = _uiState.value?.copy(comments = comments.ifBlank { null })
     }
 
     fun onImageSelected(imageUri: Uri?) {
@@ -190,7 +190,7 @@ class RecordVisitViewModel(
                     endowments = currentUiState.endowments,
                     sealings = currentUiState.sealings,
                     shiftHrs = currentUiState.shiftHrs,
-                    comments = currentUiState.comments,
+                    comments = currentUiState.comments?.trim()?.ifBlank { null },
                     picture = currentUiState.pictureByteArray, // The ByteArray for the image
                     isFavorite = currentUiState.isFavorite
                 )
