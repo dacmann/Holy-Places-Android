@@ -5,7 +5,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="16dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
     android:background="?android:attr/selectableItemBackground">
 
     <TextView
@@ -13,8 +16,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:textAppearance="?attr/textAppearanceListItem"
-        android:textSize="18sp"
-        android:textStyle="bold"
+        android:textSize="14sp"
+        android:maxLines="1"
+        android:ellipsize="end"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -26,22 +30,13 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textAppearance="?attr/textAppearanceListItemSecondary"
-        android:textSize="14sp"
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:ellipsize="end"
         app:layout_constraintTop_toBottomOf="@id/visitItemPlaceName"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        tools:text="Monday, January 15, 2024" />
+        tools:text="Monday, January 15, 2024 ~ B C I E S 3 hrs  📷 ⭐" />
 
-    <TextView
-        android:id="@+id/visitItemOrdinances"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textAppearance="?attr/textAppearanceListItemSecondary"
-        android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/visitItemDate"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:text="~ B C I E S 3 hrs  📷 ⭐" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

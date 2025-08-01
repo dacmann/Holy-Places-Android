@@ -72,12 +72,10 @@ class RecordVisitViewModel(
 
 
     private fun createNewVisitState(placeId: String, placeName: String, placeType: String): VisitUiState {
-        // Determine a default visit type based on the place type, e.g., Temple visit is "Ordinance Work"
-        val defaultVisitType = if (placeType == "T") "Ordinance Work" else "Personal Visit"
         return VisitUiState(
             placeID = placeId,
             holyPlaceName = placeName,
-            visitType = defaultVisitType, // Set the 'type' field of the Visit
+            visitType = placeType, // Set the 'type' field of the Visit
             dateVisited = Date(), // Default to current date/time
             isFavorite = false // Default favorite status
             // Other fields default to null or 0 as per VisitUiState definition

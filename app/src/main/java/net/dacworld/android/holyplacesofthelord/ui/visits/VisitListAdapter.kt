@@ -3,6 +3,7 @@ package net.dacworld.android.holyplacesofthelord.ui.visits
 
 import android.content.Context
 import android.text.format.DateUtils
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
@@ -15,6 +16,7 @@ import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.databinding.ListItemVisitBinding
 import java.text.SimpleDateFormat
 import java.util.Locale
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 
 class VisitListAdapter(
     private val onVisitClicked: (Visit) -> Unit
@@ -43,7 +45,7 @@ class VisitListAdapter(
         fun bind(visit: Visit) {
             binding.visitItemPlaceName.text = visit.holyPlaceName ?: context.getString(R.string.unknown)
 
-            binding.visitItemDate.text = visit.dateVisited?.let {
+            val dateString = visit.dateVisited?.let {
                 dateFormatter.format(it)
             } ?: context.getString(R.string.unknown)
 
@@ -56,29 +58,38 @@ class VisitListAdapter(
             if (visit.sealings != null && visit.sealings > 0) ordinances.append(" S")
             if (visit.shiftHrs != null && visit.shiftHrs > 0) ordinances.append(" ${visit.shiftHrs} hrs")
 
-            if (ordinances.isNotEmpty()) {
-                ordinances.insert(0, "~") // Add tilde if there are ordinances
+            val summaryText = ordinances.toString().trim() // Get the summary part
+            val combinedDateAndOrdinances: String
+
+            if (summaryText.isNotEmpty()) {
+                // If the dateString is "Unknown", we don't want to add an extra space before "~"
+                val separator = if (dateString == context.getString(R.string.unknown)) "~" else " ~ "
+                combinedDateAndOrdinances = "$dateString$separator$summaryText"
+            } else {
+                combinedDateAndOrdinances = dateString // Only date if no ordinances
             }
 
+            // Append picture and favorite indicators from original logic to the combined string
+            val indicators = StringBuilder()
             if (visit.picture != null) { // Assuming picture is ByteArray?, non-null means there's a picture
-                ordinances.append("  \uD83D\uDCF7") // Camera emoji 📷
+                indicators.append("  \uD83D\uDCF7") // Camera emoji 📷
             }
             if (visit.isFavorite) {
-                ordinances.append("   ⭐") // Star emoji
+                indicators.append("   ⭐") // Star emoji
             }
-            binding.visitItemOrdinances.text = ordinances.toString().trim()
 
+            binding.visitItemDate.text = "$combinedDateAndOrdinances${indicators.toString().trimEnd()}" // Append indicators
+
+
+
+            Log.d("VisitListAdapter", "Binding visit: '${visit.holyPlaceName}', Type: '${visit.type}'") // <-- ADD THIS
 
             // Set text color based on temple type
-            val typeColor = when (visit.type) {
-                "T" -> ContextCompat.getColor(context, R.color.t2_temples)
-                "H" -> ContextCompat.getColor(context, R.color.t2_historic_site)
-                "A" -> ContextCompat.getColor(context, R.color.t2_announced_temples)
-                "C" -> ContextCompat.getColor(context, R.color.t2_under_construction)
-                "V" -> ContextCompat.getColor(context, R.color.t2_visitors_centers)
-                else -> ContextCompat.getColor(context, R.color.grey_text) // Replace with your actual color
-            }
+            val typeColor = ColorUtils.getTextColorForTempleType(context, visit.type)
             binding.visitItemPlaceName.setTextColor(typeColor)
+
+            Log.d("VisitListAdapter", "Applied color for type '${visit.type}': $typeColor to '${visit.holyPlaceName}'") // <-- Optional: Log applied color
+
         }
     }
 }
