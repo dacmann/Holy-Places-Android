@@ -223,9 +223,8 @@ class VisitsFragment : Fragment() {
     private fun setupRecyclerView() {
         visitListAdapter = VisitListAdapter { visit ->
             // Navigate to Visit Detail screen
-            // val action = VisitsFragmentDirections.actionVisitsFragmentToVisitDetailFragment(visit.id)
-            // findNavController().navigate(action)
-            Snackbar.make(binding.root, "Clicked on: ${visit.holyPlaceName}", Snackbar.LENGTH_SHORT).show()
+            val action = VisitsFragmentDirections.actionVisitsFragmentToVisitDetailFragment(visit.id)
+            findNavController().navigate(action)
         }
         binding.visitsRecyclerView.apply {
             adapter = visitListAdapter

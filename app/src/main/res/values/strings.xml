@@ -75,4 +75,7 @@
     <string name="cd_remove_favorite">Remove Favorite</string>
     <string name="cd_add_favorite">Add Favorite</string>
     <string name="temple_details_not_available_for_visit">Temple details not available to record visit.</string>
+    <string name="visit_detail_title">Visit Detail</string>
+    <string name="action_edit">Edit</string>
+    <string name="content_desc_visit_picture">Visit Picture</string>
 </resources>

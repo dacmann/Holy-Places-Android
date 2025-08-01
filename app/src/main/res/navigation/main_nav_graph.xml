@@ -21,6 +21,9 @@
         <action
             android:id="@+id/action_placesFragment_to_placeDetailFragment"
             app:destination="@id/placeDetailFragment"/>
+        <action
+            android:id="@+id/action_placesFragment_to_optionsFragment"
+            app:destination="@id/options_fragment_destination" />
     </fragment>
 
     <!-- PlaceDetailFragment: Destination for navigation FROM PlacesFragment -->
@@ -42,15 +45,28 @@
         android:name="net.dacworld.android.holyplacesofthelord.ui.places.OptionsFragment"
         android:label="@string/button_text_options"
         tools:layout="@layout/fragment_options" />
-        <action
-            android:id="@+id/action_placesFragment_to_optionsFragment"
-            app:destination="@id/options_fragment_destination" />
 
     <fragment
         android:id="@+id/visits_fragment_destination"
         android:name="net.dacworld.android.holyplacesofthelord.ui.visits.VisitsFragment"
         android:label="@string/title_visits_tab"
         tools:layout="@layout/fragment_visits" >
+        <action
+            android:id="@+id/action_visitsFragment_to_visitDetailFragment"
+            app:destination="@id/visitDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/visitDetailFragment"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.visits.VisitDetailFragment"
+        android:label="Visit Details"
+        tools:layout="@layout/fragment_visit_detail">
+        <argument
+            android:name="visitId"
+            app:argType="long" />
+        <action
+            android:id="@+id/action_visitDetailFragment_to_recordVisitFragment"
+            app:destination="@id/recordVisitFragment" />
     </fragment>
 
     <fragment

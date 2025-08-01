@@ -8,11 +8,6 @@
             <LayoutPositions>
               <option name="myPositions">
                 <map>
-                  <entry key="action_placesFragment_to_optionsFragment">
-                    <value>
-                      <LayoutPositions />
-                    </value>
-                  </entry>
                   <entry key="home_fragment_destination">
                     <value>
                       <LayoutPositions>
@@ -46,6 +41,15 @@
                             <option name="y" value="12" />
                           </Point>
                         </option>
+                        <option name="myPositions">
+                          <map>
+                            <entry key="action_placeDetailFragment_to_recordVisitFragment">
+                              <value>
+                                <LayoutPositions />
+                              </value>
+                            </entry>
+                          </map>
+                        </option>
                       </LayoutPositions>
                     </value>
                   </entry>
@@ -60,6 +64,11 @@
                         </option>
                         <option name="myPositions">
                           <map>
+                            <entry key="action_placesFragment_to_optionsFragment">
+                              <value>
+                                <LayoutPositions />
+                              </value>
+                            </entry>
                             <entry key="action_placesFragment_to_placeDetailFragment">
                               <value>
                                 <LayoutPositions />
@@ -82,6 +91,18 @@
                       </LayoutPositions>
                     </value>
                   </entry>
+                  <entry key="visitDetailFragment">
+                    <value>
+                      <LayoutPositions>
+                        <option name="myPosition">
+                          <Point>
+                            <option name="x" value="12" />
+                            <option name="y" value="12" />
+                          </Point>
+                        </option>
+                      </LayoutPositions>
+                    </value>
+                  </entry>
                   <entry key="visits_fragment_destination">
                     <value>
                       <LayoutPositions>
@@ -90,6 +111,15 @@
                             <option name="x" value="12" />
                             <option name="y" value="12" />
                           </Point>
+                        </option>
+                        <option name="myPositions">
+                          <map>
+                            <entry key="action_visitsFragment_to_visitDetailFragment">
+                              <value>
+                                <LayoutPositions />
+                              </value>
+                            </entry>
+                          </map>
                         </option>
                       </LayoutPositions>
                     </value>

@@ -83,7 +83,7 @@ data class Visit(
     val shiftHrs: Double?,
 
     @ColumnInfo(name = VisitContract.COLUMN_VISIT_TYPE)
-    val type: String?, // e.g., "Ordinance Work", "Open House", "Personal Visit"
+    val type: String?, // e.g., T, H, A, C, V, etc."
 
     @ColumnInfo(name = VisitContract.COLUMN_YEAR)
     val year: String? // Or Int? if it's always a numerical year
