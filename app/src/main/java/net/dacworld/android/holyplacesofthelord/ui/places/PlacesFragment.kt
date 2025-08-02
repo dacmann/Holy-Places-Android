@@ -140,8 +140,10 @@ class PlacesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         Log.d("PlacesFragment", "LIFECYCLE: onViewCreated")
         initialPassiveLocationCheckDone = false
+        isInitialLoad = true
         if (savedRecyclerLayoutState != null) {
             pendingScrollRestore = true
+            isInitialLoad = false
             Log.d("PlacesFragment_Scroll", "onViewCreated: Found savedRecyclerLayoutState. Set pendingScrollRestore = true.")
         } else {
             // Ensure it's false if no state; it should be initialized to false as a class member.
@@ -271,78 +273,72 @@ class PlacesFragment : Fragment() {
                     // ProgressBar logic: Show if loading AND there are no items yet (adapter might be empty initially)
                     binding.progressBar.visibility = if (isLoading && placeAdapter.itemCount == 0 && finalDisplayItemsToShow.isEmpty()) View.VISIBLE else View.GONE
 
-                    placeAdapter.submitList(finalDisplayItemsToShow.toList()) { // submitList is fine with a new list
+                    placeAdapter.submitList(finalDisplayItemsToShow.toList()) {
                         Log.d("PlacesFragment_Scroll", "submitList START_CALLBACK: pendingScrollRestore=$pendingScrollRestore, itemCount=${placeAdapter.itemCount}, listToSubmitSize=${finalDisplayItemsToShow.size}")
                         Log.d("PlacesFragment_Scroll", "Callback values: currentSort=$currentSort, currentFilter=$currentFilter, prevSort=$previousSort, prevFilter=$previousFilter, isInitialLoad=$isInitialLoad, query='$originalSearchQuery'")
 
-                        val sortJustChanged = previousSort != null && previousSort != currentSort
-                        val filterJustChanged = previousFilter != null && previousFilter != currentFilter
-                        // Ensure isInitialLoad is only true for the very first data load, not subsequent returns to the fragment
-                        val isTrulyInitialLoad = isInitialLoad && (previousSort == null && previousFilter == null) // More robust isInitialLoad check
-                        val shouldScrollForSortOrFilterChange = (sortJustChanged || filterJustChanged) && !isInitialLoad
+                        val nearestDataRefreshed = sharedOptionsViewModel.uiState.value.nearestSortDataRefreshed
+                        Log.d("PlacesFragment_Scroll", "NEAREST_DATA_REFRESHED_FLAG: $nearestDataRefreshed, IS_INITIAL_LOAD: $isInitialLoad")
 
-                        if (shouldScrollForSortOrFilterChange) { // <<< CHECK THIS FIRST
-                            if (finalDisplayItemsToShow.isNotEmpty()) {
-                                binding.placesRecyclerView.scrollToPosition(0)
-                                Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top due to SORT/FILTER change.")
-                            } else {
-                                Log.d("PlacesFragment_Scroll", "submitList: Sort/Filter changed, but list is empty. No scroll action.")
-                            }
-                            // Since we scrolled to top due to sort/filter, any pending scroll restoration is now invalid
-                            pendingScrollRestore = false
-                            savedRecyclerLayoutState = null
-                            Log.d("PlacesFragment_Scroll", "Sort/Filter change scroll: Cleared pendingScrollRestore and savedRecyclerLayoutState.")
+                        val sortDidChange = previousSort != null && previousSort != currentSort
+                        val filterDidChange = previousFilter != null && previousFilter != currentFilter
 
-                        } else if (pendingScrollRestore && placeAdapter.itemCount > 0 && finalDisplayItemsToShow.isNotEmpty()) {
+                        if (pendingScrollRestore && savedRecyclerLayoutState != null && placeAdapter.itemCount > 0 && finalDisplayItemsToShow.isNotEmpty()) {
                             Log.d("PlacesFragment_Scroll", "submitList: ATTEMPTING RESTORE.")
-                            // Restore scroll state only if there are items to scroll to
                             binding.placesRecyclerView.layoutManager?.onRestoreInstanceState(savedRecyclerLayoutState)
                             Log.d("PlacesFragment_Scroll", "Scroll state restored. Item count: ${placeAdapter.itemCount}")
-                            savedRecyclerLayoutState = null // Consume the saved state
-                            pendingScrollRestore = false   // Reset flag
-                        } else if (pendingScrollRestore) {
-                            // If pending restore but conditions not met (e.g., list became empty), clear flags
-                            Log.d("PlacesFragment_Scroll", "Scroll restore was pending but conditions not met (e.g., adapter empty or final list empty). Resetting flags.")
                             savedRecyclerLayoutState = null
                             pendingScrollRestore = false
-                            // Potentially scroll to top if list is empty and was supposed to restore
-                            if (finalDisplayItemsToShow.isEmpty()) {
+                            isInitialLoad = false // If we restored, subsequent emissions in this lifecycle aren't "initial" for scrolling
+                        } else if (isInitialLoad && !pendingScrollRestore) {
+                            // Handles the very first load/data emission OR when view is recreated and not restoring.
+                            if (finalDisplayItemsToShow.isNotEmpty()) {
                                 binding.placesRecyclerView.scrollToPosition(0)
+                                Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top on INITIAL display (isInitialLoad=true).")
+                            }
+                        } else if (nearestDataRefreshed && !isInitialLoad) {
+                            if (placeAdapter.itemCount > 0) {
+                                binding.placesRecyclerView.scrollToPosition(0)
+                                Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top because NEAREST sort data was refreshed.")
+                            }
+                            sharedOptionsViewModel.acknowledgeNearestSortDataRefreshed() // <<< --- ADD THIS LINE ---
+                            pendingScrollRestore = false // Reset, as list content has significantly changed
+                            savedRecyclerLayoutState = null // Invalidate saved state
+                        }else if ((sortDidChange || filterDidChange) /* && !isInitialLoad can be implied if isInitialLoad block is first */ ) {
+                            // Handles sort/filter changes AFTER the initial load has been processed.
+                            if (finalDisplayItemsToShow.isNotEmpty()) {
+                                binding.placesRecyclerView.scrollToPosition(0)
+                                Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top due to SUBSEQUENT sort/filter change.")
+                            }
+                            // If sort/filter changed, any pending scroll from a previous state is likely irrelevant
+                            pendingScrollRestore = false
+                            savedRecyclerLayoutState = null
+                        } else if (pendingScrollRestore) {
+                            // Catch-all for pendingRestore if list became empty or other conditions weren't met
+                            Log.d("PlacesFragment_Scroll", "Scroll restore was pending but other conditions not met. Resetting flags.")
+                            if (finalDisplayItemsToShow.isEmpty()) {
+                                binding.placesRecyclerView.scrollToPosition(0) // Scroll to top if list became empty
                                 Log.d("PlacesFragment_Scroll", "Scrolled to top as list became empty during pending restore.")
                             }
-                        } else {
-                            // This 'else' branch handles cases where scroll restoration was NOT pending.
-                            // This is where your original logic for scrolling to top goes.
-                            Log.d("PlacesFragment_Scroll", "submitList: Not a sort/filter change scroll, not a pending restore.")
-                            if (finalDisplayItemsToShow.isNotEmpty()) {
-                                if (isTrulyInitialLoad) { // Use the more robust initial load check
-                                    binding.placesRecyclerView.scrollToPosition(0)
-                                    Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top (TRULY INITIAL LOAD).")
-                                } else if (originalSearchQuery.isBlank() && !sortJustChanged && !filterJustChanged) {
-                                    // This condition might be redundant now if sort/filter scroll is handled above,
-                                    // but keep for search query clearing if it's distinct.
-                                    // It might be better to only scroll to top if query *changes* to blank.
-                                    // binding.placesRecyclerView.scrollToPosition(0)
-                                    // Log.d("PlacesFragment_Scroll", "submitList: Scrolled to top (original logic - search cleared, no sort/filter change).")
-                                    Log.d("PlacesFragment_Scroll", "submitList: Search is blank, no sort/filter change, not initial load, not restoring. No specific scroll action here.")
-                                } else {
-                                    Log.d("PlacesFragment_Scroll", "submitList: NOT scrolling to top (other conditions).")
-                                }
-                            } else {
-                                Log.d("PlacesFragment_Scroll", "submitList: List is empty, no scroll to top action by original logic.")
-                            }
+                            savedRecyclerLayoutState = null
+                            pendingScrollRestore = false
+                            isInitialLoad = false // Also mark as not initial if we were trying to restore
                         }
-                        // Update previous states and isInitialLoad AFTER all logic for the current submission
-                        if (isInitialLoad && finalDisplayItemsToShow.isNotEmpty()) {
-                            isInitialLoad = false
-                            Log.d("PlacesFragment_Scroll", "Marked isInitialLoad = false as list is now populated.")
-                        }
-                        previousSort = currentSort // 'currentSort' from .collectLatest scope
-                        previousFilter = currentFilter // 'currentFilter' from .collectLatest scope
-                        // --- END OF MODIFIED/NEW LOGIC WITHIN THE CALLBACK ---
+                        // --- MODIFIED LOGIC END ---
 
-                        Log.d("PlacesFragment_Scroll", "submitList END_CALLBACK: pendingScrollRestore=$pendingScrollRestore, savedStateIsNull=${savedRecyclerLayoutState == null}") // Your existing log
+                        // --- YOUR EXISTING LOGIC FOR UPDATING isInitialLoad, previousSort, previousFilter ---
+                        // This remains from your code. It's important.
+                        if (isInitialLoad && finalDisplayItemsToShow.isNotEmpty()) { // This ensures isInitialLoad is set to false after the first populated list
+                            isInitialLoad = false
+                            Log.d("PlacesFragment_Scroll", "Marked isInitialLoad = false as list is now populated (original logic).")
+                        }
+                        previousSort = currentSort
+                        previousFilter = currentFilter
+                        // --- END OF YOUR EXISTING LOGIC ---
+
+                        Log.d("PlacesFragment_Scroll", "submitList END_CALLBACK: pendingScrollRestore=$pendingScrollRestore, savedStateIsNull=${savedRecyclerLayoutState == null}, isInitialLoad=$isInitialLoad")
                     }
+
 
                     val templeItemCountInFinalList = finalDisplayItemsToShow.count { it is DisplayListItem.TempleRowItem }
 
@@ -620,16 +616,15 @@ class PlacesFragment : Fragment() {
             .addOnSuccessListener { location: Location? ->
                 if (location != null) {
                     Log.i("PlacesFragment_FetchLocP", "Location fetched successfully (passively): ${location.latitude}, ${location.longitude}")
-                    sharedOptionsViewModel.setDeviceLocation(location)
-                    // The sharedOptionsViewModel.setDeviceLocation call should trigger
-                    // its internal combine logic to re-sort the list if currentSort is NEAREST.
+                    sharedOptionsViewModel.deviceLocationUpdated(location, true) // CORRECTED CALL
                 } else {
                     Log.w("PlacesFragment_FetchLocP", "Fetched location is null (passively). ViewModel will use fallback sort.")
+                    sharedOptionsViewModel.deviceLocationUpdated(null, true) // RECOMMENDED ADDITION
                 }
             }
             .addOnFailureListener { e ->
                 Log.e("PlacesFragment_FetchLocP", "Failed to fetch location (passively).", e)
-                // ViewModel will use fallback sort.
+                sharedOptionsViewModel.deviceLocationUpdated(null, true) // RECOMMENDED ADDITION
             }
     }
     // --- END NEW ---

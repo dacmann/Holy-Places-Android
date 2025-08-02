@@ -49,10 +49,10 @@ data class OptionsUiState(
     val currentFilter: PlaceFilter = PlaceFilter.HOLY_PLACES,
     val currentSort: PlaceSort = PlaceSort.ALPHABETICAL,
     val availableSortOptions: List<PlaceSort> = getSortOptionsForFilter(PlaceFilter.HOLY_PLACES),
-    //val triggerLocationSetup: Boolean = false, // For "Nearest"
     val hasLocationPermission: Boolean = false, // Added for completeness based on logic
     val currentDeviceLocation: Location? = null,
-    val displayedListItems: List<DisplayListItem> = emptyList() // Changed from displayedTemples
+    val displayedListItems: List<DisplayListItem> = emptyList(),
+    val nearestSortDataRefreshed: Boolean = false
 )
 
 class SharedOptionsViewModel(
@@ -73,7 +73,7 @@ class SharedOptionsViewModel(
     }
 
     init {
-
+        var previousRelevantLocationForNearestSort: Location? = null
         // --- NEW: Reactive logic for displayedTemples ---
         viewModelScope.launch {
             // Load initial filter and sort preferences using UserPreferencesManager
@@ -116,7 +116,7 @@ class SharedOptionsViewModel(
             }
             Log.d("SharedVM_Init", "Initial state from UPM: Filter=${loadedFilter.displayName}, Sort=${loadedSort.displayName}")
 
-            combine<Triple<PlaceFilter, PlaceSort, Location?>, List<Temple>, List<DisplayListItem>>( // Output type changed
+            combine<Triple<PlaceFilter, PlaceSort, Location?>, List<Temple>, List<DisplayListItem>>(
                 _uiState.map { state ->
                     Triple(state.currentFilter, state.currentSort, state.currentDeviceLocation)
                 }.distinctUntilChanged(),
@@ -156,6 +156,54 @@ class SharedOptionsViewModel(
         }
     }
 
+    // --- START: ADD THESE TWO NEW FUNCTIONS HERE ---
+
+    /**
+     * Called from the Fragment/Activity when the device's location is updated
+     * or location permission status changes.
+     * This function will update the UI state with the new location and,
+     * if conditions are met (Nearest sort active & location changed),
+     * set the nearestSortDataRefreshed flag to true.
+     */
+    fun deviceLocationUpdated(newLocation: Location?, permissionGranted: Boolean) {
+        _uiState.update { currentState ->
+            var shouldSetRefreshFlag = false
+            if (permissionGranted && newLocation != null && currentState.currentSort == PlaceSort.NEAREST) {
+                if (currentState.currentDeviceLocation == null ||
+                    currentState.currentDeviceLocation?.latitude != newLocation.latitude ||
+                    currentState.currentDeviceLocation?.longitude != newLocation.longitude) {
+                    shouldSetRefreshFlag = true
+                    Log.d("SharedVM_Flag", "deviceLocationUpdated: Setting nearestSortDataRefreshed = true.")
+                }
+            }
+
+            // If permission was lost, currentDeviceLocation should reflect that (become null)
+            val finalLocation = if (permissionGranted) newLocation else null
+
+            currentState.copy(
+                currentDeviceLocation = finalLocation,
+                hasLocationPermission = permissionGranted,
+                // Set the flag if conditions met, otherwise keep its current state.
+                // It will be reset by acknowledgeNearestSortDataRefreshed().
+                nearestSortDataRefreshed = if (shouldSetRefreshFlag) true else currentState.nearestSortDataRefreshed
+            )
+        }
+    }
+
+    /**
+     * Called by the UI (Fragment/Activity) after it has observed
+     * nearestSortDataRefreshed = true and taken appropriate action (e.g., scrolling).
+     * This resets the flag to false.
+     */
+    fun acknowledgeNearestSortDataRefreshed() {
+        // Only update if the flag is currently true, to avoid unnecessary state emissions
+        if (_uiState.value.nearestSortDataRefreshed) {
+            _uiState.update { currentState ->
+                Log.d("SharedVM_Flag", "acknowledgeNearestSortDataRefreshed: Resetting flag to false.")
+                currentState.copy(nearestSortDataRefreshed = false)
+            }
+        }
+    }
 
     // This function applies ONLY the filter, returns List<Temple>
     private fun applyFilter(

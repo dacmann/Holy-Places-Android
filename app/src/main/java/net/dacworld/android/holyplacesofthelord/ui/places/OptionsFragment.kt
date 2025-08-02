@@ -84,10 +84,12 @@ class OptionsFragment : Fragment() {
                 Log.d("OptionsFragment_LocPerm", "Permission GRANTED for NEAREST sort. Fetching location.")
                 fetchLocationAndUpdateViewModelForNearest()
             } else {
-                Log.d("OptionsFragment_LocPerm", "Permission GRANTED, but not specifically for NEAREST sort.")
+                sharedOptionsViewModel.deviceLocationUpdated(sharedOptionsViewModel.uiState.value.currentDeviceLocation, true)
+                Log.d("OptionsFragment_LocPerm", "Permission GRANTED (not for NEAREST). VM updated with permission status.")
             }
-            // sharedOptionsViewModel.updateHasLocationPermission(true) // Optional: If you track this separately
         } else {
+            // ***** Permission DENIED *****
+            sharedOptionsViewModel.deviceLocationUpdated(null, false)
             if (isAwaitingPermissionForNearestSort) {
                 Log.w("OptionsFragment_LocPerm", "Permission DENIED for NEAREST sort. Reverting.")
                 Toast.makeText(requireContext(), "Location permission denied. Cannot sort by nearest.", Toast.LENGTH_LONG).show()
@@ -97,7 +99,6 @@ class OptionsFragment : Fragment() {
             } else {
                 Log.w("OptionsFragment_LocPerm", "Permission DENIED, not for NEAREST sort.")
             }
-            // sharedOptionsViewModel.updateHasLocationPermission(false) // Optional
         }
         // Always reset after a permission request cycle completes, whether it was for NEAREST or not
         if (isAwaitingPermissionForNearestSort) { // Only reset if the permission request was for the "nearest" flow
@@ -304,62 +305,82 @@ class OptionsFragment : Fragment() {
     }
     @SuppressLint("MissingPermission") // We check permissions before calling this
     private fun fetchLocationAndUpdateViewModelForNearest() {
-        Log.e("!!!!_OptionsFragment_FLAUVFN", "ENTERED fetchLocationAndUpdateViewModelForNearest") // High visibility log
+        Log.d("OptionsFragment_Loc", "ENTERED fetchLocationAndUpdateViewModelForNearest. isAwaiting: $isAwaitingPermissionForNearestSort, revertTo: ${sortToRevertToIfNearestFails?.displayName}")
 
-        // Defensive check
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.e("OptionsFragment_Loc", "fetchLocationAndUpdateViewModelForNearest called without permission! THIS IS A BUG.")
-            if (isAwaitingPermissionForNearestSort) { // Check if this was part of a permission flow that somehow failed at the check
+        val hasFinePermission = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarsePermission = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val permissionGranted = hasFinePermission || hasCoarsePermission
+
+        if (!permissionGranted) {
+            Log.e("OptionsFragment_Loc", "fetchLocationAndUpdateViewModelForNearest called without permission! THIS IS A BUG. Reverting sort and updating VM.")
+            if (isAwaitingPermissionForNearestSort) {
+                Toast.makeText(requireContext(), "Location permission error. Cannot sort by nearest.", Toast.LENGTH_LONG).show()
                 val fallbackSort = sortToRevertToIfNearestFails ?: PlaceSort.ALPHABETICAL
-                sharedOptionsViewModel.setSort(fallbackSort)
+                sharedOptionsViewModel.setSort(fallbackSort) // Revert sort
             }
-            // Reset flags after handling the failure
-            isAwaitingPermissionForNearestSort = false
-            sortToRevertToIfNearestFails = null
+            // ***** CORRECTED: Call deviceLocationUpdated *****
+            sharedOptionsViewModel.deviceLocationUpdated(null, false) // Inform VM: no location, no permission
+
+            if (isAwaitingPermissionForNearestSort) { // Reset flags only if this flow was for NEAREST
+                isAwaitingPermissionForNearestSort = false
+                sortToRevertToIfNearestFails = null
+            }
             return
         }
 
+        // If we are here, permission IS granted.
         fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { location: Location? ->
-                Log.d("!!!!_OptionsFragment_FLAUVFN", "Location fetch success. Location: ${location?.latitude}")
+                Log.d("OptionsFragment_Loc", "Location fetch success. Location: ${location?.latitude}")
                 if (location != null) {
-                    Log.d("!!!!_OptionsFragment_FLAUVFN", "Location is NOT NULL. Calling VM.setDeviceLocation.")
-                    sharedOptionsViewModel.setDeviceLocation(location)
-                    // Crucially, set the sort to NEAREST in the VM.
-                    // This ensures that if the location fetch was triggered by user selecting NEAREST (or onStart check),
-                    // the VM's state reflects NEAREST as the active sort, utilizing the new location.
-                    if (sharedOptionsViewModel.uiState.value.currentSort != PlaceSort.NEAREST) {
-                        Log.d("OptionsFragment_Loc", "Setting sort in ViewModel to NEAREST after successful location.")
-                        sharedOptionsViewModel.setSort(PlaceSort.NEAREST) // This will trigger combine in VM
-                    } else {
-                        // If already NEAREST, the location update alone will trigger combine.
-                        Log.d("OptionsFragment_Loc", "ViewModel sort is already NEAREST. Location update should suffice.")
+                    Log.d("OptionsFragment_Loc", "Location is NOT NULL. Updating ViewModel.")
+                    // ***** CORRECTED: Call deviceLocationUpdated *****
+                    sharedOptionsViewModel.deviceLocationUpdated(location, true) // Location found, permission granted
+
+                    if (isAwaitingPermissionForNearestSort) {
+                        // Ensure NEAREST sort is set in the ViewModel if this fetch was triggered for it.
+                        // deviceLocationUpdated will set nearestSortDataRefreshed if sort is NEAREST.
+                        if (sharedOptionsViewModel.uiState.value.currentSort != PlaceSort.NEAREST) {
+                            Log.d("OptionsFragment_Loc", "Setting sort in ViewModel to NEAREST after successful location.")
+                            sharedOptionsViewModel.setSort(PlaceSort.NEAREST)
+                        }
                     }
                 } else {
-                    Log.w("OptionsFragment_Loc", "Fetched location is null. Cannot apply NEAREST.")
-                    Toast.makeText(requireContext(), "Could not retrieve current location.", Toast.LENGTH_SHORT).show()
-                    val fallbackSort = sortToRevertToIfNearestFails ?: PlaceSort.ALPHABETICAL
-                    Log.d("OptionsFragment_Loc", "Reverting to sort: ${fallbackSort.displayName} due to null location.")
-                    sharedOptionsViewModel.setSort(fallbackSort)
+                    Log.w("OptionsFragment_Loc", "Fetched location is null (but permission was granted).")
+                    Toast.makeText(requireContext(), "Could not retrieve current location for NEAREST sort.", Toast.LENGTH_SHORT).show()
+                    // ***** CORRECTED: Call deviceLocationUpdated *****
+                    sharedOptionsViewModel.deviceLocationUpdated(null, true) // No location, but permission was granted
+
+                    if (isAwaitingPermissionForNearestSort) {
+                        val fallbackSort = sortToRevertToIfNearestFails ?: PlaceSort.ALPHABETICAL
+                        Log.d("OptionsFragment_Loc", "Reverting to sort: ${fallbackSort.displayName} due to null location.")
+                        sharedOptionsViewModel.setSort(fallbackSort)
+                    }
                 }
-                // Reset flags after success or handled failure (null location)
-                isAwaitingPermissionForNearestSort = false
-                sortToRevertToIfNearestFails = null
-                Log.d("!!!!_OptionsFragment_FLAUVFN", "Reset isAwaiting and sortToRevertToIfNearestFails after fetch success/handled fail.")
+                // Reset flags specific to the NEAREST sort attempt in OptionsFragment AFTER success or failure to get location
+                if (isAwaitingPermissionForNearestSort) {
+                    isAwaitingPermissionForNearestSort = false
+                    sortToRevertToIfNearestFails = null
+                    Log.d("OptionsFragment_Loc", "Reset isAwaiting and sortToRevertToIfNearestFails after location fetch attempt (success/null location).")
+                }
             }
             .addOnFailureListener { e ->
-                Log.e("OptionsFragment_Loc", "Failed to fetch location", e)
+                Log.e("OptionsFragment_Loc", "Failed to fetch location for NEAREST sort.", e)
                 Toast.makeText(requireContext(), "Failed to get location.", Toast.LENGTH_SHORT).show()
-                val fallbackSort = sortToRevertToIfNearestFails ?: PlaceSort.ALPHABETICAL
-                Log.d("OptionsFragment_Loc", "Reverting to sort: ${fallbackSort.displayName} due to location fetch failure.")
-                sharedOptionsViewModel.setSort(fallbackSort)
-                // Reset flags after failure
-                isAwaitingPermissionForNearestSort = false
-                sortToRevertToIfNearestFails = null
-                Log.d("!!!!_OptionsFragment_FLAUVFN", "Reset isAwaiting and sortToRevertToIfNearestFails after fetch failure listener.")
+                // ***** CORRECTED: Call deviceLocationUpdated *****
+                sharedOptionsViewModel.deviceLocationUpdated(null, true) // No location, but permission was granted (as we attempted fetch)
+
+                if (isAwaitingPermissionForNearestSort) {
+                    val fallbackSort = sortToRevertToIfNearestFails ?: PlaceSort.ALPHABETICAL
+                    Log.d("OptionsFragment_Loc", "Reverting to sort: ${fallbackSort.displayName} due to location fetch failure.")
+                    sharedOptionsViewModel.setSort(fallbackSort)
+                    isAwaitingPermissionForNearestSort = false // Ensure flags are reset on failure too
+                    sortToRevertToIfNearestFails = null
+                    Log.d("OptionsFragment_Loc", "Reset isAwaiting and sortToRevertToIfNearestFails after location fetch failure listener.")
+                }
             }
     }
+
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
