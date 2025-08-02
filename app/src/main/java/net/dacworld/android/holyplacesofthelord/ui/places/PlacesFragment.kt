@@ -142,7 +142,6 @@ class PlacesFragment : Fragment() {
         initialPassiveLocationCheckDone = false
         if (savedRecyclerLayoutState != null) {
             pendingScrollRestore = true
-            isInitialLoad = false
             Log.d("PlacesFragment_Scroll", "onViewCreated: Found savedRecyclerLayoutState. Set pendingScrollRestore = true.")
         } else {
             // Ensure it's false if no state; it should be initialized to false as a class member.
@@ -192,26 +191,17 @@ class PlacesFragment : Fragment() {
                     searchQuery ->                          // String
 
                     Log.d("PlacesFragment_Scroll", "Combine triggered. PrevSort: $previousSort, PrevFilter: $previousFilter, isInitialLoad: $isInitialLoad, query: '$searchQuery'")
-
                     Log.d("PlacesFragment_Combine", "Combine: isLoading=$isLoading, displayItemsCount=${displayItemsFromOptionsVM.size}, sort=$currentSort, filter=$currentFilter, query='$searchQuery'")
 
-                    // Search filtering needs to be adapted if it's done AFTER headers are inserted.
-                    // Ideally, search filtering should happen in SharedOptionsViewModel BEFORE headers are inserted.
-                    // If search must happen here on List<DisplayListItem>:
                     val searchFilteredDisplayItems = if (searchQuery.isBlank()) {
                         displayItemsFromOptionsVM
                     } else {
-                        // This filtering is more complex as you need to preserve headers
-                        // and only filter TempleRowItems.
-                        // OPTION 1: Filter temples first, then re-insert headers (complex here)
-                        // OPTION 2: Filter the List<DisplayListItem> carefully
                         val filteredItems = mutableListOf<DisplayListItem>()
                         var currentHeader: DisplayListItem.HeaderItem? = null
                         val itemsUnderCurrentHeader = mutableListOf<DisplayListItem.TempleRowItem>()
 
                         for (item in displayItemsFromOptionsVM) {
                             if (item is DisplayListItem.HeaderItem) {
-                                // If we have a pending header and collected items for it, add them if any temples matched
                                 if (currentHeader != null && itemsUnderCurrentHeader.isNotEmpty()) {
                                     filteredItems.add(currentHeader.copy(count = itemsUnderCurrentHeader.size)) // Update count
                                     filteredItems.addAll(itemsUnderCurrentHeader)
@@ -249,13 +239,7 @@ class PlacesFragment : Fragment() {
 
                     // Count for the toolbar should now be the number of actual temple items, not total display items
                     val templeItemCount = searchFilteredDisplayItems.count { it is DisplayListItem.TempleRowItem }
-
                     val currentScreenTitle = getDisplayTitleForFilter(currentFilter, resources)
-//                    val currentScreenTitle = if (searchQuery.isBlank()) {
-//                        getDisplayTitleForFilter(currentFilter, resources)
-//                    } else {
-//                        getString(R.string.search_results_title)
-//                    }
                     val sortSubtitle = getSortOrderLabel(currentSort)
 
                     sharedToolbarViewModel.updateToolbarInfo(

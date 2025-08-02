@@ -12,8 +12,6 @@
         android:id="@+id/visit_detail_app_bar_layout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-        android:fitsSystemWindows="true"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -22,6 +20,7 @@
             android:id="@+id/visit_detail_toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimaryContainer"
             app:title="@string/visit_detail_title"
             app:navigationIcon="@drawable/ic_arrow_back" />
 

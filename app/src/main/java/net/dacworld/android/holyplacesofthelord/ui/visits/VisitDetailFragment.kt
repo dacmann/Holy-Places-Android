@@ -1,7 +1,5 @@
 package net.dacworld.android.holyplacesofthelord.ui.visits
 
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Spannable
@@ -10,6 +8,7 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.util.Log
 import android.view.*
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
@@ -26,6 +25,7 @@ import androidx.navigation.fragment.navArgs
 import coil.load
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.transition.MaterialFadeThrough
+import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentVisitDetailBinding
@@ -70,9 +70,11 @@ class VisitDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupToolbar()
-        setupMenu()
-        setupBottomInsetHandling() // Apply bottom inset handling
+        setupCustomToolbar()
+        setupMenuProvider()
+        setupInsetHandling()
+
+        //setupBottomInsetHandling()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -83,15 +85,150 @@ class VisitDetailFragment : Fragment() {
         }
     }
 
-    private fun setupToolbar() {
-        // Activity might handle the toolbar, or you might have a specific one in your layout
-        // For now, let's assume the activity's toolbar is used and we just set the title.
-        // If this fragment has its own toolbar, you'd initialize it here.
-        requireActivity().title = getString(R.string.visit_detail_title) // From strings.xml
+    // In VisitDetailFragment.kt
+
+    // In VisitDetailFragment.kt
+
+
+
+    // In VisitDetailFragment.kt
+
+    private fun setupInsetHandling() {
+        Log.d("VisitDetailInsets", "setupInsetHandling: Initializing.")
+
+        // --- Top Inset Handling for AppBarLayout (EXACT REPLICATION OF RecordVisitFragment) ---
+        Log.d("VisitDetailInsets", "setupInsetHandling: Setting up AppBarLayout listener.")
+        ViewCompat.setOnApplyWindowInsetsListener(binding.visitDetailAppBarLayout) { appBarView, windowInsets ->
+            Log.d("VisitDetailInsets", "setupInsetHandling: AppBarLayout listener CALLED.")
+            val systemBarInsets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            Log.d("VisitDetailInsets", "setupInsetHandling: AppBarLayout - Received top system inset: ${systemBarInsets.top}")
+
+            appBarView.setPadding(
+                appBarView.paddingLeft,
+                systemBarInsets.top, // Apply top system inset for status bar
+                appBarView.paddingRight,
+                appBarView.paddingBottom
+            )
+            Log.d("VisitDetailInsets", "setupInsetHandling: AppBarLayout - Applied padding. View's paddingTop: ${appBarView.paddingTop}")
+
+            // Return WindowInsetsCompat.CONSUMED, exactly like in RecordVisitFragment's AppBarLayout listener
+            WindowInsetsCompat.CONSUMED
+        }
+        Log.d("VisitDetailInsets", "setupInsetHandling: AppBarLayout listener SET UP.")
+
+
+        // --- Bottom Inset Handling for the main content area ---
+        // Make sure 'viewToPadBottom' is the correct view that needs to avoid the nav bar/IME.
+        // If your scrollable content is inside NestedScrollView, use that.
+        // If the entire root container needs this padding, then visitDetailRootContainer is fine.
+        val viewToPadBottom = binding.visitDetailRootContainer // CURRENTLY: binding.visitDetailRootContainer
+        // CONSIDER if binding.visitDetailNestedScrollView is more appropriate
+
+        Log.d("VisitDetailInsets", "setupInsetHandling: Setting up listener for ${viewToPadBottom.javaClass.simpleName} (ID: ${viewToPadBottom.id}) for bottom insets.")
+        ViewCompat.setOnApplyWindowInsetsListener(viewToPadBottom) { v, windowInsets ->
+            Log.d("VisitDetailInsets", "setupInsetHandling: ${viewToPadBottom.javaClass.simpleName} (ID: ${v.id}) listener CALLED.")
+
+            val navBarInsets = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val imeInsets = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
+            Log.d("VisitDetailInsets", "setupInsetHandling: ${viewToPadBottom.javaClass.simpleName} - NavBar bottom: ${navBarInsets.bottom}, IME bottom: ${imeInsets.bottom}")
+
+            // Determine effective bottom padding: prefer IME if visible, else navigation bar.
+            var desiredBottomPadding = if (imeInsets.bottom > 0) {
+                Log.d("VisitDetailInsets", "setupInsetHandling: Using IME height (${imeInsets.bottom}) for bottom padding.")
+                imeInsets.bottom
+            } else {
+                Log.d("VisitDetailInsets", "setupInsetHandling: Using Nav Bar height (${navBarInsets.bottom}) for bottom padding.")
+                navBarInsets.bottom
+            }
+
+            // --- Logic to consider app's BottomNavigationView height (from your original setupBottomInsetHandling) ---
+            // This logic was present in your setupBottomInsetHandling. If RecordVisitFragment
+            // also has similar logic for its bottom padding, ensure it's replicated here.
+            // If RecordVisitFragment does NOT have this specific BottomNavView check, then for strict
+            // replication, you might omit this or ensure its conditions are met appropriately.
+
+            val activityRootView = requireActivity().window.decorView
+            // IMPORTANT: Ensure R.id.main_bottom_navigation is the correct ID from your Activity's layout
+            val appBottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
+
+            if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
+                Log.d("VisitDetailInsets", "setupInsetHandling: App's BottomNavView found and visible. Height: ${appBottomNavView.height}")
+                if (desiredBottomPadding < appBottomNavView.height) {
+                    desiredBottomPadding = appBottomNavView.height
+                    Log.d("VisitDetailInsets", "setupInsetHandling: Overriding with App's BottomNavView height. New desiredBottomPadding: $desiredBottomPadding")
+                }
+            } else {
+                Log.d("VisitDetailInsets", "setupInsetHandling: App's BottomNavView not found, not visible, or height check not met.")
+            }
+            // --- End of BottomNavigationView logic ---
+
+            Log.d("VisitDetailInsets", "setupInsetHandling: ${viewToPadBottom.javaClass.simpleName} - Final desiredBottomPadding: $desiredBottomPadding")
+
+            v.updatePadding(
+                left = v.paddingLeft,
+                top = v.paddingTop,
+                right = v.paddingRight,
+                bottom = desiredBottomPadding // Apply the calculated bottom padding
+            )
+            Log.d("VisitDetailInsets", "setupInsetHandling: ${viewToPadBottom.javaClass.simpleName} - Applied padding. View's paddingBottom: ${v.paddingBottom}")
+
+            // Return the original 'windowInsets' to allow propagation if needed,
+            // mirroring RecordVisitFragment's content view listener.
+            windowInsets
+        }
+        Log.d("VisitDetailInsets", "setupInsetHandling: Listener for ${viewToPadBottom.javaClass.simpleName} (ID: ${viewToPadBottom.id}) SET UP.")
+
+        // Requesting initial insets if views might not be attached yet.
+        // This can be helpful but isn't always strictly necessary if listeners are set early.
+        // Check if RecordVisitFragment does this for its content view.
+        if (binding.visitDetailAppBarLayout.isAttachedToWindow) {
+            ViewCompat.requestApplyInsets(binding.visitDetailAppBarLayout)
+        } else {
+            binding.visitDetailAppBarLayout.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) { v.removeOnAttachStateChangeListener(this); ViewCompat.requestApplyInsets(v) }
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+        }
+
+        if (viewToPadBottom.isAttachedToWindow) {
+            ViewCompat.requestApplyInsets(viewToPadBottom)
+        } else {
+            viewToPadBottom.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) { v.removeOnAttachStateChangeListener(this); ViewCompat.requestApplyInsets(v) }
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+        }
     }
 
-    private fun setupMenu() {
-        val menuHost: MenuHost = requireActivity()
+
+
+    private fun setupCustomToolbar() {
+        val toolbar: MaterialToolbar = binding.visitDetailToolbar
+
+        (activity as? AppCompatActivity)?.setSupportActionBar(toolbar)
+
+        val actionBar = (activity as? AppCompatActivity)?.supportActionBar
+        actionBar?.apply {
+            title = getString(R.string.visit_detail_title)
+            setDisplayHomeAsUpEnabled(true) // This enables the back arrow icon
+            setDisplayShowTitleEnabled(true)
+        }
+
+        // IMPORTANT: When using setDisplayHomeAsUpEnabled(true) with setSupportActionBar,
+        // the click handling for the "home" button (back arrow) is typically handled
+        // by the system routing it to onOptionsItemSelected(android.R.id.home) OR
+        // by the NavController if your NavGraph is set up with an AppBarConfiguration
+        // that includes this fragment's destination.
+        // For directness and consistency with RecordVisitFragment's toolbar.setNavigationOnClickListener,
+        // we can keep it, but it might be redundant if the MenuProvider handles android.R.id.home.
+        toolbar.setNavigationOnClickListener {
+            findNavController().navigateUp()
+        }
+    }
+
+    private fun setupMenuProvider() {
+        val menuHost: MenuHost = requireActivity() // Or use requireView() if toolbar is always part of fragment view
+
         menuHost.addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                 menuInflater.inflate(R.menu.menu_visit_detail, menu)
@@ -99,24 +236,28 @@ class VisitDetailFragment : Fragment() {
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                 return when (menuItem.itemId) {
+                    // android.R.id.home is NOT typically handled here if setDisplayHomeAsUpEnabled(true)
+                    // is used and the NavController or toolbar.setNavigationOnClickListener handles it.
+                    // If toolbar.setNavigationOnClickListener is removed, you MIGHT need to handle android.R.id.home here.
+                    // For now, let's assume toolbar.setNavigationOnClickListener handles Up navigation.
+
                     R.id.action_edit_visit -> {
                         viewModel.visit.value?.let { currentVisit ->
-                            // Navigate to RecordVisitFragment with currentVisit.id and other details
                             val action = VisitDetailFragmentDirections
                                 .actionVisitDetailFragmentToRecordVisitFragment(
                                     visitId = currentVisit.id,
-                                    placeId = currentVisit.placeID, // Assuming placeID is correct FK
+                                    placeId = currentVisit.placeID,
                                     placeName = currentVisit.holyPlaceName ?: "",
-                                    placeType = currentVisit.type ?: "" // Pass the T, H, A, C, V type
+                                    placeType = currentVisit.type ?: ""
                                 )
                             findNavController().navigate(action)
                         }
-                        true
+                        true // Consume the event
                     }
-                    else -> false
+                    else -> false // Let other components (like NavController for Up) handle it
                 }
             }
-        }, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        }, viewLifecycleOwner, Lifecycle.State.RESUMED) // Use viewLifecycleOwner and RESUMED state
     }
 
     private fun populateUi(visit: Visit) {
@@ -285,6 +426,7 @@ class VisitDetailFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        (activity as? AppCompatActivity)?.setSupportActionBar(null)
         _binding = null
     }
 }

@@ -184,20 +184,6 @@ class RecordVisitFragment : Fragment() {
         toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
-
-        // Inflate and handle menu for the "Save" button
-//        toolbar.inflateMenu(R.menu.menu_record_visit) // Ensure this menu exists with the "Save" item
-//        toolbar.setOnMenuItemClickListener { menuItem ->
-//            when (menuItem.itemId) {
-//                R.id.action_save_visit -> {
-//                    viewModel.saveVisit()
-//                    true
-//                }
-//                else -> false
-//            }
-//        }
-
-        // The old setupMenu() using MenuHost is removed as we now handle menu directly on MaterialToolbar
     }
 
     private fun setupInitialUI() {
@@ -334,7 +320,12 @@ class RecordVisitFragment : Fragment() {
 
     private fun observeViewModel() {
         viewModel.uiState.observe(viewLifecycleOwner, Observer { state ->
-            if (state == null) return@Observer
+            if (state == null) {
+                Log.w("RecordVisitFragment", "Observer: uiState is null!") // Add a log for null state too
+                return@Observer
+            }
+            // <<< THIS LOG IS CRITICAL >>>
+            Log.d("RecordVisitFragment", "Observer received uiState: Baptisms=${state.baptisms}, Confirmations=${state.confirmations}, Initiatories=${state.initiatories}, Endowments=${state.endowments}, Sealings=${state.sealings}, ShiftHrs=${state.shiftHrs}")
             updateUi(state)
         })
 
@@ -351,6 +342,9 @@ class RecordVisitFragment : Fragment() {
     }
 
     private fun updateUi(state: VisitUiState) {
+        Log.d("RecordVisitFragment", "updateUi: placeName='${state.holyPlaceName}', placeType from UiState='${state.visitType}', navArgs.placeType='${navArgs.placeType}'")
+        Log.d("RecordVisitFragment", "updateUi: Visibility: Baptisms=${binding.editTextBaptisms.visibility == View.VISIBLE}, Confirmations=${binding.editTextConfirmations.visibility == View.VISIBLE}")
+
         // Place Name and Color
         binding.textViewPlaceName.text = state.holyPlaceName
         Log.d("RecordVisitFragment", "navArgs.placeType: ${navArgs.placeType}")
@@ -421,19 +415,24 @@ class RecordVisitFragment : Fragment() {
     }
 
     // Helper to prevent cursor jumps and unnecessary TextWatcher firings
+    private fun EditText.idToString(): String {
+        return try {
+            resources.getResourceEntryName(this.id)
+        } catch (e: Exception) {
+            this.id.toString()
+        }
+    }
+
     private fun updateEditTextIfChanged(editText: EditText, newValue: String) {
-        if (editText.text.toString() != newValue) {
-            // Store cursor position
-            val selectionStart = editText.selectionStart
-            val selectionEnd = editText.selectionEnd
+        val currentText = editText.text.toString()
+        // <<< THIS LOG IS CRITICAL >>>
+        Log.d("RecordVisitFragment", "updateEditTextIfChanged for ID '${editText.idToString()}': CurrentText='$currentText', NewValue='$newValue'")
+        if (currentText != newValue) {
+            Log.d("RecordVisitFragment", "updateEditTextIfChanged for ID '${editText.idToString()}': SETTING TEXT to '$newValue'")
             editText.setText(newValue)
-            // Restore cursor position if possible and makes sense
-            if (selectionStart <= newValue.length && selectionEnd <= newValue.length) {
-                editText.setSelection(selectionStart, selectionEnd)
-            } else {
-                // If old selection is out of bounds for new text, move to end
-                editText.setSelection(newValue.length)
-            }
+            // editText.setSelection(newValue.length) // Optional
+        } else {
+            Log.d("RecordVisitFragment", "updateEditTextIfChanged for ID '${editText.idToString()}': NO CHANGE needed.")
         }
     }
 
