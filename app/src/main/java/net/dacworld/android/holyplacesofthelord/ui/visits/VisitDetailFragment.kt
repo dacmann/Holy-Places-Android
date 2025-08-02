@@ -284,11 +284,9 @@ class VisitDetailFragment : Fragment() {
 
             // Comments
             if (!visit.comments.isNullOrEmpty()) {
-                detailVisitCommentsLabel.visibility = View.VISIBLE
                 detailVisitComments.visibility = View.VISIBLE
                 detailVisitComments.text = visit.comments
             } else {
-                detailVisitCommentsLabel.visibility = View.GONE
                 detailVisitComments.visibility = View.GONE
             }
 
@@ -309,13 +307,22 @@ class VisitDetailFragment : Fragment() {
     private fun populateOrdinances(visit: Visit) {
         val builder = SpannableStringBuilder()
         var hasOrdinances = false
+        var activeOrdinancesOnCurrentLine = 0
 
         fun appendOrdinance(label: String, value: Short?, colorResId: Int) {
             value?.let {
                 if (it > 0) {
                     hasOrdinances = true
+                    if (builder.isNotEmpty()) { // Only add spacer/newline if builder already has content
+                        if (activeOrdinancesOnCurrentLine == 1) {
+                            // We've already added one to this line, so this is the second. Add spacer.
+                            builder.append("   ") // Adjust spacing string as needed
+                        } else { // activeOrdinancesOnCurrentLine is 0 (or became 0 after a pair)
+                            // This means we are starting a new line (it's not the very first ordinance overall)
+                            builder.append("\n")
+                        }
+                    }
                     val start = builder.length
-                    if (builder.isNotEmpty()) builder.append("\n") // New line for subsequent ordinances
                     builder.append("$label: $it")
                     val end = builder.length
                     context?.let { ctx ->
@@ -323,11 +330,16 @@ class VisitDetailFragment : Fragment() {
                             ForegroundColorSpan(ContextCompat.getColor(ctx, colorResId)),
                             start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                         )
-                        builder.setSpan(
-                            StyleSpan(Typeface.BOLD),
-                            start, start + label.length + 1, // Bold the "Label:" part
-                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                        )
+//                        builder.setSpan(
+//                            StyleSpan(Typeface.BOLD),
+//                            start, start + label.length + 1, // Bold the "Label:" part
+//                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+//                        )
+                    }
+                    // --- NEW: Update counter ---
+                    activeOrdinancesOnCurrentLine++
+                    if (activeOrdinancesOnCurrentLine == 2) {
+                        activeOrdinancesOnCurrentLine = 0 // Reset after two items form a line
                     }
                 }
             }
