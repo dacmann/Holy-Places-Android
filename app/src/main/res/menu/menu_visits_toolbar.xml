@@ -25,8 +25,34 @@
     </item>
 
     <item
-    android:id="@+id/action_filter_visits"
-    android:icon="@drawable/ic_filter_list"
-    android:title="@string/button_text_options"
-    app:showAsAction="ifRoom" />
+        android:id="@+id/action_filter_visits_submenu"
+        android:icon="@drawable/ic_filter_list"
+        android:title="@string/action_filter_options"
+        app:showAsAction="ifRoom">
+        <menu>
+            <group>
+                <item
+                    android:id="@+id/filter_type_all"
+                    android:title="@string/filter_type_all_visits" /> <!-- NEEDS NEW STRING: e.g., "All Visits" -->
+                <item
+                    android:id="@+id/filter_type_active_temples"
+                    android:title="@string/filter_type_active_temples" /> <!-- NEEDS NEW STRING: e.g., "Active Temples" -->
+                <item
+                    android:id="@+id/filter_type_historical_sites"
+                    android:title="@string/filter_type_historical_sites" /> <!-- NEEDS NEW STRING: e.g., "Historical Sites" -->
+                <item
+                    android:id="@+id/filter_type_visitors_centers"
+                    android:title="@string/filter_type_visitors_centers" /> <!-- NEEDS NEW STRING: e.g., "Visitor Centers" -->
+                <item
+                    android:id="@+id/filter_type_under_construction"
+                    android:title="@string/filter_type_under_construction" /> <!-- NEEDS NEW STRING: e.g., "Under Construction" -->
+            </group>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/action_filter_visits"
+        android:icon="@drawable/ic_export"
+        android:title="@string/action_export_import"
+        app:showAsAction="ifRoom" />
 </menu>

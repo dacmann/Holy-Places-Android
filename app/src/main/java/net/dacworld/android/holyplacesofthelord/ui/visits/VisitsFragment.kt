@@ -17,6 +17,9 @@ import com.google.android.material.snackbar.Snackbar
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentVisitsBinding
 import net.dacworld.android.holyplacesofthelord.ui.SharedVisitsViewModel
+import net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder
+import net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter
+
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.data.VisitViewModel
 import android.util.Log
@@ -25,6 +28,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.color.MaterialColors
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 
 class VisitsFragment : Fragment() {
 
@@ -182,15 +187,11 @@ class VisitsFragment : Fragment() {
                 // Handle the menu selection
                 return when (menuItem.itemId) {
                     R.id.action_sort_visits -> {
-                        // This will be handled by the submenu, but you can add a top-level action if needed
-                        // Snackbar.make(binding.root, "Sort options main item clicked", Snackbar.LENGTH_SHORT).show()
                         true // Return true if the event was handled
                     }
 
                     R.id.action_filter_visits -> {
-                        // TODO: Navigate to Visit Options/Filter screen
-                        // findNavController().navigate(VisitsFragmentDirections.actionVisitsFragmentToVisitOptionsFragment())
-                        Snackbar.make(binding.root, "Filter clicked", Snackbar.LENGTH_SHORT).show()
+                        findNavController().navigate(VisitsFragmentDirections.actionVisitsFragmentToVisitOptionsFragment())
                         true
                     }
                     // Handle sub-menu sort item clicks
@@ -211,6 +212,37 @@ class VisitsFragment : Fragment() {
 
                     R.id.sort_visits_by_place_desc -> {
                         sharedVisitsViewModel.setSortOrder(net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_PLACE_NAME_DESC)
+                        true
+                    }
+
+                    // --- NEW FILTER SUBMENU ITEM CLICKS ---
+                    R.id.filter_type_all -> {
+                        sharedVisitsViewModel.setPlaceTypeFilter(net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter.ALL)
+                        true
+                    }
+                    R.id.filter_type_active_temples -> {
+                        sharedVisitsViewModel.setPlaceTypeFilter(net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter.ACTIVE_TEMPLES)
+                        true
+                    }
+                    R.id.filter_type_historical_sites -> {
+                        sharedVisitsViewModel.setPlaceTypeFilter(net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter.HISTORICAL_SITES)
+                        true
+                    }
+                    R.id.filter_type_visitors_centers -> {
+                        sharedVisitsViewModel.setPlaceTypeFilter(net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter.VISITORS_CENTERS)
+                        true
+                    }
+                    R.id.filter_type_under_construction -> {
+                        sharedVisitsViewModel.setPlaceTypeFilter(net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter.UNDER_CONSTRUCTION)
+                        true
+                    }
+
+                    R.id.action_filter_visits -> {
+                        // Navigate to the fragment that will handle Export/Import
+                        // This assumes VisitOptionsFragment is being repurposed and the action name is still valid.
+                        // If you rename VisitOptionsFragment to ExportImportFragment and update the nav graph,
+                        // this Directions class might change (e.g., VisitsFragmentDirections.actionVisitsFragmentToExportImportFragment())
+                        findNavController().navigate(VisitsFragmentDirections.actionVisitsFragmentToVisitOptionsFragment())
                         true
                     }
 
@@ -268,41 +300,97 @@ class VisitsFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        visitViewModel.allVisits.observe(viewLifecycleOwner) { visits -> // Replace with your actual filtered list LiveData
-            visits?.let {
-                visitListAdapter.submitList(it)
-                binding.visitsEmptyTextView.visibility = if (it.isEmpty()) View.VISIBLE else View.GONE
+        visitViewModel.allVisits.observe(viewLifecycleOwner) { visits ->
+            visits?.let { currentVisitsList ->
+                Log.d("VisitsFragment", "[V_FRAG_LOG_1] visitViewModel.allVisits observer. Count: ${currentVisitsList.size}")
+                visitListAdapter.submitList(currentVisitsList)
+                binding.visitsEmptyTextView.visibility =
+                    if (currentVisitsList.isEmpty()) View.VISIBLE else View.GONE
 
-                // Update Toolbar Title
-                binding.visitsToolbarTitleCentered.text = getString(R.string.title_visits_count, it.size)
-                // binding.visitsProgressBar.visibility = View.GONE
-            }
+                // Update title with count here
+                val currentFilterFromSharedVM = sharedVisitsViewModel.selectedPlaceTypeFilter.value
+                if (currentFilterFromSharedVM != null) {
+                    val filterName = getString(currentFilterFromSharedVM.displayNameResource)
+                    Log.d("VisitsFragment", "[V_FRAG_LOG_2] allVisits observer: Updating title text part 1. Filter: ${currentFilterFromSharedVM.name}, TypeCode for color check: ${currentFilterFromSharedVM.typeCode}, Count: ${currentVisitsList.size}")
+                    binding.visitsToolbarTitleCentered.text = getString(R.string.title_visits_count, currentVisitsList.size)
+
+                    // Also set the color here, as this observer might be the last one to touch the title
+                    val titleColor = ColorUtils.getTextColorForTempleType(requireContext(), currentFilterFromSharedVM.typeCode)
+                    binding.visitsToolbarTitleCentered.setTextColor(titleColor)
+                } else {
+                    Log.w("VisitsFragment", "[V_FRAG_LOG_3] allVisits observer: selectedPlaceTypeFilter.value is NULL. Using default count title.")
+                    binding.visitsToolbarTitleCentered.text = getString(R.string.title_visits_count, currentVisitsList.size)
+                    // Reset to default color if needed
+                    binding.visitsToolbarTitleCentered.setTextColor(MaterialColors.getColor(binding.visitsToolbarTitleCentered, com.google.android.material.R.attr.colorOnSurface))
+                }
+
+            } ?: Log.d("VisitsFragment", "[V_FRAG_LOG_4] visitViewModel.allVisits observer: NULL list.")
         }
 
         sharedVisitsViewModel.sortOrder.observe(viewLifecycleOwner) { sortOrder ->
-            // Update Toolbar Subtitle based on sort order
-            val subtitle = when (sortOrder) {
-                net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_DATE_DESC -> getString(R.string.sort_by_date_latest_first)
-                net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_DATE_ASC -> getString(R.string.sort_by_date_oldest_first)
-                net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_PLACE_NAME_ASC -> getString(R.string.sort_by_place_a_z)
-                net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_PLACE_NAME_DESC -> getString(R.string.sort_by_place_z_a)
-                else -> "" // Default or no subtitle
-            }
-            if (subtitle.isNotEmpty()) {
-                binding.visitsToolbarSubtitle.text = subtitle
-                binding.visitsToolbarSubtitle.visibility = View.VISIBLE
-            } else {
-                binding.visitsToolbarSubtitle.visibility = View.GONE
-            }
-            //Snackbar.make(binding.root, "Sort order changed to: $sortOrder", Snackbar.LENGTH_SHORT).show()
-        }
+            sortOrder?.let { currentSortOrder ->
+                // Update Toolbar Subtitle based on sort order
+                Log.d("VisitsFragment", "[V_FRAG_LOG_5] sharedVisitsViewModel.sortOrder observer: $currentSortOrder")
+                visitViewModel.updateSortOrder(currentSortOrder)
+                val subtitle = when (sortOrder) {
+                    net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_DATE_DESC -> getString(
+                        R.string.sort_by_date_latest_first
+                    )
 
-        sharedVisitsViewModel.searchQuery.observe(viewLifecycleOwner) { query ->
-            // Update UI based on search query if needed (e.g., showing "Searching for..." in subtitle)
-            // Snackbar.make(binding.root, "Search query: $query", Snackbar.LENGTH_SHORT).show()
-        }
+                    net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_DATE_ASC -> getString(
+                        R.string.sort_by_date_oldest_first
+                    )
 
-        // TODO: Observe loading state from VisitViewModel
+                    net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_PLACE_NAME_ASC -> getString(
+                        R.string.sort_by_place_a_z
+                    )
+
+                    net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_PLACE_NAME_DESC -> getString(
+                        R.string.sort_by_place_z_a
+                    )
+                }
+                if (subtitle.isNotEmpty()) {
+                    binding.visitsToolbarSubtitle.text = subtitle
+                    binding.visitsToolbarSubtitle.visibility = View.VISIBLE
+                } else {
+                    binding.visitsToolbarSubtitle.visibility = View.GONE
+                }
+                //Snackbar.make(binding.root, "Sort order changed to: $sortOrder", Snackbar.LENGTH_SHORT).show()
+            }
+
+            // --- NEW OBSERVER for Place Type Filter changes from SharedViewModel ---
+            sharedVisitsViewModel.selectedPlaceTypeFilter.observe(viewLifecycleOwner) { placeTypeFilter ->
+                placeTypeFilter?.let { currentFilter ->
+                    Log.d("VisitsFragment", "[V_FRAG_LOG_6] selectedPlaceTypeFilter observer. Filter: ${currentFilter.name}, TypeCode: ${currentFilter.typeCode}")
+
+                    Log.d("VisitsFragment", "[V_FRAG_LOG_7] selectedPlaceTypeFilter observer: Calling visitViewModel.updatePlaceTypeFilter with ${currentFilter.name}")
+                    visitViewModel.updatePlaceTypeFilter(currentFilter)
+
+                    var displayFilterName = getString(currentFilter.displayNameResource)
+                    // Check if the current filter is UNDER_CONSTRUCTION
+                    if (currentFilter == net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter.UNDER_CONSTRUCTION) {
+                        displayFilterName = getString(R.string.filter_type_under_construction_short_title) // Use the short title
+                    }
+
+                    // Attempt to get the latest count. It might be slightly stale if allVisits hasn't updated yet,
+                    // but allVisits observer will correct it shortly.
+                    val currentCount = visitViewModel.allVisits.value?.size ?: 0
+                    Log.d("VisitsFragment", "[V_FRAG_LOG_8] selectedPlaceTypeFilter observer: Updating title text part 2 (name & color). FilterName: $displayFilterName")
+                    binding.visitsToolbarTitleCentered.text = getString(R.string.toolbar_title_format, displayFilterName, currentCount)
+
+
+                    val context = requireContext()
+                    Log.d("VisitsFragment", "[V_FRAG_LOG_9] selectedPlaceTypeFilter observer: Calling ColorUtils with TypeCode: ${currentFilter.typeCode}")
+                    val titleColor = ColorUtils.getTextColorForTempleType(context, currentFilter.typeCode)
+                    binding.visitsToolbarTitleCentered.setTextColor(titleColor)
+                }
+            }
+
+            sharedVisitsViewModel.searchQuery.observe(viewLifecycleOwner) { query ->
+                Log.d("VisitsFragment", "[V_FRAG_LOG_11] sharedVisitsViewModel.searchQuery observer: '$query'")
+                // ... search logic ...
+            }
+        }
     }
 
     override fun onDestroyView() {
@@ -311,14 +399,4 @@ class VisitsFragment : Fragment() {
         _binding = null
     }
 
-    // TODO: Add onCreateOptionsMenu if you want to put search as a menu item
-    /*
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_visits_toolbar, menu) // or a different menu if search is here
-        val searchItem = menu.findItem(R.id.action_search_visits)
-        val searchView = searchItem?.actionView as? SearchView
-        searchView?.setOnQueryTextListener(...)
-        super.onCreateOptionsMenu(menu, inflater)
-    }
-    */
 }

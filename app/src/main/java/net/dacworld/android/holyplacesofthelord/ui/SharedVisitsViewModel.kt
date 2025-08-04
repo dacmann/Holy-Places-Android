@@ -4,6 +4,7 @@ package net.dacworld.android.holyplacesofthelord.ui
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import net.dacworld.android.holyplacesofthelord.R
 
 // Define Enum for Sort Order (Example)
 enum class VisitSortOrder {
@@ -29,6 +30,15 @@ data class VisitFilterOptions(
     }
 }
 
+enum class VisitPlaceTypeFilter(val typeCode: String?, val displayNameResource: Int) {
+    ALL(null, R.string.filter_type_all_visits),
+    ACTIVE_TEMPLES("T", R.string.filter_type_active_temples),
+    HISTORICAL_SITES("H", R.string.filter_type_historical_sites),
+    VISITORS_CENTERS("V", R.string.filter_type_visitors_centers),
+    UNDER_CONSTRUCTION("C", R.string.filter_type_under_construction);
+    // "Other" is omitted for now
+}
+
 class SharedVisitsViewModel : ViewModel() {
 
     private val _searchQuery = MutableLiveData<String?>()
@@ -40,22 +50,47 @@ class SharedVisitsViewModel : ViewModel() {
     private val _filterOptions = MutableLiveData<VisitFilterOptions>(VisitFilterOptions()) // Default filters
     val filterOptions: LiveData<VisitFilterOptions> = _filterOptions
 
+    // --- NEW LiveData and method for the Place Type Filter ---
+    private val _selectedPlaceTypeFilter = MutableLiveData(VisitPlaceTypeFilter.ALL)
+    val selectedPlaceTypeFilter: LiveData<VisitPlaceTypeFilter> = _selectedPlaceTypeFilter
+
     fun setSearchQuery(query: String?) {
         _searchQuery.value = query
     }
 
     fun setSortOrder(sortOrder: VisitSortOrder) {
-        _sortOrder.value = sortOrder
+        if (_sortOrder.value != sortOrder) {
+            _sortOrder.value = sortOrder
+        }
     }
 
     fun setFilterOptions(options: VisitFilterOptions) {
         _filterOptions.value = options
     }
 
-    fun updateShowOnlyFavorites(isFavorite: Boolean) {
-        _filterOptions.value = _filterOptions.value?.copy(showOnlyFavorites = isFavorite)
+    // This method updates the existing filterOptions for scope buttons
+    fun setScopeFilterOptions(options: VisitFilterOptions) {
+        if (_filterOptions.value != options) {
+            _filterOptions.value = options
+        }
     }
 
-    // Add specific methods to update individual filter options if needed
-    // e.g., fun updateOrdinanceBaptismsFilter(enabled: Boolean) { ... }
+    // Example method for updating a specific scope button filter (if needed)
+    fun updateShowOnlyFavorites(isFavorite: Boolean) {
+        val currentOptions = _filterOptions.value ?: VisitFilterOptions()
+        if (currentOptions.showOnlyFavorites != isFavorite) {
+            _filterOptions.value = currentOptions.copy(showOnlyFavorites = isFavorite)
+        }
+    }
+
+    // --- NEW Method for updating the Place Type Filter ---
+    fun setPlaceTypeFilter(placeTypeFilter: VisitPlaceTypeFilter) {
+        android.util.Log.d("SharedViewModel", "setPlaceTypeFilter called with: $placeTypeFilter. Current LiveData value is: ${_selectedPlaceTypeFilter.value}")
+        if (_selectedPlaceTypeFilter.value != placeTypeFilter) {
+            _selectedPlaceTypeFilter.value = placeTypeFilter
+            android.util.Log.d("SharedViewModel", "LiveData updated to: ${_selectedPlaceTypeFilter.value}")
+        } else {
+            android.util.Log.d("SharedViewModel", "New filter is same as current. LiveData NOT updated.")
+        }
+    }
 }

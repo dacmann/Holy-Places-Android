@@ -54,6 +54,9 @@
         <action
             android:id="@+id/action_visitsFragment_to_visitDetailFragment"
             app:destination="@id/visitDetailFragment" />
+        <action
+            android:id="@+id/action_visitsFragment_to_visitOptionsFragment"
+            app:destination="@id/visitOptionsFragment" />
     </fragment>
 
     <fragment
@@ -94,5 +97,10 @@
         <!-- Example: "T" for Temple, "H" for Historic Site, etc. -->
     </fragment>
 
+    <fragment
+        android:id="@+id/visitOptionsFragment"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.visits.VisitOptionsFragment"
+        android:label="@string/filter_by"
+        tools:layout="@layout/fragment_visit_options" />
 
 </navigation>

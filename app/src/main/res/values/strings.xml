@@ -78,4 +78,14 @@
     <string name="visit_detail_title">Visit Detail</string>
     <string name="action_edit">Edit</string>
     <string name="content_desc_visit_picture">Visit Picture</string>
+    <string name="filter_type_all_visits">All Visits</string>
+    <string name="filter_type_active_temples">Active Temples</string>
+    <string name="filter_type_historical_sites">Historical Sites</string>
+    <string name="filter_type_visitors_centers">Visitors\' Centers</string>
+    <string name="filter_type_under_construction">Temples Under Construction</string>
+    <string name="filter_type_under_construction_short_title">Construction</string>
+    <string name="visit_options">Visit Options</string>
+    <string name="action_filter_options">Filter by Type</string>
+    <string name="action_export_import">Export/Import</string>
+
 </resources>
