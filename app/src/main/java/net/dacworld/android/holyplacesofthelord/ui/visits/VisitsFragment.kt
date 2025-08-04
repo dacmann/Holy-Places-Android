@@ -45,6 +45,10 @@ class VisitsFragment : Fragment() {
     private var stableRestingBottomPaddingRecyclerView: Int? = null
     private var isInitialInsetApplicationRecyclerView = true
 
+    private var previousSortOrder: net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder? = null
+    private var previousPlaceTypeFilter: net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter? = null
+    private var isVisitsInitialLoad = true // To differentiate from subsequent updates
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -190,10 +194,6 @@ class VisitsFragment : Fragment() {
                         true // Return true if the event was handled
                     }
 
-                    R.id.action_filter_visits -> {
-                        findNavController().navigate(VisitsFragmentDirections.actionVisitsFragmentToVisitOptionsFragment())
-                        true
-                    }
                     // Handle sub-menu sort item clicks
                     R.id.sort_visits_by_date_desc -> {
                         sharedVisitsViewModel.setSortOrder(net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_DATE_DESC)
@@ -237,12 +237,10 @@ class VisitsFragment : Fragment() {
                         true
                     }
 
-                    R.id.action_filter_visits -> {
+                    R.id.action_filter_visits -> { // This is the one that will remain
                         // Navigate to the fragment that will handle Export/Import
-                        // This assumes VisitOptionsFragment is being repurposed and the action name is still valid.
-                        // If you rename VisitOptionsFragment to ExportImportFragment and update the nav graph,
-                        // this Directions class might change (e.g., VisitsFragmentDirections.actionVisitsFragmentToExportImportFragment())
-                        findNavController().navigate(VisitsFragmentDirections.actionVisitsFragmentToVisitOptionsFragment())
+                        // The Directions class name should reflect the destination fragment ID from nav_graph.xml
+                        findNavController().navigate(VisitsFragmentDirections.actionVisitsFragmentToExportImportFragment()) // Use the new action
                         true
                     }
 

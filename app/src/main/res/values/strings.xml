@@ -87,5 +87,18 @@
     <string name="visit_options">Visit Options</string>
     <string name="action_filter_options">Filter by Type</string>
     <string name="action_export_import">Export/Import</string>
+    <string name="title_export_import">Export/Import Visits</string>
+    <string name="export_visits_xml">Export Visits to XML</string>
+    <string name="import_visits_xml">Import Visits from XML</string>
+    <string name="export_successful">Export successful: %1$d visits written to %2$s</string>
+    <string name="export_failed">Export failed: %1$s</string>
+    <string name="export_no_visits">No visits to export.</string>
+    <string name="import_report_successful_skipped_errors">Import complete. Imported: %1$d, Skipped (duplicates): %2$d, Skipped (missing temple/data): %3$d, Errors: %4$d</string>
+    <string name="import_failed_parsing">Import failed: Could not parse XML file. %1$s</string>
+    <string name="import_failed_file_read">Import failed: Could not read file. %1$s</string>
+    <string name="import_failed_general">Import failed: %1$s</string>
+    <string name="status_exporting">Exporting visits…</string>
+    <string name="status_importing">Importing visits…</string>
+    <string name="default_export_filename_template">HolyPlacesVisits-%s.xml</string> <!-- %s will be replaced by date -->
 
 </resources>

@@ -55,8 +55,8 @@
             android:id="@+id/action_visitsFragment_to_visitDetailFragment"
             app:destination="@id/visitDetailFragment" />
         <action
-            android:id="@+id/action_visitsFragment_to_visitOptionsFragment"
-            app:destination="@id/visitOptionsFragment" />
+            android:id="@+id/action_visitsFragment_to_exportImportFragment"
+            app:destination="@id/exportImportFragment" />
     </fragment>
 
     <fragment
@@ -98,9 +98,9 @@
     </fragment>
 
     <fragment
-        android:id="@+id/visitOptionsFragment"
-        android:name="net.dacworld.android.holyplacesofthelord.ui.visits.VisitOptionsFragment"
-        android:label="@string/filter_by"
-        tools:layout="@layout/fragment_visit_options" />
+        android:id="@+id/exportImportFragment"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.visits.ExportImportFragment"
+        android:label="@string/title_export_import"
+        tools:layout="@layout/fragment_export_import" />
 
 </navigation>

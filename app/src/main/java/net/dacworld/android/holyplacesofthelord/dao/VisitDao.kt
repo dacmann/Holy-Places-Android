@@ -58,9 +58,21 @@ interface VisitDao {
     @Query("DELETE FROM ${VisitContract.TABLE_NAME}")
     suspend fun deleteAllVisits()
 
-    // Example: Delete all visits for a specific temple (useful if not using CASCADE on foreign key)
-    // @Query("DELETE FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_PLACE_ID} = :templeId")
-    // suspend fun deleteVisitsForTemple(templeId: String)
+    /**
+     * Fetches all visits sorted by date, intended for export operations.
+     * The `pictureData` will be included if selected by the Visit entity's default query,
+     * but we will explicitly ignore it during XML generation.
+     */
+    @Query("SELECT * FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} ASC")
+    suspend fun getAllVisitsListForExport(): List<Visit>
+
+    /**
+     * Checks if a visit already exists with the given holy place name and date.
+     * Note: dateVisitedMillis should be the Long representation of the Date (e.g., from Date.getTime()).
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_HOLY_PLACE_NAME} = :holyPlaceName AND ${VisitContract.COLUMN_DATE_VISITED} = :dateVisitedMillis LIMIT 1)")
+    suspend fun visitExistsByNameAndDate(holyPlaceName: String, dateVisitedMillis: Long): Boolean
+
 }
 
 

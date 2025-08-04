@@ -31,6 +31,13 @@ interface TempleDao {
     suspend fun getTempleWithPictureById(id: String): Temple?
 
     /**
+     * Fetches a temple's ID by its exact name.
+     * Used for linking imported visits to existing temples.
+     */
+    @Query("SELECT temple_id FROM temples WHERE name = :name LIMIT 1")
+    suspend fun getTempleIdByName(name: String): String?
+
+    /**
      * Inserts a temple. If the Temple object has pictureData, it will be written.
      * During initial sync from XML, pictureData should be null.
      */
