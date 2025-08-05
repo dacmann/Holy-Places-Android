@@ -2,6 +2,7 @@
 package net.dacworld.android.holyplacesofthelord.data
 
 import android.app.Application
+//import android.icu.util.Calendar
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
@@ -13,6 +14,7 @@ import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter
 import net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder
 import androidx.lifecycle.MediatorLiveData
+import java.util.Calendar
 
 class VisitViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -20,7 +22,8 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
 
     private val rawVisitsFromDB: LiveData<List<Visit>>
 
-    val allVisits: MediatorLiveData<List<Visit>> = MediatorLiveData()
+    val allVisits: MediatorLiveData<List<VisitDisplayListItem>> = MediatorLiveData()
+
     private var currentSortOrder: VisitSortOrder = VisitSortOrder.BY_DATE_DESC
 
     private var currentPlaceTypeFilter: VisitPlaceTypeFilter = VisitPlaceTypeFilter.ALL // Default to ALL
@@ -34,7 +37,7 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
         rawVisitsFromDB = visitDao.getAllVisits().asLiveData()
 
         allVisits.addSource(rawVisitsFromDB) { visitsList ->
-            allVisits.value = applyFilterAndSort(visitsList, currentPlaceTypeFilter, currentSortOrder)
+            allVisits.value = transformToDisplayListWithHeaders(visitsList, currentPlaceTypeFilter, currentSortOrder)
         }
     }
 
@@ -42,7 +45,7 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
         if (newSortOrder != currentSortOrder) {
             currentSortOrder = newSortOrder
             rawVisitsFromDB.value?.let { visitsList ->
-                allVisits.value = applyFilterAndSort(visitsList, currentPlaceTypeFilter, currentSortOrder)
+                allVisits.value = transformToDisplayListWithHeaders(visitsList, currentPlaceTypeFilter, currentSortOrder)
             }
         }
     }
@@ -53,43 +56,148 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
             currentPlaceTypeFilter = newFilter
             // Re-apply filter and sort to the current raw data
             rawVisitsFromDB.value?.let { visitsList ->
-                allVisits.value = applyFilterAndSort(visitsList, currentPlaceTypeFilter, currentSortOrder)
+                allVisits.value = transformToDisplayListWithHeaders(
+                    visitsList,
+                    currentPlaceTypeFilter,
+                    currentSortOrder
+                )
             }
         }
     }
 
     // --- RENAMED & MODIFIED: This function now handles both filtering and sorting ---
-    private fun applyFilterAndSort(
+    private fun transformToDisplayListWithHeaders(
         visits: List<Visit>?,
         filterType: VisitPlaceTypeFilter,
         sortOrder: VisitSortOrder
-    ): List<Visit> {
+    ): List<VisitDisplayListItem> {
         val currentVisits = visits ?: return emptyList()
 
-        // 1. Apply Filtering
+        // 1. Apply Filtering (as before)
         val filteredVisits = if (filterType == VisitPlaceTypeFilter.ALL || filterType.typeCode == null) {
-            currentVisits // No type filter applied
+            currentVisits
         } else {
             currentVisits.filter { visit ->
                 visit.type == filterType.typeCode
             }
         }
 
-        // 2. Apply Sorting (to the filtered list)
-        return when (sortOrder) {
-            VisitSortOrder.BY_DATE_DESC ->
-                filteredVisits.sortedWith(compareByDescending { visit: Visit -> visit.dateVisited }
-                    .thenByDescending { visit: Visit -> visit.id })
-            VisitSortOrder.BY_DATE_ASC ->
-                filteredVisits.sortedWith(compareBy { visit: Visit -> visit.dateVisited }
-                    .thenBy { visit: Visit -> visit.id })
-            VisitSortOrder.BY_PLACE_NAME_ASC ->
-                filteredVisits.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { visit: Visit -> visit.holyPlaceName ?: "" }
-                    .thenByDescending { visit: Visit -> visit.dateVisited })
-            VisitSortOrder.BY_PLACE_NAME_DESC ->
-                filteredVisits.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { visit: Visit -> visit.holyPlaceName ?: "" }
-                    .thenByDescending { visit: Visit -> visit.dateVisited })
+        if (filteredVisits.isEmpty()) {
+            return emptyList()
         }
+
+        val displayListItems = mutableListOf<VisitDisplayListItem>()
+        val calendar = Calendar.getInstance()
+
+        // --- Conditional Grouping and Sorting ---
+        when (sortOrder) {
+            VisitSortOrder.BY_DATE_DESC, VisitSortOrder.BY_DATE_ASC -> {
+                // Group by Year
+                val visitsSortedByDate = filteredVisits.sortedWith(
+                    if (sortOrder == VisitSortOrder.BY_DATE_DESC) {
+                        compareByDescending<Visit> { it.dateVisited }
+                            .thenByDescending { it.id }
+                    } else { // BY_DATE_ASC
+                        compareBy<Visit> { it.dateVisited }
+                            .thenBy { it.id }
+                    }
+                )
+
+                val groupedByYear = visitsSortedByDate
+                    .filter { it.dateVisited != null }
+                    .groupBy { visit ->
+                        calendar.time = visit.dateVisited!!
+                        calendar.get(Calendar.YEAR)
+                    }
+
+                val yearKeys = if (sortOrder == VisitSortOrder.BY_DATE_DESC) {
+                    groupedByYear.keys.sortedDescending()
+                } else { // BY_DATE_ASC
+                    groupedByYear.keys.sorted()
+                }
+
+                for (year in yearKeys) {
+                    val visitsInYear = groupedByYear[year] ?: continue
+                    displayListItems.add(
+                        VisitDisplayListItem.HeaderItem(
+                            title = year.toString(),
+                            count = visitsInYear.size
+                        )
+                    )
+                    visitsInYear.forEach { visit -> // Already sorted correctly by date within the year
+                        displayListItems.add(VisitDisplayListItem.VisitRowItem(visit))
+                    }
+                }
+
+                // Handle visits with null dates for date-sorted lists
+                val visitsWithNullDate = filteredVisits.filter { it.dateVisited == null }
+                    .sortedByDescending { it.id } // Consistent order
+                if (visitsWithNullDate.isNotEmpty()) {
+                    if (displayListItems.isNotEmpty() || groupedByYear.isNotEmpty()) {
+                        displayListItems.add(
+                            VisitDisplayListItem.HeaderItem(
+                                title = "Undated",
+                                count = visitsWithNullDate.size
+                            )
+                        )
+                    }
+                    visitsWithNullDate.forEach { visit ->
+                        displayListItems.add(VisitDisplayListItem.VisitRowItem(visit))
+                    }
+                }
+            }
+
+            VisitSortOrder.BY_PLACE_NAME_ASC, VisitSortOrder.BY_PLACE_NAME_DESC -> {
+                // Group by Holy Place Name
+                // Normalize empty/null place names to a consistent string for grouping
+                val placeholderForNullOrEmptyName = "Unnamed Place"
+
+                val visitsSortedByName = filteredVisits.sortedWith(
+                    if (sortOrder == VisitSortOrder.BY_PLACE_NAME_ASC) {
+                        compareBy(String.CASE_INSENSITIVE_ORDER) { visit: Visit -> visit.holyPlaceName ?: placeholderForNullOrEmptyName }
+                            .thenByDescending { visit: Visit -> visit.dateVisited } // Secondary sort: newest visit first for that place
+                            .thenByDescending { visit: Visit -> visit.id }
+                    } else { // BY_PLACE_NAME_DESC
+                        compareByDescending(String.CASE_INSENSITIVE_ORDER) { visit: Visit -> visit.holyPlaceName ?: placeholderForNullOrEmptyName }
+                            .thenByDescending { visit: Visit -> visit.dateVisited } // Secondary sort: newest visit first for that place
+                            .thenByDescending { visit: Visit -> visit.id }
+                    }
+                )
+
+                // Group by the (potentially normalized) place name
+                val groupedByPlaceName = visitsSortedByName.groupBy {
+                    it.holyPlaceName?.takeIf { name -> name.isNotBlank() } ?: placeholderForNullOrEmptyName
+                }
+
+                // The keys of groupedByPlaceName will already be in the desired sort order (ASC/DESC)
+                // because visitsSortedByName was sorted that way.
+                // However, groupBy does not guarantee key order from the original list order,
+                // so we must sort the keys based on the sortOrder.
+                val placeNameKeys = if (sortOrder == VisitSortOrder.BY_PLACE_NAME_ASC) {
+                    groupedByPlaceName.keys.sortedWith(String.CASE_INSENSITIVE_ORDER)
+                } else { // BY_PLACE_NAME_DESC
+                    groupedByPlaceName.keys.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it })
+                }
+
+
+                for (placeName in placeNameKeys) {
+                    val visitsForPlace = groupedByPlaceName[placeName] ?: continue
+                    displayListItems.add(
+                        VisitDisplayListItem.HeaderItem(
+                            title = placeName, // Use the actual place name (or placeholder) as header
+                            count = visitsForPlace.size
+                        )
+                    )
+                    // Visits within this group are already sorted by name then date by visitsSortedByName
+                    visitsForPlace.forEach { visit ->
+                        displayListItems.add(VisitDisplayListItem.VisitRowItem(visit))
+                    }
+                }
+                // No special handling for "null date" needed here as grouping is by name.
+                // Null dates are handled by the secondary sort (dateVisited descending).
+            }
+        }
+        return displayListItems
     }
 
     fun insert(visit: Visit) = viewModelScope.launch {
@@ -109,4 +217,26 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Add other business logic related to visits here if necessary
+}
+
+sealed interface VisitDisplayListItem {
+    // A stable ID is good for DiffUtil, especially for items that might change position or content
+    // while representing the "same" conceptual item (like a header for a specific year).
+    val stableId: String
+
+    data class HeaderItem(
+        val title: String,
+        val count: Int,
+        // Generate a stable ID, e.g., based on the title.
+        // Important if headers can be added/removed/reordered.
+        override val stableId: String = "Header_$title"
+    ) : VisitDisplayListItem
+
+    data class VisitRowItem(
+        val visit: Visit,
+        // Use the visit's own ID if it's unique and stable.
+        // Ensure visit.id is a String or convert it. If it's Long, make stableId Long.
+        // For simplicity with the HeaderItem's stableId being String, let's assume conversion.
+        override val stableId: String = "Visit_${visit.id}" // Make sure visit.id is accessible and suitable
+    ) : VisitDisplayListItem
 }

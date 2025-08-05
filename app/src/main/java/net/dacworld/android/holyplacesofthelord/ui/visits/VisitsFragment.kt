@@ -29,6 +29,7 @@ import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.color.MaterialColors
+import net.dacworld.android.holyplacesofthelord.data.VisitDisplayListItem
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 
 class VisitsFragment : Fragment() {
@@ -48,6 +49,8 @@ class VisitsFragment : Fragment() {
     private var previousSortOrder: net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder? = null
     private var previousPlaceTypeFilter: net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter? = null
     private var isVisitsInitialLoad = true // To differentiate from subsequent updates
+    private var shouldScrollAfterNextSubmit: Boolean = false // More direct flag for scrolling
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -59,6 +62,19 @@ class VisitsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Log the state of isVisitsInitialLoad as it enters onViewCreated
+        Log.d("VisitsFragment", "onViewCreated - Entry: isVisitsInitialLoad = $isVisitsInitialLoad, savedInstanceState is ${if (savedInstanceState == null) "null" else "NOT null"}")
+
+        // shouldScrollAfterNextSubmit should always be reset here, as it's for explicit user actions
+        // that should only apply to the next list submission.
+        shouldScrollAfterNextSubmit = false
+
+        // Initialize previous values from SharedViewModel. This is important so that
+        // the observers don't falsely detect a change if LiveData re-emits its current value.
+        previousSortOrder = sharedVisitsViewModel.sortOrder.value
+        previousPlaceTypeFilter = sharedVisitsViewModel.selectedPlaceTypeFilter.value
+        // previousSearchQuery = sharedVisitsViewModel.searchQuery.value // if you use it
 
         setupToolbar()
         setupMenu()
@@ -271,13 +287,22 @@ class VisitsFragment : Fragment() {
         // binding.visitsSearchView is now the one inside AppBarLayout
         binding.visitsSearchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                sharedVisitsViewModel.setSearchQuery(query)
+                val currentQuery = sharedVisitsViewModel.searchQuery.value
+                if (currentQuery != query) {
+                    sharedVisitsViewModel.setSearchQuery(query)
+                    // The searchQuery observer will handle setting shouldScrollAfterNextSubmit
+                }
                 binding.visitsSearchView.clearFocus()
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                sharedVisitsViewModel.setSearchQuery(newText)
+                val currentQuery = sharedVisitsViewModel.searchQuery.value
+                // Only update and potentially trigger scroll if text actually changes
+                // Be mindful of rapid updates; you might want debouncing here in a real app
+                if (currentQuery != newText) {
+                    sharedVisitsViewModel.setSearchQuery(newText)
+                }
                 return true
             }
         })
@@ -298,39 +323,66 @@ class VisitsFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        visitViewModel.allVisits.observe(viewLifecycleOwner) { visits ->
-            visits?.let { currentVisitsList ->
-                Log.d("VisitsFragment", "[V_FRAG_LOG_1] visitViewModel.allVisits observer. Count: ${currentVisitsList.size}")
-                visitListAdapter.submitList(currentVisitsList)
-                binding.visitsEmptyTextView.visibility =
-                    if (currentVisitsList.isEmpty()) View.VISIBLE else View.GONE
-
-                // Update title with count here
-                val currentFilterFromSharedVM = sharedVisitsViewModel.selectedPlaceTypeFilter.value
-                if (currentFilterFromSharedVM != null) {
-                    val filterName = getString(currentFilterFromSharedVM.displayNameResource)
-                    Log.d("VisitsFragment", "[V_FRAG_LOG_2] allVisits observer: Updating title text part 1. Filter: ${currentFilterFromSharedVM.name}, TypeCode for color check: ${currentFilterFromSharedVM.typeCode}, Count: ${currentVisitsList.size}")
-                    binding.visitsToolbarTitleCentered.text = getString(R.string.title_visits_count, currentVisitsList.size)
-
-                    // Also set the color here, as this observer might be the last one to touch the title
-                    val titleColor = ColorUtils.getTextColorForTempleType(requireContext(), currentFilterFromSharedVM.typeCode)
-                    binding.visitsToolbarTitleCentered.setTextColor(titleColor)
+        visitViewModel.allVisits.observe(viewLifecycleOwner) { visitDisplayItemsList ->
+            visitListAdapter.submitList(visitDisplayItemsList) {
+                // --- ADD SCROLL TO TOP HERE ---
+                if (visitDisplayItemsList.isNotEmpty() && (isVisitsInitialLoad || shouldScrollAfterNextSubmit)) {
+                    binding.visitsRecyclerView.scrollToPosition(0)
+                    Log.d("VisitsFragment", "Scrolled to top. Initial: $isVisitsInitialLoad, UserChange: $shouldScrollAfterNextSubmit")
+                } else if (visitDisplayItemsList.isEmpty() && (isVisitsInitialLoad || shouldScrollAfterNextSubmit)) {
+                    Log.d("VisitsFragment", "List is empty, not scrolling. Initial: $isVisitsInitialLoad, UserChange: $shouldScrollAfterNextSubmit")
                 } else {
-                    Log.w("VisitsFragment", "[V_FRAG_LOG_3] allVisits observer: selectedPlaceTypeFilter.value is NULL. Using default count title.")
-                    binding.visitsToolbarTitleCentered.text = getString(R.string.title_visits_count, currentVisitsList.size)
-                    // Reset to default color if needed
-                    binding.visitsToolbarTitleCentered.setTextColor(MaterialColors.getColor(binding.visitsToolbarTitleCentered, com.google.android.material.R.attr.colorOnSurface))
+                    Log.d("VisitsFragment", "List updated, not scrolling. Initial: $isVisitsInitialLoad, UserChange: $shouldScrollAfterNextSubmit")
                 }
 
-            } ?: Log.d("VisitsFragment", "[V_FRAG_LOG_4] visitViewModel.allVisits observer: NULL list.")
-        }
+                // CRITICAL: isVisitsInitialLoad is set to false only AFTER the first data is processed by this observer.
+                // It will remain false for subsequent view creations of THIS fragment instance unless the fragment instance itself is recreated.
+                if (isVisitsInitialLoad) {
+                    isVisitsInitialLoad = false
+                    Log.d("VisitsFragment", "isVisitsInitialLoad has been set to false.")
+                }
+                shouldScrollAfterNextSubmit = false // Reset this flag after any potential scroll
+            }
+
+            binding.visitsEmptyTextView.visibility =
+                if (visitDisplayItemsList.isEmpty()) View.VISIBLE else View.GONE
+
+            val actualVisitCount = visitDisplayItemsList.count { it is VisitDisplayListItem.VisitRowItem }
+
+            val currentFilterFromSharedVM = sharedVisitsViewModel.selectedPlaceTypeFilter.value
+            if (currentFilterFromSharedVM != null) {
+                val filterName = getString(currentFilterFromSharedVM.displayNameResource)
+                Log.d(
+                    "VisitsFragment",
+                    "[V_FRAG_LOG_2] allVisits observer: Updating title text part 1. Filter: ${currentFilterFromSharedVM.name}, TypeCode for color check: ${currentFilterFromSharedVM.typeCode}, Count: $actualVisitCount"
+                )
+                // Use actualVisitCount for the title string
+                binding.visitsToolbarTitleCentered.text = getString(R.string.title_visits_count, actualVisitCount)
+
+                // Also set the color here, as this observer might be the last one to touch the title
+                val titleColor = ColorUtils.getTextColorForTempleType(requireContext(), currentFilterFromSharedVM.typeCode)
+                binding.visitsToolbarTitleCentered.setTextColor(titleColor)
+            } else {
+                Log.w("VisitsFragment", "[V_FRAG_LOG_3] allVisits observer: selectedPlaceTypeFilter.value is NULL. Using default count title.")
+                binding.visitsToolbarTitleCentered.text = getString(R.string.title_visits_count, actualVisitCount) // Use actualVisitCount
+                binding.visitsToolbarTitleCentered.setTextColor(MaterialColors.getColor(binding.visitsToolbarTitleCentered, com.google.android.material.R.attr.colorOnSurface))
+            }
+
+        } // End of visitViewModel.allVisits.observe
 
         sharedVisitsViewModel.sortOrder.observe(viewLifecycleOwner) { sortOrder ->
             sortOrder?.let { currentSortOrder ->
                 // Update Toolbar Subtitle based on sort order
                 Log.d("VisitsFragment", "[V_FRAG_LOG_5] sharedVisitsViewModel.sortOrder observer: $currentSortOrder")
+                // If it's not the initial load AND the sort order actually changed from the previous one
+                if (!isVisitsInitialLoad && previousSortOrder != currentSortOrder) {
+                    Log.d("VisitsFragment", "Sort order *actually* changed by user/event. Flagging for scroll.")
+                    shouldScrollAfterNextSubmit = true
+                }
+                previousSortOrder = currentSortOrder
+
                 visitViewModel.updateSortOrder(currentSortOrder)
-                val subtitle = when (sortOrder) {
+                val subtitle = when (currentSortOrder) {
                     net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_DATE_DESC -> getString(
                         R.string.sort_by_date_latest_first
                     )
@@ -353,15 +405,20 @@ class VisitsFragment : Fragment() {
                 } else {
                     binding.visitsToolbarSubtitle.visibility = View.GONE
                 }
-                //Snackbar.make(binding.root, "Sort order changed to: $sortOrder", Snackbar.LENGTH_SHORT).show()
-            }
+            } // End of sharedVisitsViewModel.sortOrder.observe
 
             // --- NEW OBSERVER for Place Type Filter changes from SharedViewModel ---
             sharedVisitsViewModel.selectedPlaceTypeFilter.observe(viewLifecycleOwner) { placeTypeFilter ->
                 placeTypeFilter?.let { currentFilter ->
                     Log.d("VisitsFragment", "[V_FRAG_LOG_6] selectedPlaceTypeFilter observer. Filter: ${currentFilter.name}, TypeCode: ${currentFilter.typeCode}")
-
                     Log.d("VisitsFragment", "[V_FRAG_LOG_7] selectedPlaceTypeFilter observer: Calling visitViewModel.updatePlaceTypeFilter with ${currentFilter.name}")
+
+                    if (!isVisitsInitialLoad && previousPlaceTypeFilter != currentFilter) {
+                        Log.d("VisitsFragment", "Filter *actually* changed by user/event. Flagging for scroll.")
+                        shouldScrollAfterNextSubmit = true
+                    }
+                    previousPlaceTypeFilter = currentFilter
+
                     visitViewModel.updatePlaceTypeFilter(currentFilter)
 
                     var displayFilterName = getString(currentFilter.displayNameResource)
@@ -370,12 +427,10 @@ class VisitsFragment : Fragment() {
                         displayFilterName = getString(R.string.filter_type_under_construction_short_title) // Use the short title
                     }
 
-                    // Attempt to get the latest count. It might be slightly stale if allVisits hasn't updated yet,
-                    // but allVisits observer will correct it shortly.
-                    val currentCount = visitViewModel.allVisits.value?.size ?: 0
-                    Log.d("VisitsFragment", "[V_FRAG_LOG_8] selectedPlaceTypeFilter observer: Updating title text part 2 (name & color). FilterName: $displayFilterName")
-                    binding.visitsToolbarTitleCentered.text = getString(R.string.toolbar_title_format, displayFilterName, currentCount)
+                    val currentActualVisitCount = visitListAdapter.currentList.count { it is VisitDisplayListItem.VisitRowItem }
 
+                    Log.d("VisitsFragment", "[V_FRAG_LOG_8] selectedPlaceTypeFilter observer: Updating title text part 2 (name & color). FilterName: $displayFilterName")
+                    binding.visitsToolbarTitleCentered.text = getString(R.string.toolbar_title_format, displayFilterName, currentActualVisitCount)
 
                     val context = requireContext()
                     Log.d("VisitsFragment", "[V_FRAG_LOG_9] selectedPlaceTypeFilter observer: Calling ColorUtils with TypeCode: ${currentFilter.typeCode}")

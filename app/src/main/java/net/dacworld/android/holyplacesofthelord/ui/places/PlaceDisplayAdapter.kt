@@ -120,9 +120,4 @@ class ListItemDiffCallback : DiffUtil.ItemCallback<DisplayListItem>() {
 sealed class DisplayListItem {
     data class HeaderItem(val title: String, val count: Int) : DisplayListItem()
     data class TempleRowItem(val temple: Temple) : DisplayListItem()
-
-    // We'll need to give these items stable IDs for DiffUtil if they don't have inherent unique properties
-    // For now, HeaderItem's uniqueness will be its title, TempleRowItem's will be the temple's ID.
-    // If header titles aren't unique enough (e.g., just "A"), we might need a unique ID for HeaderItem.
-    // For simplicity, let's assume title is sufficient for now for a header's identity.
 }
