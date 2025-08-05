@@ -100,5 +100,9 @@
     <string name="status_exporting">Exporting visits…</string>
     <string name="status_importing">Importing visits…</string>
     <string name="default_export_filename_template">HolyPlacesVisits-%s.xml</string> <!-- %s will be replaced by date -->
+    <string name="confirm_delete_title">Confirm Deletion</string>
+    <string name="confirm_delete_message">Are you sure you want to delete the visit to %1$s?</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
 
 </resources>

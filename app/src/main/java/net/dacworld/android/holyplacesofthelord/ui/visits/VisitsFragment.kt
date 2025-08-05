@@ -13,6 +13,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.observe
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder // For confirmation dialog
 import com.google.android.material.snackbar.Snackbar
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentVisitsBinding
@@ -81,6 +88,7 @@ class VisitsFragment : Fragment() {
         setupToolbar()
         setupMenu()
         setupRecyclerView()
+        setupSwipeToDelete()
         setupSearchViewListeners()
         setupFab()
         observeViewModel()
@@ -193,6 +201,112 @@ class VisitsFragment : Fragment() {
         // Further setup for title/subtitle will be in observeViewModel or a dedicated update method
     }
 
+    // --- NEW: Method to set up swipe-to-delete ---
+    private fun setupSwipeToDelete() {
+        val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(
+            0, // No drag & drop
+            ItemTouchHelper.LEFT // Swipe left to delete
+        ) {
+            private val deleteIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_delete) // Your delete icon
+            private val intrinsicWidth = deleteIcon?.intrinsicWidth ?: 0
+            private val intrinsicHeight = deleteIcon?.intrinsicHeight ?: 0
+            private val background = ColorDrawable()
+            private val backgroundColor = Color.parseColor("#f44336") // Red color for delete
+
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return false // Not used for swipe-only
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                // Use viewHolder.adapterPosition
+                val position = viewHolder.adapterPosition // CHANGED FROM bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) {
+                    return
+                }
+                val item = visitListAdapter.currentList.getOrNull(position)
+                if (item is VisitDisplayListItem.VisitRowItem) {
+                    val visitToDelete = item.visit
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(getString(R.string.confirm_delete_title))
+                        .setMessage(getString(R.string.confirm_delete_message, visitToDelete.holyPlaceName))
+                        .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
+                            visitListAdapter.notifyItemChanged(position)
+                            dialog.dismiss()
+                        }
+                        .setPositiveButton(getString(R.string.delete)) { dialog, _ ->
+                            visitViewModel.deleteVisitById(visitToDelete.id)
+                            Snackbar.make(binding.root, "${visitToDelete.holyPlaceName} deleted", Snackbar.LENGTH_SHORT)
+                                .show()
+                            dialog.dismiss()
+                        }
+                        .setOnCancelListener {
+                            visitListAdapter.notifyItemChanged(position)
+                        }
+                        .show()
+                } else {
+                    if (position < visitListAdapter.itemCount) {
+                        visitListAdapter.notifyItemChanged(position)
+                    }
+                }
+            }
+            override fun onChildDraw(
+                c: Canvas,
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                dX: Float, // Amount of horizontal displacement caused by user's action
+                dY: Float,
+                actionState: Int,
+                isCurrentlyActive: Boolean
+            ) {
+                val itemView = viewHolder.itemView
+                val itemHeight = itemView.bottom - itemView.top
+                val isCancelled = dX == 0f && !isCurrentlyActive
+
+                if (isCancelled) {
+                    // Clear canvas if swipe is cancelled
+                    clearCanvas(c, itemView.right + dX, itemView.top.toFloat(), itemView.right.toFloat(), itemView.bottom.toFloat())
+                    super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+                    return
+                }
+
+                // Draw the red background
+                background.color = backgroundColor
+                background.setBounds(
+                    itemView.right + dX.toInt(), // Start from where the item is swiped
+                    itemView.top,
+                    itemView.right, // End at the original right edge of the item
+                    itemView.bottom
+                )
+                background.draw(c)
+
+                // Calculate position of delete icon
+                val deleteIconTop = itemView.top + (itemHeight - intrinsicHeight) / 2
+                val deleteIconMargin = (itemHeight - intrinsicHeight) / 2
+                val deleteIconLeft = itemView.right - deleteIconMargin - intrinsicWidth
+                val deleteIconRight = itemView.right - deleteIconMargin
+                val deleteIconBottom = deleteIconTop + intrinsicHeight
+
+                // Draw the delete icon only if swiping left (dX < 0)
+                if (dX < 0) { // Swiping left
+                    deleteIcon?.setBounds(deleteIconLeft, deleteIconTop, deleteIconRight, deleteIconBottom)
+                    deleteIcon?.draw(c)
+                }
+                // (If you wanted a different icon/background for right swipe (dX > 0), you'd add it here)
+
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+            }
+
+            private fun clearCanvas(c: Canvas?, left: Float, top: Float, right: Float, bottom: Float) {
+            }
+        }
+
+        val itemTouchHelper = ItemTouchHelper(itemTouchHelperCallback)
+        itemTouchHelper.attachToRecyclerView(binding.visitsRecyclerView)
+    }
     private fun setupMenu() {
         // The MenuHost
         val menuHost: MenuHost =
