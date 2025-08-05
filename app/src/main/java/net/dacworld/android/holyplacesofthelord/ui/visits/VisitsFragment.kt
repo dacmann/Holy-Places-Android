@@ -51,6 +51,8 @@ class VisitsFragment : Fragment() {
     private var isVisitsInitialLoad = true // To differentiate from subsequent updates
     private var shouldScrollAfterNextSubmit: Boolean = false // More direct flag for scrolling
 
+    private var previousSearchQuery: String? = null
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -439,9 +441,27 @@ class VisitsFragment : Fragment() {
                 }
             }
 
-            sharedVisitsViewModel.searchQuery.observe(viewLifecycleOwner) { query ->
-                Log.d("VisitsFragment", "[V_FRAG_LOG_11] sharedVisitsViewModel.searchQuery observer: '$query'")
-                // ... search logic ...
+            sharedVisitsViewModel.searchQuery.observe(viewLifecycleOwner) { newQuery ->
+                // Normalize the incoming query (null to empty string) for consistent handling
+                val queryToUse = newQuery ?: ""
+
+                Log.d("VisitsFragment", "[V_FRAG_LOG_11] sharedVisitsViewModel.searchQuery observer. NewRaw: '$newQuery', Using: '$queryToUse', Previous: '$previousSearchQuery', InitialLoad: $isVisitsInitialLoad")
+
+                // Only trigger scroll and viewmodel update if the processed query actually changes
+                // and it's not part of the initial data load cycle.
+                if (!isVisitsInitialLoad && previousSearchQuery != queryToUse) {
+                    Log.d("VisitsFragment", "Search query *actually* changed by user/event ('$previousSearchQuery' -> '$queryToUse'). Flagging for scroll.")
+                    shouldScrollAfterNextSubmit = true
+                } else if (isVisitsInitialLoad) {
+                    Log.d("VisitsFragment", "Search query observer: Initial load ($isVisitsInitialLoad), previous: '$previousSearchQuery', new: '$queryToUse'. Not flagging for scroll based on change.")
+                } else if (previousSearchQuery == queryToUse) {
+                    Log.d("VisitsFragment", "Search query observer: Query ('$queryToUse') hasn't changed from previous. Not flagging for scroll.")
+                }
+
+                previousSearchQuery = queryToUse // Update previousSearchQuery *after* comparison, using the normalized query
+
+                // Call the new method in VisitViewModel
+                visitViewModel.setSearchQuery(queryToUse) // Pass the normalized query
             }
         }
     }

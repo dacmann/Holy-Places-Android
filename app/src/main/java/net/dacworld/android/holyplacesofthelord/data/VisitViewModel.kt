@@ -15,19 +15,16 @@ import net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter
 import net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder
 import androidx.lifecycle.MediatorLiveData
 import java.util.Calendar
+import kotlin.text.contains
 
 class VisitViewModel(application: Application) : AndroidViewModel(application) {
 
     private val visitDao: VisitDao
-
     private val rawVisitsFromDB: LiveData<List<Visit>>
-
     val allVisits: MediatorLiveData<List<VisitDisplayListItem>> = MediatorLiveData()
-
     private var currentSortOrder: VisitSortOrder = VisitSortOrder.BY_DATE_DESC
-
     private var currentPlaceTypeFilter: VisitPlaceTypeFilter = VisitPlaceTypeFilter.ALL // Default to ALL
-
+    private var currentSearchQuery: String = ""
 
     init {
         val database = AppDatabase.getDatabase(application)
@@ -37,16 +34,42 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
         rawVisitsFromDB = visitDao.getAllVisits().asLiveData()
 
         allVisits.addSource(rawVisitsFromDB) { visitsList ->
-            allVisits.value = transformToDisplayListWithHeaders(visitsList, currentPlaceTypeFilter, currentSortOrder)
+            // Pass the currentSearchQuery to the transformation function
+            allVisits.value = transformToDisplayListWithHeaders(
+                visitsList,
+                currentPlaceTypeFilter,
+                currentSortOrder,
+                currentSearchQuery // Pass current search query
+            )
         }
     }
 
+    // --- NEW: Method to update search query ---
+    fun setSearchQuery(query: String?) {
+        val newQuery = query?.trim() ?: "" // Normalize: trim and default null to empty
+        if (newQuery != currentSearchQuery) {
+            currentSearchQuery = newQuery
+            // Re-apply filter, sort, and search to the current raw data
+            rawVisitsFromDB.value?.let { visitsList ->
+                allVisits.value = transformToDisplayListWithHeaders(
+                    visitsList,
+                    currentPlaceTypeFilter,
+                    currentSortOrder,
+                    currentSearchQuery // Pass current search query
+                )
+            }
+        }
+    }
     fun updateSortOrder(newSortOrder: VisitSortOrder) {
         if (newSortOrder != currentSortOrder) {
             currentSortOrder = newSortOrder
             rawVisitsFromDB.value?.let { visitsList ->
-                allVisits.value = transformToDisplayListWithHeaders(visitsList, currentPlaceTypeFilter, currentSortOrder)
-            }
+                allVisits.value = transformToDisplayListWithHeaders(
+                    visitsList,
+                    currentPlaceTypeFilter,
+                    currentSortOrder,
+                    currentSearchQuery // ADD currentSearchQuery HERE
+                )}
         }
     }
 
@@ -59,7 +82,8 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
                 allVisits.value = transformToDisplayListWithHeaders(
                     visitsList,
                     currentPlaceTypeFilter,
-                    currentSortOrder
+                    currentSortOrder,
+                    currentSearchQuery // ADD currentSearchQuery HERE
                 )
             }
         }
@@ -69,15 +93,29 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
     private fun transformToDisplayListWithHeaders(
         visits: List<Visit>?,
         filterType: VisitPlaceTypeFilter,
-        sortOrder: VisitSortOrder
+        sortOrder: VisitSortOrder,
+        searchQuery: String
     ): List<VisitDisplayListItem> {
         val currentVisits = visits ?: return emptyList()
 
-        // 1. Apply Filtering (as before)
-        val filteredVisits = if (filterType == VisitPlaceTypeFilter.ALL || filterType.typeCode == null) {
-            currentVisits
-        } else {
+        // 1. Apply Search Query Filter FIRST (if query is not blank)
+        val searchedVisits = if (searchQuery.isNotBlank()) {
             currentVisits.filter { visit ->
+                val placeNameMatches = visit.holyPlaceName?.contains(searchQuery, ignoreCase = true) == true
+                // Assuming your Visit data class has a 'notes' or 'comments' field.
+                // Replace 'visit.notes' with the actual field name if different.
+                val notesMatches = visit.comments?.contains(searchQuery, ignoreCase = true) == true
+                placeNameMatches || notesMatches
+            }
+        } else {
+            currentVisits
+        }
+
+        // 2. Apply Place Type Filtering (on the result of the search filter)
+        val filteredVisits = if (filterType == VisitPlaceTypeFilter.ALL || filterType.typeCode == null) {
+            searchedVisits // Apply to already search-filtered list
+        } else {
+            searchedVisits.filter { visit -> // Apply to already search-filtered list
                 visit.type == filterType.typeCode
             }
         }
