@@ -106,5 +106,14 @@
     <string name="delete">Delete</string>
     <string name="default_quote_summary">The all-important and crowning blessings of membership in the Church are those blessings which we receive in the temples of God.\"\\r\\n~ Thomas S. Monson ~</string>
     <string name="title_summary_tab">Summary</string>
+    <string name="unique_temples">Unique Temples</string>
+    <string name="hours_worked">Hours Worked</string>
+    <string name="attended">Attended</string>
+    <string name="lifetime">Total</string>
+    <string name="temple_visits">Temple Visits</string>
+    <string name="total">Total</string>
+    <string name="visited">Visited</string>
+    <string name="holy_places">Holy Places</string>
+    <string name="total_ordinances">Total Ordinances</string>
 
 </resources>

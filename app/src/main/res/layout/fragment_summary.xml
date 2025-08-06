@@ -66,19 +66,19 @@
                         android:background="@android:color/transparent">
                         <TextView
                             android:id="@+id/textViewHolyPlacesHeaderPlace"
-                            android:text="Holy Places"
+                            android:text="@string/holy_places"
                             style="@style/SummaryTableHeader"
                             android:layout_width="0dp"
                             android:layout_weight="1"/>
                         <TextView
                             android:id="@+id/textViewHolyPlacesHeaderVisited"
-                            android:text="Visited"
+                            android:text="@string/visited"
                             style="@style/SummaryTableHeader"
                             android:layout_width="wrap_content"
                             android:gravity="center"/>
                         <TextView
                             android:id="@+id/textViewHolyPlacesHeaderTotal"
-                            android:text="Total"
+                            android:text="@string/total"
                             style="@style/SummaryTableHeader"
                             android:layout_width="wrap_content"
                             android:gravity="center"/>
@@ -98,7 +98,7 @@
                         android:id="@+id/tableRowTempleVisitsHeader"
                         android:background="@android:color/transparent">
                         <TextView
-                            android:text="Temple Visits"
+                            android:text="@string/temple_visits"
                             style="@style/SummaryTableHeader"/>
                         <TextView
                             android:id="@+id/textViewTVHeaderYearCurrent"
@@ -111,13 +111,13 @@
                             style="@style/SummaryTableHeader"
                             android:gravity="center"/>
                         <TextView
-                            android:text="Lifetime"
+                            android:text="@string/lifetime"
                             style="@style/SummaryTableHeader"
                             android:gravity="center"/>
                     </TableRow>
 
                     <TableRow>
-                        <TextView android:text="Attended" style="@style/SummaryTableCell"/>
+                        <TextView android:text="@string/attended" style="@style/SummaryTableCell"/>
                         <TextView android:id="@+id/textViewAttendedCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewAttendedPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewAttendedTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
@@ -125,7 +125,7 @@
                     <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
 
                     <TableRow>
-                        <TextView android:text="Unique Temples" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewUniqueName" android:text="@string/unique_temples" style="@style/SummaryTableCell"/>
                         <TextView android:id="@+id/textViewUniqueCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewUniquePrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewUniqueTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
@@ -133,47 +133,47 @@
                     <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
 
                     <TableRow>
-                        <TextView android:text="Hours Worked" style="@style/SummaryTableCell"/>
+                        <TextView android:text="@string/hours_worked" style="@style/SummaryTableCell"/>
                         <TextView android:id="@+id/textViewHoursCurrent" tools:text="0.0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewHoursPrevious" tools:text="0.0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewHoursTotal" tools:text="0.0" style="@style/SummaryTableCell" android:gravity="center"/>
                     </TableRow>
                     <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
 
-                    <TableRow>
-                        <TextView android:text="Sealings" style="@style/SummaryTableCell"/>
+                    <TableRow android:id="@+id/tableRowSealings">
+                        <TextView android:id="@+id/textViewSealingsName" android:text="@string/label_sealings" style="@style/SummaryTableCell"/>
                         <TextView android:id="@+id/textViewSealingsCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewSealingsPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewSealingsTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                     </TableRow>
                     <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
 
-                    <TableRow>
-                        <TextView android:text="Endowments" style="@style/SummaryTableCell"/>
+                    <TableRow android:id="@+id/tableRowEndowments">
+                        <TextView android:id="@+id/textViewEndowmentsName" android:text="@string/label_endowments" style="@style/SummaryTableCell"/>
                         <TextView android:id="@+id/textViewEndowmentsCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewEndowmentsPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewEndowmentsTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                     </TableRow>
                     <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
 
-                    <TableRow>
-                        <TextView android:text="Initiatories" style="@style/SummaryTableCell"/>
+                    <TableRow android:id="@+id/tableRowInitiatories">
+                        <TextView android:id="@+id/textViewInitiatoriesName" android:text="@string/label_initiatories" style="@style/SummaryTableCell"/>
                         <TextView android:id="@+id/textViewInitiatoriesCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewInitiatoriesPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewInitiatoriesTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                     </TableRow>
                     <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
 
-                    <TableRow>
-                        <TextView android:text="Confirmations" style="@style/SummaryTableCell"/>
+                    <TableRow android:id="@+id/tableRowConfirmations">
+                        <TextView android:id="@+id/textViewConfirmationsName" android:text="@string/label_confirmations" style="@style/SummaryTableCell"/>
                         <TextView android:id="@+id/textViewConfirmationsCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewConfirmationsPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewConfirmationsTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                     </TableRow>
                     <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
 
-                    <TableRow>
-                        <TextView android:text="Baptisms" style="@style/SummaryTableCell"/>
+                    <TableRow android:id="@+id/tableRowBaptisms">
+                        <TextView android:id="@+id/textViewBaptismsName" android:text="@string/label_baptisms" style="@style/SummaryTableCell"/>
                         <TextView android:id="@+id/textViewBaptismsCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewBaptismsPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
                         <TextView android:id="@+id/textViewBaptismsTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
@@ -181,7 +181,7 @@
                     <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
 
                     <TableRow android:background="?attr/colorSurfaceVariant">
-                        <TextView android:text="Total Ordinances" style="@style/SummaryTableCell" android:textStyle="bold"/>
+                        <TextView android:text="@string/total_ordinances" style="@style/SummaryTableCell" android:textStyle="bold"/>
                         <TextView android:id="@+id/textViewTVOrdinancesCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center" android:textStyle="bold"/>
                         <TextView android:id="@+id/textViewTVOrdinancesPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center" android:textStyle="bold"/>
                         <TextView android:id="@+id/textViewTVOrdinancesTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center" android:textStyle="bold"/>

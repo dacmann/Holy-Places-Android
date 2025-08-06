@@ -52,9 +52,6 @@ class SummaryFragment : Fragment() {
         binding.layoutQuoteModule.setOnClickListener {
             summaryViewModel.selectRandomQuote() // Change quote on click
         }
-        // Set quote background color from colors.xml if not already set in layout
-        // Example: binding.layoutQuoteModule.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.baptismblue))
-
 
         // Holy Places Section
         summaryViewModel.holyPlacesStats.observe(viewLifecycleOwner) { stats ->
@@ -68,6 +65,46 @@ class SummaryFragment : Fragment() {
         summaryViewModel.previousYearLabel.observe(viewLifecycleOwner) { year ->
             binding.textViewTVHeaderYearPrevious.text = year
         }
+
+        // ---- START: Set Ordinance Name and All Total Text Colors ----
+
+        // Unique Temples Row
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewUniqueName).setTextColor(ContextCompat.getColor(requireContext(), R.color.t2_temples))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewUniqueCurrent).setTextColor(ContextCompat.getColor(requireContext(), R.color.t2_temples))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewUniquePrevious).setTextColor(ContextCompat.getColor(requireContext(), R.color.t2_temples))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewUniqueTotal).setTextColor(ContextCompat.getColor(requireContext(), R.color.t2_temples))
+
+        // Sealings Row
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewSealingsName).setTextColor(ContextCompat.getColor(requireContext(), R.color.Sealings))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewSealingsCurrent).setTextColor(ContextCompat.getColor(requireContext(), R.color.Sealings))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewSealingsPrevious).setTextColor(ContextCompat.getColor(requireContext(), R.color.Sealings))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewSealingsTotal).setTextColor(ContextCompat.getColor(requireContext(), R.color.Sealings))
+
+        // Endowments Row
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewEndowmentsName).setTextColor(ContextCompat.getColor(requireContext(), R.color.Endowments))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewEndowmentsCurrent).setTextColor(ContextCompat.getColor(requireContext(), R.color.Endowments))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewEndowmentsPrevious).setTextColor(ContextCompat.getColor(requireContext(), R.color.Endowments))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewEndowmentsTotal).setTextColor(ContextCompat.getColor(requireContext(), R.color.Endowments))
+
+        // Initiatories Row
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewInitiatoriesName).setTextColor(ContextCompat.getColor(requireContext(), R.color.Initiatories))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewInitiatoriesCurrent).setTextColor(ContextCompat.getColor(requireContext(), R.color.Initiatories))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewInitiatoriesPrevious).setTextColor(ContextCompat.getColor(requireContext(), R.color.Initiatories))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewInitiatoriesTotal).setTextColor(ContextCompat.getColor(requireContext(), R.color.Initiatories))
+
+        // Confirmations Row
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewConfirmationsName).setTextColor(ContextCompat.getColor(requireContext(), R.color.Confirmations))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewConfirmationsCurrent).setTextColor(ContextCompat.getColor(requireContext(), R.color.Confirmations))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewConfirmationsPrevious).setTextColor(ContextCompat.getColor(requireContext(), R.color.Confirmations))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewConfirmationsTotal).setTextColor(ContextCompat.getColor(requireContext(), R.color.Confirmations))
+
+        // Baptisms Row
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewBaptismsName).setTextColor(ContextCompat.getColor(requireContext(), R.color.BaptismBlue))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewBaptismsCurrent).setTextColor(ContextCompat.getColor(requireContext(), R.color.BaptismBlue))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewBaptismsPrevious).setTextColor(ContextCompat.getColor(requireContext(), R.color.BaptismBlue))
+        binding.tableLayoutTempleVisits.findViewById<TextView>(R.id.textViewBaptismsTotal).setTextColor(ContextCompat.getColor(requireContext(), R.color.BaptismBlue))
+
+        // ---- END: Set Ordinance Name and All Total Text Colors ----
 
         // Temple Visits Section - Data
         summaryViewModel.templeVisitCurrentYearStats.observe(viewLifecycleOwner) { stats ->
@@ -150,14 +187,6 @@ class SummaryFragment : Fragment() {
         binding.tableLayoutHolyPlaces.removeViews(1, binding.tableLayoutHolyPlaces.childCount - 1) // Clear old rows, keep header
 
         val context = requireContext()
-        Log.d("SummaryFragment", "Context for inflater: ${context.javaClass.name}")
-        val outValue = android.util.TypedValue()
-        context.theme.resolveAttribute(com.google.android.material.R.attr.fontFamily, outValue, true) // Check for Material font
-        Log.d("SummaryFragment", "Material fontFamily from theme: ${outValue.string}") // See if it's your Baskerville path
-
-        context.theme.resolveAttribute(android.R.attr.fontFamily, outValue, true) // Check for Android framework font
-        Log.d("SummaryFragment", "Android fontFamily from theme: ${outValue.string}") // See if it's your Baskerville path
-
         stats.forEach { stat ->
             val row = LayoutInflater.from(context).inflate(R.layout.summary_table_row_holy_place, binding.tableLayoutHolyPlaces, false) as ViewGroup
 
