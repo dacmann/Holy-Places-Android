@@ -29,6 +29,10 @@
         <item name="android:statusBarColor">@color/app_bar_background_color</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
 
+        <item name="fontFamilyApp">@font/baskerville_font_family</item>
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+        <item name="fontFamily">?attr/fontFamilyApp</item>
+
         <!-- Custom attributes - Review if needed after M3 components adopt above roles -->
         <item name="appBarBackgroundColor">@color/app_bar_background_color</item>
         <item name="appBarTextColor">@color/app_bar_text_color</item>
@@ -41,7 +45,6 @@
         <item name="searchViewStrokeColor">@color/search_view_stroke_color</item>
 
         <!-- M3 Typography Overrides -->
-        <item name="fontFamilyApp">@font/baskerville_font_family</item>
         <item name="textAppearanceDisplayLarge">@style/TextAppearance.App.DisplayLarge</item>
         <item name="textAppearanceDisplayMedium">@style/TextAppearance.App.DisplayMedium</item>
         <item name="textAppearanceDisplaySmall">@style/TextAppearance.App.DisplaySmall</item>

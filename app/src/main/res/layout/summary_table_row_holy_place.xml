@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableRow xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <!-- No padding on the TableRow itself; cell padding is handled by the style -->
+
+    <TextView
+        android:id="@+id/textViewHolyPlaceType"
+        style="@style/SummaryTableCell"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Type" />
+    <!-- Uses SummaryTableCell for padding and text size -->
+    <!-- layout_weight="1" makes it stretch, matching the header's first column -->
+
+    <TextView
+        android:id="@+id/textViewHolyPlaceVisited"
+        style="@style/SummaryTableCell"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:minEms="4"
+        android:text="0" />
+    <!-- Uses SummaryTableCell for padding and text size -->
+    <!-- layout_width="wrap_content" ensures it takes only necessary space -->
+    <!-- gravity="center" aligns with the header -->
+
+    <TextView
+        android:id="@+id/textViewHolyPlaceTotal"
+        style="@style/SummaryTableCell"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:minEms="4"
+        android:text="0" />
+    <!-- Uses SummaryTableCell for padding and text size -->
+    <!-- layout_width="wrap_content" ensures it takes only necessary space -->
+    <!-- gravity="center" aligns with the header -->
+
+</TableRow>

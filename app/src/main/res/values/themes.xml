@@ -20,13 +20,6 @@
         <item name="colorTertiaryContainer">@color/app_colorSurface</item>
         <item name="colorOnTertiaryContainer">@color/app_colorOnSurface</item>
 
-        <!-- M3 Error Colors - Define these in colors.xml if they don't exist -->
-        <!-- <item name="colorError">@color/my_error_red</item> -->
-        <!-- <item name="colorOnError">@color/white</item> -->
-        <!-- <item name="colorErrorContainer">@color/my_error_red_light</item> -->
-        <!-- <item name="colorOnErrorContainer">@color/my_error_red_dark</item> -->
-        <!-- If not defined, Material3 themes have sensible defaults for error colors -->
-
         <!-- M3 Background and Surface Colors -->
         <item name="android:colorBackground">@color/app_colorBackground</item>
         <item name="colorOnBackground">@color/app_colorOnBackground</item>
@@ -61,7 +54,12 @@
         <!-- >>>>>>>>>> ADD FONT CUSTOMIZATION HERE <<<<<<<<<< -->
 
         <!-- 1. Define your app-specific font family attribute -->
+        <!-- For standard Android TextViews -->
         <item name="fontFamilyApp">@font/baskerville_font_family</item>
+        <!-- For standard Android TextViews -->
+        <item name="android:fontFamily">?attr/fontFamilyApp</item>
+        <!-- For Material Components (recommended) -->
+        <item name="fontFamily">?attr/fontFamilyApp</item>
 
         <!-- Override M3 Text Appearances -->
         <item name="textAppearanceDisplayLarge">@style/TextAppearance.App.DisplayLarge</item>
@@ -82,6 +80,31 @@
 
     </style>
 
+    <style name="SummaryTableHeader">
+        <!-- Common attributes for all header cells -->
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:textColor">@android:color/white</item> <!-- Consider ?attr/colorOnPrimary for M3 themes -->
+<!--        <item name="android:textStyle">bold</item>-->
+        <item name="android:textSize">16sp</item>
+        <!-- android:layout_width and android:layout_weight will be set per-cell or by TableLayout -->
+    </style>
+
+    <style name="SummaryTableCell">
+        <!-- Common attributes for all data cells -->
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:textSize">14sp</item>
+        <!-- android:layout_width, android:layout_weight, and android:gravity will be set per-cell -->
+        <!-- Text color is set programmatically -->
+    </style>
+
+    <style name="SummaryTableCell_NoPadding" parent="SummaryTableCell">
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+    </style>
 
     <!-- Theme Overlay for a White/Black Toolbar -->
     <style name="ThemeOverlay.App.Toolbar" parent="">

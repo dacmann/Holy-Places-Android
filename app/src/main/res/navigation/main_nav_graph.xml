@@ -103,4 +103,10 @@
         android:label="@string/title_export_import"
         tools:layout="@layout/fragment_export_import" />
 
+    <fragment
+        android:id="@+id/summary_fragment_destination"
+        android:name="net.dacworld.android.holyplacesofthelord.summary.SummaryFragment"
+        android:label="@string/title_summary_tab"
+        tools:layout="@layout/fragment_summary" />
+
 </navigation>

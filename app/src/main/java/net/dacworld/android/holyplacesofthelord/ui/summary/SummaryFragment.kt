@@ -1,0 +1,290 @@
+// summary/SummaryFragment.kt
+package net.dacworld.android.holyplacesofthelord.summary // Or your appropriate package
+
+import android.graphics.Typeface
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import net.dacworld.android.holyplacesofthelord.R
+import net.dacworld.android.holyplacesofthelord.databinding.FragmentSummaryBinding
+
+class SummaryFragment : Fragment() {
+
+    private var _binding: FragmentSummaryBinding? = null
+    private val binding get() = _binding!!
+
+    private val summaryViewModel: SummaryViewModel by viewModels()
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentSummaryBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Call the method in your ViewModel to reload/refresh the summary data
+        summaryViewModel.loadSummaryData() // Or whatever your data loading method is named
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        setupInsetHandling()
+
+        // Quote Module
+        summaryViewModel.quote.observe(viewLifecycleOwner) { quoteText ->
+            binding.textViewQuote.text = quoteText
+        }
+        binding.layoutQuoteModule.setOnClickListener {
+            summaryViewModel.selectRandomQuote() // Change quote on click
+        }
+        // Set quote background color from colors.xml if not already set in layout
+        // Example: binding.layoutQuoteModule.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.baptismblue))
+
+
+        // Holy Places Section
+        summaryViewModel.holyPlacesStats.observe(viewLifecycleOwner) { stats ->
+            populateHolyPlacesTable(stats)
+        }
+
+        // Temple Visits Section - Labels
+        summaryViewModel.currentYearLabel.observe(viewLifecycleOwner) { year ->
+            binding.textViewTVHeaderYearCurrent.text = year
+        }
+        summaryViewModel.previousYearLabel.observe(viewLifecycleOwner) { year ->
+            binding.textViewTVHeaderYearPrevious.text = year
+        }
+
+        // Temple Visits Section - Data
+        summaryViewModel.templeVisitCurrentYearStats.observe(viewLifecycleOwner) { stats ->
+            populateTempleVisitsRow(stats, "current")
+        }
+        summaryViewModel.templeVisitPreviousYearStats.observe(viewLifecycleOwner) { stats ->
+            populateTempleVisitsRow(stats, "previous")
+        }
+        summaryViewModel.templeVisitTotalStats.observe(viewLifecycleOwner) { stats ->
+            populateTempleVisitsRow(stats, "total")
+        }
+
+        // Most Visited Section
+        summaryViewModel.mostVisitedPlaces.observe(viewLifecycleOwner) { places ->
+            populateMostVisitedList(places)
+        }
+
+        // Initial data load is triggered in ViewModel's init block
+        // If you want a refresh mechanism, you might add a swipe-to-refresh
+        // or a button that calls summaryViewModel.loadSummaryData()
+    }
+
+    private fun setupInsetHandling() {
+        // The root view of your fragment_summary.xml is likely the NestedScrollView
+        // If your binding.root is the NestedScrollView itself, this is fine.
+        // Otherwise, you might need to target binding.yourNestedScrollViewId
+        val viewToPad = binding.root // Assuming binding.root IS the NestedScrollView
+
+        // Apply padding for Status Bar (top) and Navigation Bar/IME (bottom)
+        ViewCompat.setOnApplyWindowInsetsListener(viewToPad) { v, windowInsets ->
+            val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val imeInsets = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
+
+            // Determine effective bottom padding: prefer IME if visible, else navigation bar.
+            var desiredBottomPadding = if (imeInsets.bottom > 0) {
+                imeInsets.bottom
+            } else {
+                systemBars.bottom // For navigation bar
+            }
+
+            // --- Consider your app's BottomNavigationView height ---
+            val activityRootView = requireActivity().window.decorView
+
+            val appBottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
+
+            if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
+                if (desiredBottomPadding < appBottomNavView.height) {
+                    desiredBottomPadding = appBottomNavView.height
+                }
+            }
+            // --- End of BottomNavigationView logic ---
+
+            v.updatePadding(
+                top = systemBars.top, // Padding for the status bar
+                bottom = desiredBottomPadding // Padding for navigation bar/IME and your app's BottomNav
+                // left and right padding are usually handled by the layout's own attributes
+            )
+
+            // It's good practice to consume only the insets you've used,
+            // but for simplicity and if this is the main scrolling content,
+            // returning the original insets (or CONSUMED) is often acceptable.
+            // For precise control, you'd create new insets excluding what you've applied.
+            WindowInsetsCompat.CONSUMED // Or return windowInsets if other views need to react
+        }
+
+        // Request initial insets apply if the view is already attached
+        if (viewToPad.isAttachedToWindow) {
+            ViewCompat.requestApplyInsets(viewToPad)
+        } else {
+            viewToPad.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    v.removeOnAttachStateChangeListener(this)
+                    ViewCompat.requestApplyInsets(v)
+                }
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+        }
+    }
+    private fun populateHolyPlacesTable(stats: List<HolyPlaceStat>) {
+        binding.tableLayoutHolyPlaces.removeViews(1, binding.tableLayoutHolyPlaces.childCount - 1) // Clear old rows, keep header
+
+        val context = requireContext()
+        Log.d("SummaryFragment", "Context for inflater: ${context.javaClass.name}")
+        val outValue = android.util.TypedValue()
+        context.theme.resolveAttribute(com.google.android.material.R.attr.fontFamily, outValue, true) // Check for Material font
+        Log.d("SummaryFragment", "Material fontFamily from theme: ${outValue.string}") // See if it's your Baskerville path
+
+        context.theme.resolveAttribute(android.R.attr.fontFamily, outValue, true) // Check for Android framework font
+        Log.d("SummaryFragment", "Android fontFamily from theme: ${outValue.string}") // See if it's your Baskerville path
+
+        stats.forEach { stat ->
+            val row = LayoutInflater.from(context).inflate(R.layout.summary_table_row_holy_place, binding.tableLayoutHolyPlaces, false) as ViewGroup
+
+            val typeTextView = row.findViewById<TextView>(R.id.textViewHolyPlaceType)
+            val visitedTextView = row.findViewById<TextView>(R.id.textViewHolyPlaceVisited)
+            val totalTextView = row.findViewById<TextView>(R.id.textViewHolyPlaceTotal)
+
+            typeTextView.text = stat.typeName
+            visitedTextView.text = stat.visitedCount.toString()
+            totalTextView.text = stat.totalCount.toString()
+
+            try {
+                val textColor = ContextCompat.getColor(context, stat.colorRes)
+                typeTextView.setTextColor(textColor)
+                visitedTextView.setTextColor(textColor)
+                totalTextView.setTextColor(textColor)
+            } catch (e: Exception) {
+            }
+
+            binding.tableLayoutHolyPlaces.addView(row)
+        }
+    }
+
+    private fun populateTempleVisitsRow(stats: TempleVisitYearStats, yearType: String) {
+
+        val attendedTextView: TextView?
+        val uniqueTextView: TextView?
+        val hoursTextView: TextView?
+        val sealingsTextView: TextView?
+        val endowmentsTextView: TextView?
+        val initiatoriesTextView: TextView?
+        val confirmationsTextView: TextView?
+        val baptismsTextView: TextView?
+        val ordinancesTotalTextView: TextView?
+
+        when (yearType) {
+            "current" -> {
+                attendedTextView = binding.textViewAttendedCurrent
+                uniqueTextView = binding.textViewUniqueCurrent
+                hoursTextView = binding.textViewHoursCurrent
+                sealingsTextView = binding.textViewSealingsCurrent
+                endowmentsTextView = binding.textViewEndowmentsCurrent
+                initiatoriesTextView = binding.textViewInitiatoriesCurrent
+                confirmationsTextView = binding.textViewConfirmationsCurrent
+                baptismsTextView = binding.textViewBaptismsCurrent
+                ordinancesTotalTextView = binding.textViewTVOrdinancesCurrent
+            }
+            "previous" -> {
+                attendedTextView = binding.textViewAttendedPrevious
+                uniqueTextView = binding.textViewUniquePrevious
+                hoursTextView = binding.textViewHoursPrevious
+                sealingsTextView = binding.textViewSealingsPrevious
+                endowmentsTextView = binding.textViewEndowmentsPrevious
+                initiatoriesTextView = binding.textViewInitiatoriesPrevious
+                confirmationsTextView = binding.textViewConfirmationsPrevious
+                baptismsTextView = binding.textViewBaptismsPrevious
+                ordinancesTotalTextView = binding.textViewTVOrdinancesPrevious
+            }
+            "total" -> {
+                attendedTextView = binding.textViewAttendedTotal
+                uniqueTextView = binding.textViewUniqueTotal
+                hoursTextView = binding.textViewHoursTotal
+                sealingsTextView = binding.textViewSealingsTotal
+                endowmentsTextView = binding.textViewEndowmentsTotal
+                initiatoriesTextView = binding.textViewInitiatoriesTotal
+                confirmationsTextView = binding.textViewConfirmationsTotal
+                baptismsTextView = binding.textViewBaptismsTotal
+                ordinancesTotalTextView = binding.textViewTVOrdinancesTotal
+            }
+            else -> return // Should not happen
+        }
+
+        attendedTextView?.text = stats.attended.toString()
+        uniqueTextView?.text = stats.uniqueTemples.toString()
+        hoursTextView?.text = String.format("%.1f", stats.hoursWorked) // Format to 1 decimal place
+        sealingsTextView?.text = stats.sealings.toString()
+        endowmentsTextView?.text = stats.endowments.toString()
+        initiatoriesTextView?.text = stats.initiatories.toString()
+        confirmationsTextView?.text = stats.confirmations.toString()
+        baptismsTextView?.text = stats.baptisms.toString()
+        ordinancesTotalTextView?.text = stats.totalOrdinances.toString()
+
+        // You might want to bold the "Total" row text if desired
+        if (yearType == "total") {
+            listOfNotNull(attendedTextView, uniqueTextView, hoursTextView, sealingsTextView, endowmentsTextView,
+                initiatoriesTextView, confirmationsTextView, baptismsTextView, ordinancesTotalTextView)
+                .forEach { it.setTypeface(null, Typeface.BOLD) }
+        }
+    }
+
+    private fun populateMostVisitedList(places: List<MostVisitedPlaceItem>) {
+        binding.linearLayoutMostVisited.removeAllViews() // Clear old items
+
+        val context = requireContext()
+        if (places.isEmpty()) {
+            val noDataTextView = TextView(context).apply {
+                text = getString(R.string.no_visits_yet) // Add to strings.xml: <string name="no_visits_yet">No visits recorded yet.</string>
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(16,16,16,16) // Add some basic margin
+                }
+                // You might want to style this text further (size, color)
+            }
+            binding.linearLayoutMostVisited.addView(noDataTextView)
+            return
+        }
+
+        places.forEach { place ->
+            val placeTextView = TextView(context).apply {
+                text = "${place.visitCount} - ${place.placeName}"
+                setTextColor(ContextCompat.getColor(context, place.typeColorRes))
+                textSize = 16f // Example size
+                setPadding(8, 8, 8, 8) // Example padding
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            binding.linearLayoutMostVisited.addView(placeTextView)
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null // Important to prevent memory leaks
+    }
+}
+

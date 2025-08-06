@@ -27,6 +27,7 @@
     <color name="search_view_background_color">#F0F0F0</color> <!-- Light Grey -->
     <color name="search_view_stroke_color">#E0E0E0</color> <!-- Light grey stroke for search -->
 
+    <color name="QuoteBlue">#005393</color>
     <color name="BaptismBlue">#005493</color>
     <color name="Confirmations">#D64E52</color>"
     <color name="Initiatories">#c4c400</color>

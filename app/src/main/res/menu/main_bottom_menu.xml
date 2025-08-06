@@ -15,6 +15,11 @@
         android:icon="@drawable/journal"
         android:title="@string/title_visits_tab" />
 
+    <item
+        android:id="@+id/summary_fragment_destination"
+        android:icon="@drawable/summary"
+        android:title="@string/title_summary_tab" />
+
     <!-- Add other items for your main navigation tabs if needed, e.g., Maps, Settings -->
     <!-- <item
         android:id="@+id/maps_fragment_destination"

@@ -104,5 +104,7 @@
     <string name="confirm_delete_message">Are you sure you want to delete the visit to %1$s?</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
+    <string name="default_quote_summary">The all-important and crowning blessings of membership in the Church are those blessings which we receive in the temples of God.\"\\r\\n~ Thomas S. Monson ~</string>
+    <string name="title_summary_tab">Summary</string>
 
 </resources>

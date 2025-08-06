@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".summary.SummaryFragment">
+
+    <LinearLayout
+        android:id="@+id/layout_quote_module"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/QuoteBlue"
+        android:padding="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/textViewQuote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            tools:text="&quot;This is a sample quote that might be quite long and wrap to multiple lines.&quot;\n~ Author Name ~" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollable_content_area"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/layout_quote_module"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/main_content_area"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <TableLayout
+                    android:id="@+id/tableLayoutHolyPlaces"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:stretchColumns="0"
+                    android:shrinkColumns="1,2"
+                    android:layout_marginBottom="16dp">
+
+                    <TableRow
+                        android:id="@+id/tableRowHolyPlacesHeader"
+                        android:background="@android:color/transparent">
+                        <TextView
+                            android:id="@+id/textViewHolyPlacesHeaderPlace"
+                            android:text="Holy Places"
+                            style="@style/SummaryTableHeader"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"/>
+                        <TextView
+                            android:id="@+id/textViewHolyPlacesHeaderVisited"
+                            android:text="Visited"
+                            style="@style/SummaryTableHeader"
+                            android:layout_width="wrap_content"
+                            android:gravity="center"/>
+                        <TextView
+                            android:id="@+id/textViewHolyPlacesHeaderTotal"
+                            android:text="Total"
+                            style="@style/SummaryTableHeader"
+                            android:layout_width="wrap_content"
+                            android:gravity="center"/>
+                    </TableRow>
+
+                </TableLayout>
+
+                <TableLayout
+                    android:id="@+id/tableLayoutTempleVisits"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:stretchColumns="0"
+                    android:shrinkColumns="1,2,3"
+                    android:layout_marginBottom="16dp">
+
+                    <TableRow
+                        android:id="@+id/tableRowTempleVisitsHeader"
+                        android:background="@android:color/transparent">
+                        <TextView
+                            android:text="Temple Visits"
+                            style="@style/SummaryTableHeader"/>
+                        <TextView
+                            android:id="@+id/textViewTVHeaderYearCurrent"
+                            tools:text="2025"
+                            style="@style/SummaryTableHeader"
+                            android:gravity="center"/>
+                        <TextView
+                            android:id="@+id/textViewTVHeaderYearPrevious"
+                            tools:text="2024"
+                            style="@style/SummaryTableHeader"
+                            android:gravity="center"/>
+                        <TextView
+                            android:text="Lifetime"
+                            style="@style/SummaryTableHeader"
+                            android:gravity="center"/>
+                    </TableRow>
+
+                    <TableRow>
+                        <TextView android:text="Attended" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewAttendedCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewAttendedPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewAttendedTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                    </TableRow>
+                    <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
+
+                    <TableRow>
+                        <TextView android:text="Unique Temples" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewUniqueCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewUniquePrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewUniqueTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                    </TableRow>
+                    <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
+
+                    <TableRow>
+                        <TextView android:text="Hours Worked" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewHoursCurrent" tools:text="0.0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewHoursPrevious" tools:text="0.0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewHoursTotal" tools:text="0.0" style="@style/SummaryTableCell" android:gravity="center"/>
+                    </TableRow>
+                    <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
+
+                    <TableRow>
+                        <TextView android:text="Sealings" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewSealingsCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewSealingsPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewSealingsTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                    </TableRow>
+                    <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
+
+                    <TableRow>
+                        <TextView android:text="Endowments" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewEndowmentsCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewEndowmentsPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewEndowmentsTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                    </TableRow>
+                    <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
+
+                    <TableRow>
+                        <TextView android:text="Initiatories" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewInitiatoriesCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewInitiatoriesPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewInitiatoriesTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                    </TableRow>
+                    <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
+
+                    <TableRow>
+                        <TextView android:text="Confirmations" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewConfirmationsCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewConfirmationsPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewConfirmationsTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                    </TableRow>
+                    <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
+
+                    <TableRow>
+                        <TextView android:text="Baptisms" style="@style/SummaryTableCell"/>
+                        <TextView android:id="@+id/textViewBaptismsCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewBaptismsPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                        <TextView android:id="@+id/textViewBaptismsTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center"/>
+                    </TableRow>
+                    <View android:layout_height="1dp" android:background="?android:attr/listDivider" />
+
+                    <TableRow android:background="?attr/colorSurfaceVariant">
+                        <TextView android:text="Total Ordinances" style="@style/SummaryTableCell" android:textStyle="bold"/>
+                        <TextView android:id="@+id/textViewTVOrdinancesCurrent" tools:text="0" style="@style/SummaryTableCell" android:gravity="center" android:textStyle="bold"/>
+                        <TextView android:id="@+id/textViewTVOrdinancesPrevious" tools:text="0" style="@style/SummaryTableCell" android:gravity="center" android:textStyle="bold"/>
+                        <TextView android:id="@+id/textViewTVOrdinancesTotal" tools:text="0" style="@style/SummaryTableCell" android:gravity="center" android:textStyle="bold"/>
+                    </TableRow>
+                </TableLayout>
+
+                <TextView
+                    android:id="@+id/textViewMostVisitedTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Most Visited - Top 12"
+                    style="?attr/textAppearanceTitleMedium"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:id="@+id/linearLayoutMostVisited"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

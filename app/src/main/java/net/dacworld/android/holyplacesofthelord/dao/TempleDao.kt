@@ -31,6 +31,12 @@ interface TempleDao {
     suspend fun getTempleWithPictureById(id: String): Temple?
 
     /**
+     * Gets the count of all Temple entities of a specific type.
+     */
+    @Query("SELECT COUNT(temple_id) FROM temples WHERE type = :type")
+    suspend fun getCountByType(type: String): Int
+
+    /**
      * Fetches a temple's ID by its exact name.
      * Used for linking imported visits to existing temples.
      */
