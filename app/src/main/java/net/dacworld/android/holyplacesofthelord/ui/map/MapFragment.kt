@@ -19,7 +19,8 @@ import com.google.gson.JsonObject // For feature properties
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.data.MapViewModelFactory
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentMapBinding
-import net.dacworld.android.holyplacesofthelord.data.MapPlace // Assuming this is your data class
+import net.dacworld.android.holyplacesofthelord.data.MapPlace
+import net.dacworld.android.holyplacesofthelord.data.TempleFilterType
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -38,8 +39,14 @@ import org.maplibre.geojson.FeatureCollection // <<< UPDATED
 import org.maplibre.android.plugins.markerview.MarkerView
 import org.maplibre.android.plugins.markerview.MarkerViewManager
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
+import androidx.lifecycle.Lifecycle
 
-class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListener { // Implement OnMapClickListener
+class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListener, MenuProvider {
 
     private var _binding: FragmentMapBinding? = null
     private val binding get() = _binding!!
@@ -103,12 +110,100 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
         setupToolbar()
         setupMap()
         observeViewModel()
+
+        val menuHost: MenuHost = requireActivity()
+        menuHost.addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
+    }
+    // MenuProvider Methods
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        Log.d(FRAGMENT_TAG, "onCreateMenu for MapFragment")
+        menuInflater.inflate(R.menu.menu_map_toolbar, menu)
     }
 
+    override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        Log.d(FRAGMENT_TAG, "onMenuItemSelected in MapFragment: ${menuItem.title}")
+        val handled: Boolean
+        val titleText: String // For the toolbar title (translatable)
+        val placeTypeKeyForColor: String // For ColorUtils and map (fixed internal key)
+        val filterToSet: TempleFilterType // Enum for MapViewModel
+
+        when (menuItem.itemId) {
+            R.id.action_filter_visits_submenu -> {
+                // Parent item for the submenu, system handles opening it.
+                return true // Indicate the event was handled by the system opening the submenu.
+            }
+            R.id.filter_type_all -> {
+                // titleText uses the android:title from menu_map_toolbar.xml for this item
+                titleText = getString(R.string.holy_places) // From menu_map_toolbar.xml's title
+                placeTypeKeyForColor = "ALL_FILTER_TYPE" // Fixed internal key
+                filterToSet = TempleFilterType.ALL
+                Log.d(FRAGMENT_TAG, "Filter selected: All")
+                handled = true
+            }
+            R.id.filter_type_active_temples -> {
+                // titleText uses the android:title from menu_map_toolbar.xml
+                titleText = getString(R.string.filter_type_active_temples) // From menu_map_toolbar.xml's title
+                placeTypeKeyForColor = "T" // Fixed internal key
+                filterToSet = TempleFilterType.ACTIVE_TEMPLES
+                Log.d(FRAGMENT_TAG, "Filter selected: Active Temples")
+                handled = true
+            }
+            R.id.filter_type_historical_sites -> {
+                titleText = getString(R.string.filter_type_historical_sites) // From menu_map_toolbar.xml's title
+                placeTypeKeyForColor = "H" // Fixed internal key
+                filterToSet = TempleFilterType.HISTORICAL_SITES
+                Log.d(FRAGMENT_TAG, "Filter selected: Historical Sites")
+                handled = true
+            }
+            R.id.filter_type_visitors_centers -> {
+                titleText = getString(R.string.filter_type_visitors_centers) // From menu_map_toolbar.xml's title
+                placeTypeKeyForColor = "V" // Fixed internal key
+                filterToSet = TempleFilterType.VISITORS_CENTERS
+                Log.d(FRAGMENT_TAG, "Filter selected: Visitors' Centers")
+                handled = true
+            }
+            R.id.filter_type_under_construction -> {
+                titleText = getString(R.string.filter_type_under_construction) // From menu_map_toolbar.xml's title
+                placeTypeKeyForColor = "C" // Fixed internal key
+                filterToSet = TempleFilterType.UNDER_CONSTRUCTION
+                Log.d(FRAGMENT_TAG, "Filter selected: Under Construction")
+                handled = true
+            }
+            R.id.filter_type_announced -> {
+                titleText = getString(R.string.filter_type_announced) // From menu_map_toolbar.xml's title
+                placeTypeKeyForColor = "A" // Fixed internal key
+                filterToSet = TempleFilterType.ANNOUNCED
+                Log.d(FRAGMENT_TAG, "Filter selected: Announced")
+                handled = true
+            }
+            else -> {
+                Log.d(FRAGMENT_TAG, "Menu item not handled: ${menuItem.itemId}")
+                return false // Indicate not handled by this logic.
+            }
+        }
+
+        // Update toolbar title and color based on selection
+        updateToolbarTitleAndColor(titleText, placeTypeKeyForColor)
+
+        // Call ViewModel to set the filter
+        mapViewModel.setFilter(filterToSet)
+//        Log.d(FRAGMENT_TAG, "Filter set in ViewModel: ${filterToSet.name}")
+
+        return handled
+    }
+
+    // Helper function to update the toolbar title
+    private fun updateToolbarTitleAndColor(newTitle: String, placeTypeKeyForColor: String) {
+        binding.toolbarMap.title = newTitle
+        val titleColor = ColorUtils.getTextColorForTempleType(requireContext(), placeTypeKeyForColor)
+        binding.toolbarMap.setTitleTextColor(titleColor)
+        Log.d(FRAGMENT_TAG, "Toolbar title updated to: $newTitle, ColorKey: $placeTypeKeyForColor, ResolvedColor: $titleColor")
+    }
     private fun setupToolbar() {
         Log.d(FRAGMENT_TAG, "setupToolbar called")
         (activity as? AppCompatActivity)?.setSupportActionBar(binding.toolbarMap)
-        binding.toolbarMap.title = getString(R.string.title_map_tab)
+        // Set initial title and color (e.g., for "All")
+        updateToolbarTitleAndColor(getString(R.string.filter_label_all), "ALL_FILTER_TYPE")
     }
 
     private fun setupMap() {
@@ -129,31 +224,52 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
             this.mapStyle = style
             map.addOnMapClickListener(this) // Add map click listener
 
-            // 1. Add icon image to style
-            val iconBitmap = BitmapFactory.decodeResource(resources, R.drawable.temple_map_pin)
-            if (iconBitmap != null) {
-                style.addImage(ICON_ID, iconBitmap)
-                Log.d(FRAGMENT_TAG, "Icon '$ICON_ID' added to style.")
-            } else {
-                Log.e(FRAGMENT_TAG, "Failed to decode icon resource for '$ICON_ID'.")
-                // Optionally, fall back to a default MapLibre icon or no icon,
-                // or handle this error more gracefully. For now, it will just mean no icons.
+            // Add all your colored pin icons to the style
+            try {
+                style.addImage("temple_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.temple_map_pin))
+                style.addImage("historic_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.historic_map_pin))
+                style.addImage("visitors_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.visitors_map_pin))
+                style.addImage("construction_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.construction_map_pin))
+                style.addImage("announced_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.announced_map_pin))
+                style.addImage("default_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.gray_map_pin)) // Your default
+                Log.d(FRAGMENT_TAG, "All custom pin icons added to style.")
+            } catch (e: Exception) {
+                Log.e(FRAGMENT_TAG, "Error adding custom pin icons to style", e)
+                // Handle error, maybe fall back to a single default icon or show a toast
+                Toast.makeText(context, "Error loading map icons.", Toast.LENGTH_LONG).show()
+                return@setStyle
             }
 
-            // 2. Add GeoJsonSource
-            style.addSource(GeoJsonSource(GEOJSON_SOURCE_ID))
-            Log.d(FRAGMENT_TAG, "GeoJsonSource '$GEOJSON_SOURCE_ID' added.")
+            // 2. Add GeoJsonSource (no change here)
+            if (style.getSource(GEOJSON_SOURCE_ID) == null) {
+                style.addSource(GeoJsonSource(GEOJSON_SOURCE_ID))
+                Log.d(FRAGMENT_TAG, "GeoJsonSource '$GEOJSON_SOURCE_ID' added.")
+            }
 
-            // 3. Add SymbolLayer
+            // 3. Create an Expression to choose the icon ID based on place_type
+            val iconImageExpression = Expression.match(
+                Expression.get(PROPERTY_TYPE), // Input: the value of "place_type" property
+                Expression.literal("default_pin_icon"), // Default icon ID if no match
+
+                // Define stops for each type and its corresponding icon ID
+                Expression.stop(Expression.literal("T"), Expression.literal("temple_pin_icon")),    // If type is "T", use "red_pin_icon"
+                Expression.stop(Expression.literal("H"), Expression.literal("historic_pin_icon")),   // If type is "H", use "blue_pin_icon"
+                Expression.stop(Expression.literal("V"), Expression.literal("visitors_pin_icon")),  // If type is "V", use "green_pin_icon"
+                Expression.stop(Expression.literal("C"), Expression.literal("construction_pin_icon")), // If type is "C", use "yellow_pin_icon"
+                Expression.stop(Expression.literal("A"), Expression.literal("announced_pin_icon"))  // If type is "A", use "purple_pin_icon"
+                // Add more stops if you have more types and corresponding icons
+            )
+            Log.d(FRAGMENT_TAG, "Icon image expression created: ${iconImageExpression.toArray()}")
             val symbolLayer = SymbolLayer(SYMBOL_LAYER_ID, GEOJSON_SOURCE_ID)
                 .withProperties(
-                    PropertyFactory.iconImage(ICON_ID),
+                    PropertyFactory.iconImage(iconImageExpression),
                     PropertyFactory.iconAllowOverlap(true),
                     PropertyFactory.iconIgnorePlacement(true),
-                    PropertyFactory.iconSize(Expression.literal(0.2f))
+                    PropertyFactory.iconSize(Expression.literal(0.25f))
                 )
             style.addLayer(symbolLayer)
-            Log.d(FRAGMENT_TAG, "GeoJsonSource and SymbolLayer added to style.")
+            Log.d(FRAGMENT_TAG, "SymbolLayer '$SYMBOL_LAYER_ID' added with dynamic icon color based on ColorUtils codes.")
+
 
             // --- RESTORE OR SET INITIAL CAMERA POSITION ---
             val savedState = mapViewModel.lastCameraState.value // Assumes lastCameraState is LiveData in ViewModel
@@ -169,8 +285,8 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
                 mapViewModel.clearLastCameraState() // Clear the state after restoring
             } else {
                 // No saved state, use your existing default initial camera position
-                val initialLatLng = LatLng(40.770468, -111.891958) // Salt Lake Temple
-                val initialZoom = 2.0
+                val initialLatLng = LatLng(6.24914, -75.56493) // Salt Lake Temple
+                val initialZoom = 1.6
                 // maplibreMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(initialLatLng, initialZoom)) // Your old line
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(initialLatLng, initialZoom)) // Use moveCamera for consistency
                 Log.d(FRAGMENT_TAG, "Initial camera set to $initialLatLng at zoom $initialZoom")

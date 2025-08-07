@@ -19,7 +19,9 @@
         android:id="@+id/toolbarMap"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        app:title="@string/title_map_tab" />
+        app:title="@string/title_map_tab"
+        app:titleTextAppearance="@style/TextAppearance.App.TitleMedium"
+        />
     </com.google.android.material.appbar.AppBarLayout>
 
     <org.maplibre.android.maps.MapView
@@ -30,9 +32,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:maplibre_cameraTargetLat="40.770468"
-        app:maplibre_cameraTargetLng="-111.891958"
-        app:maplibre_cameraZoom="2.0" /> <!-- Initial zoom -->
+        app:maplibre_cameraTargetLat="6.24914"
+        app:maplibre_cameraTargetLng="-75.56493"
+        app:maplibre_cameraZoom="1.6" /> <!-- Initial zoom -->
 
     <TextView
         android:id="@+id/map_info_window_text"

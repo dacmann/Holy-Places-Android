@@ -16,7 +16,6 @@
         android:layout_height="wrap_content"
         android:text="Default Place Name"
         android:textColor="@android:color/black"
-        android:textSize="16sp"
-        android:textStyle="bold" />
+        android:textSize="14sp" />
 
 </LinearLayout>

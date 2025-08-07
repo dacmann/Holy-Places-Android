@@ -3,28 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_sort_visits"
-        android:title="@string/sort_by"
-        android:icon="@drawable/ic_sort"
-        app:showAsAction="ifRoom">
-        <!-- Submenu for sort options -->
-        <menu>
-            <item
-                android:id="@+id/sort_visits_by_date_desc"
-                android:title="@string/sort_by_date_latest_first" />
-            <item
-                android:id="@+id/sort_visits_by_date_asc"
-                android:title="@string/sort_by_date_oldest_first" />
-            <item
-                android:id="@+id/sort_visits_by_place_asc"
-                android:title="@string/sort_by_place_a_z" />
-            <item
-                android:id="@+id/sort_visits_by_place_desc"
-                android:title="@string/sort_by_place_z_a" />
-        </menu>
-    </item>
-
-    <item
         android:id="@+id/action_filter_visits_submenu"
         android:icon="@drawable/ic_filter_list"
         android:title="@string/action_filter_options"
@@ -33,7 +11,7 @@
             <group>
                 <item
                     android:id="@+id/filter_type_all"
-                    android:title="@string/filter_type_all_visits" />
+                    android:title="@string/holy_places" />
                 <item
                     android:id="@+id/filter_type_active_temples"
                     android:title="@string/filter_type_active_temples" />
@@ -46,13 +24,11 @@
                 <item
                     android:id="@+id/filter_type_under_construction"
                     android:title="@string/filter_type_under_construction" />
+                <item
+                    android:id="@+id/filter_type_announced"
+                    android:title="@string/filter_type_announced" />
             </group>
         </menu>
     </item>
 
-    <item
-        android:id="@+id/action_filter_visits"
-        android:icon="@drawable/ic_export"
-        android:title="@string/action_export_import"
-        app:showAsAction="ifRoom" />
 </menu>

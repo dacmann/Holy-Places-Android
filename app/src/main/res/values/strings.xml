@@ -116,5 +116,7 @@
     <string name="holy_places">Holy Places</string>
     <string name="total_ordinances">Total Ordinances</string>
     <string name="title_map_tab">Map</string>
+    <string name="filter_type_announced">Announced Temples</string>
+    <string name="filter_label_all">All Holy Places</string>
 
 </resources>

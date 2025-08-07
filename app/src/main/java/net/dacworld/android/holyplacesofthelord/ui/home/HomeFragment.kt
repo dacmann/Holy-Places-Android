@@ -72,17 +72,6 @@ class HomeFragment : Fragment() {
             }
         }
 
-        // You might also want to observe dataViewModel.updateChangesSummary
-        // if you have a TextView on the home screen to show the latest change notes.
-        // For example:
-        // viewLifecycleOwner.lifecycleScope.launch {
-        //     viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-        //         dataViewModel.updateChangesSummary.collectLatest { summary ->
-        //             binding.textViewUpdateSummary.text = summary // Assuming you have such a TextView
-        //             binding.textViewUpdateSummary.visibility = if (summary.isNotBlank()) View.VISIBLE else View.GONE
-        //         }
-        //     }
-        // }
     }
 
     private fun showInitialSeedDialog(details: UpdateDetails, onDismiss: () -> Unit) {
