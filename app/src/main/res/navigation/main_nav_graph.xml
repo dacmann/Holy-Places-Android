@@ -109,4 +109,17 @@
         android:label="@string/title_summary_tab"
         tools:layout="@layout/fragment_summary" />
 
+    <fragment
+        android:id="@+id/map_fragment_destination"
+        android:name="net.dacworld.android.holyplacesofthelord.map.MapFragment"
+        android:label="@string/title_map_tab"
+        tools:layout="@layout/fragment_map" />
+        <action
+            android:id="@+id/action_mapFragment_to_placeDetailFragment"
+            app:destination="@id/placeDetailFragment">
+            <argument
+                android:name="templeId"
+                app:argType="string" />
+        </action>
+
 </navigation>

@@ -5,7 +5,7 @@ plugins {
     id("androidx.navigation.safeargs.kotlin")
 }
 kotlin {
-    jvmToolchain(8)
+    jvmToolchain(17)
 }
 android {
     namespace = "net.dacworld.android.holyplacesofthelord"
@@ -34,8 +34,8 @@ android {
         // Flag to enable support for newer Java language features.
         isCoreLibraryDesugaringEnabled = true
         // Set Java version compatibility.
-        sourceCompatibility = JavaVersion.VERSION_1_8 // Or higher if needed
-        targetCompatibility = JavaVersion.VERSION_1_8 // Or higher if needed
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         viewBinding = true
@@ -43,42 +43,46 @@ android {
 }
 
 dependencies {
-    dependencies {
-        implementation(libs.material)
+    implementation(libs.material)
 
-        implementation(libs.coil)
+    implementation(libs.coil)
 
-        coreLibraryDesugaring(libs.desugar.jdk.libs)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
-        implementation(libs.androidx.room.runtime)
-        ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
 
-        // Optional - Kotlin Extensions and Coroutines support for Room
-        implementation(libs.androidx.room.ktx)
+    // Optional - Kotlin Extensions and Coroutines support for Room
+    implementation(libs.androidx.room.ktx)
 
-        // Optional - Test helpers
-        testImplementation(libs.androidx.room.testing)
+    // Optional - Test helpers
+    testImplementation(libs.androidx.room.testing)
 
-        // Location Services
-        implementation(libs.google.play.services.location)
+    // MapLibre GL Native
+    implementation(libs.android.sdk)
+    implementation(libs.android.plugin.annotation.v9)
+    implementation(libs.android.plugin.markerview.v9)
+    implementation(libs.mapbox.sdk.geojson)
 
-        // Data Store Preferences
-        implementation(libs.androidx.datastore.preferences)
+    // Location Services
+    implementation(libs.google.play.services.location)
 
-        // ... other dependencies
-        implementation(libs.androidx.core.ktx)
-        implementation(libs.androidx.appcompat)
-        implementation(libs.material)
-        implementation(libs.androidx.constraintlayout)
-        implementation(libs.androidx.lifecycle.livedata.ktx)
-        implementation(libs.androidx.lifecycle.viewmodel.ktx)
-        implementation(libs.androidx.navigation.fragment.ktx)
-        implementation(libs.androidx.navigation.ui.ktx)
-        testImplementation(libs.junit)
-        androidTestImplementation(libs.androidx.junit)
-        androidTestImplementation(libs.androidx.espresso.core)
-        implementation(libs.androidx.lifecycle.process)
-    }
+    // Data Store Preferences
+    implementation(libs.androidx.datastore.preferences)
+
+    // ... other dependencies
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
