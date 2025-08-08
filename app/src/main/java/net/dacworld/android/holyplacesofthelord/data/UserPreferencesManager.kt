@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore // Ensure this import is present
@@ -17,6 +18,17 @@ import java.io.IOException
 // This top-level property delegate is what makes `context.dataStore` work within this file.
 // It needs to be at the top level, or accessible in the scope where it's used.
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "holy_places_settings")
+
+private fun Flow<Preferences>.catchIOException(): Flow<Preferences> {
+    return this.catch { exception ->
+        if (exception is IOException) {
+            emit(emptyPreferences())
+        } else {
+            throw exception
+        }
+    }
+}
+
 
 class UserPreferencesManager private constructor(private val dataStoreInstance: DataStore<Preferences>) {
 
@@ -36,8 +48,103 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val SELECTED_FILTER = stringPreferencesKey("selected_filter")
 
         val SELECTED_SORT = stringPreferencesKey("selected_sort")
+
+        // --- New Settings Keys ---
+        val GOAL_TEMPLE_VISITS_KEY = intPreferencesKey("goal_temple_visits")
+        val GOAL_BAPTISMS_KEY = intPreferencesKey("goal_baptisms")
+        val GOAL_INITIATORIES_KEY = intPreferencesKey("goal_initiatories")
+        val GOAL_ENDOWMENTS_KEY = intPreferencesKey("goal_endowments")
+        val GOAL_SEALINGS_KEY = intPreferencesKey("goal_sealings")
+        val EXCLUDE_VISITS_NO_ORDINANCES_KEY = booleanPreferencesKey("exclude_visits_no_ordinances")
+        val ENABLE_HOURS_WORKED_KEY = booleanPreferencesKey("enable_hours_worked")
+
     }
 
+    // --- Flows for New Settings ---
+
+    val templeVisitsGoalFlow: Flow<Int> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.GOAL_TEMPLE_VISITS_KEY] ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
+        }
+
+    suspend fun saveTempleVisitsGoal(value: Int) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.GOAL_TEMPLE_VISITS_KEY] = value
+        }
+    }
+
+    val baptismsGoalFlow: Flow<Int> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.GOAL_BAPTISMS_KEY] ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
+        }
+
+    suspend fun saveBaptismsGoal(value: Int) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.GOAL_BAPTISMS_KEY] = value
+        }
+    }
+
+    val initiatoriesGoalFlow: Flow<Int> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.GOAL_INITIATORIES_KEY] ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
+        }
+
+    suspend fun saveInitiatoriesGoal(value: Int) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.GOAL_INITIATORIES_KEY] = value
+        }
+    }
+
+    val endowmentsGoalFlow: Flow<Int> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.GOAL_ENDOWMENTS_KEY] ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
+        }
+
+    suspend fun saveEndowmentsGoal(value: Int) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.GOAL_ENDOWMENTS_KEY] = value
+        }
+    }
+
+    val sealingsGoalFlow: Flow<Int> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.GOAL_SEALINGS_KEY] ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
+        }
+
+    suspend fun saveSealingsGoal(value: Int) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.GOAL_SEALINGS_KEY] = value
+        }
+    }
+
+    val excludeVisitsNoOrdinancesFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.EXCLUDE_VISITS_NO_ORDINANCES_KEY] ?: UserPreferencesManager.DEFAULT_EXCLUDE_VISITS
+        }
+
+    suspend fun saveExcludeVisitsNoOrdinances(value: Boolean) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.EXCLUDE_VISITS_NO_ORDINANCES_KEY] = value
+        }
+    }
+
+    val enableHoursWorkedFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.ENABLE_HOURS_WORKED_KEY] ?: UserPreferencesManager.DEFAULT_ENABLE_HOURS
+        }
+
+    suspend fun saveEnableHoursWorked(value: Boolean) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.ENABLE_HOURS_WORKED_KEY] = value
+        }
+    }
     // Storing details for the one-time initial seed dialog
     suspend fun setInitialSeedDetails(title: String, messages: List<String>) {
         dataStoreInstance.edit { preferences ->
@@ -207,6 +314,11 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
     }
 
     companion object {
+
+        // Default values
+        const val DEFAULT_GOAL_VALUE = 0
+        const val DEFAULT_EXCLUDE_VISITS = false
+        const val DEFAULT_ENABLE_HOURS = false
         @Volatile
         private var INSTANCE: UserPreferencesManager? = null
 

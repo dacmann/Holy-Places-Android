@@ -36,6 +36,7 @@ import net.dacworld.android.holyplacesofthelord.data.RecordVisitViewModel
 import net.dacworld.android.holyplacesofthelord.data.RecordVisitViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.VisitUiState
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -58,6 +59,8 @@ class RecordVisitFragment : Fragment() {
         val placeIdArg = navArgs.placeId
         val placeNameArg = navArgs.placeName
         val placeTypeArg = navArgs.placeType
+        val userPrefsManager = UserPreferencesManager.getInstance(requireContext().applicationContext)
+
 
         RecordVisitViewModelFactory(
             application,
@@ -65,7 +68,8 @@ class RecordVisitFragment : Fragment() {
             visitIdArg,
             placeIdArg,
             placeNameArg,
-            placeTypeArg
+            placeTypeArg,
+            userPrefsManager
         )
     }
 
@@ -372,17 +376,27 @@ class RecordVisitFragment : Fragment() {
         )
         binding.buttonFavoriteVisit.contentDescription = if (state.isFavorite) getString(R.string.cd_remove_favorite) else getString(R.string.cd_add_favorite)
 
-        // Conditional Visibility of Ordinance Sections
-
+        // --- Conditional Visibility Logic for Temple Sections ---
         if (navArgs.placeType == "T") {
-            binding.groupTempleOrdinances.visibility = View.VISIBLE
-            binding.groupOrdinanceWorker.visibility = View.VISIBLE // Or based on another flag like `isOrdinanceWorkerSession`
-        } else {
-            binding.groupTempleOrdinances.visibility = View.GONE
-            binding.groupOrdinanceWorker.visibility = View.GONE
-        }
-        // If you have a specific flag for Ordinance Worker sessions, use that for groupOrdinanceWorker's visibility
+            binding.groupTempleOrdinances.visibility = View.VISIBLE // For individual ordinances
 
+            // Now handle the "Ordinance Worker" section using the preference
+            if (state.isHoursWorkedEntryEnabled) {
+                binding.groupOrdinanceWorker.visibility = View.VISIBLE // Use YOUR variable name
+                val hoursText = String.format(Locale.US, "%.1f", state.shiftHrs ?: 0.0)
+                updateEditTextIfChanged(binding.editTextHoursWorked, hoursText)
+                // If checkbox_ordinance_worker's checked state is also part of VisitUiState, set it here.
+                // e.g., binding.checkboxOrdinanceWorker.isChecked = state.isMarkedAsOrdinanceWorker
+            } else {
+                binding.groupOrdinanceWorker.visibility = View.GONE // Use YOUR variable name
+                // Optional: Visually clear hours field when the section is hidden
+                // updateEditTextIfChanged(binding.editTextHoursWorked, "0.0")
+            }
+        } else {
+            // Not a Temple: Hide both temple-specific sections
+            binding.groupTempleOrdinances.visibility = View.GONE
+            binding.groupOrdinanceWorker.visibility = View.GONE // Use YOUR variable name
+        }
         // Image display logic using Coil
         when {
             state.selectedImageUri != null -> { // User just picked an image

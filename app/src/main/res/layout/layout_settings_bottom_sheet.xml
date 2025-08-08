@@ -1,44 +1,259 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="?android:attr/colorBackground">
+    android:background="?attr/colorSurface"> <!-- Using colorSurface or a dark background -->
 
-    <ImageButton
-        android:id="@+id/button_close_settings_sheet"
-        android:layout_width="wrap_content"
+    <!-- Top Bar with Title and Close Button -->
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:src="@android:drawable/ic_menu_close_clear_cancel"
-        android:contentDescription="@string/cd_close_sheet"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:layout_gravity="end"
-        app:tint="?attr/colorControlNormal"/>
+        android:layout_marginBottom="8dp"> <!-- Add some margin below the top bar -->
 
+        <TextView
+            android:id="@+id/settings_title_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="@string/settings"
+            android:textAppearance="?attr/textAppearanceHeadline6"
+            android:textColor="?android:attr/textColorPrimary" />
+        <!-- Or ?android:attr/textColorPrimaryInverse if your background is dark -->
+
+        <ImageButton
+            android:id="@+id/button_close_settings_sheet"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:contentDescription="@string/cd_close_sheet"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="?attr/colorControlNormal"/>
+
+    </RelativeLayout>
+
+    <!-- ANNUAL TEMPLE GOALS Section -->
     <TextView
-        android:id="@+id/settings_title"
+        android:id="@+id/annual_goals_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Settings"
-        android:textAppearance="?attr/textAppearanceHeadline6"
-        android:layout_gravity="center_horizontal"
+        android:text="@string/annual_temple_goals"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="16dp"/>
 
-    <TextView
-        android:id="@+id/settings_content"
+    <!-- Temple Visits Goal -->
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="This is where your app settings or options will be displayed. You might use Switches, RadioButtons, etc."
-        android:textAppearance="?attr/textAppearanceBody1"/>
+        android:layout_marginBottom="8dp">
 
-    <!-- Example: A Switch for a setting -->
+        <TextView
+            android:id="@+id/label_temple_visits"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/temple_visits"
+            android:textAppearance="?attr/textAppearanceBody2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/value_temple_visits_goal"/>
+
+        <EditText
+            android:id="@+id/value_temple_visits_goal"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:text="0"
+            tools:text="10"
+            android:gravity="center"
+            android:background="@drawable/value_box_background"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Exclude Visits Toggle -->
     <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switch_example_setting"
+        android:id="@+id/switch_exclude_visits_no_ordinances"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Example Setting"
-        android:layout_marginTop="16dp"/>
+        android:paddingStart="8dp"
+        android:text="@string/exclude_visits_with_no_ordinances"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Baptisms/Confirmations Goal -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/label_baptisms_confirmations"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/baptisms_and_or_confirmations"
+            android:textAppearance="?attr/textAppearanceBody2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/value_baptisms_goal"/>
+
+        <EditText
+            android:id="@+id/value_baptisms_goal"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:text="0"
+            tools:text="5"
+            android:gravity="center"
+            android:background="@drawable/value_box_background"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Initiatories Goal -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/label_initiatories"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/label_initiatories"
+            android:textAppearance="?attr/textAppearanceBody2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/value_initiatories_goal"/>
+
+        <EditText
+            android:id="@+id/value_initiatories_goal"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:text="0"
+            tools:text="12"
+            android:gravity="center"
+            android:background="@drawable/value_box_background"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Endowments Goal -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/label_endowments"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/label_endowments"
+            android:textAppearance="?attr/textAppearanceBody2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/value_endowments_goal"/>
+
+        <EditText
+            android:id="@+id/value_endowments_goal"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:text="0"
+            tools:text="8"
+            android:gravity="center"
+            android:background="@drawable/value_box_background"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Sealings Goal -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/label_sealings"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/label_sealings"
+            android:textAppearance="?attr/textAppearanceBody2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/value_sealings_goal"/>
+
+        <EditText
+            android:id="@+id/value_sealings_goal"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:text="0"
+            tools:text="3"
+            android:gravity="center"
+            android:background="@drawable/value_box_background"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+    <!-- Quote Section -->
+    <TextView
+        android:id="@+id/quote_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/temple_goal_quote"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:textStyle="italic"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- ORDINANCE WORKER Section -->
+    <TextView
+        android:id="@+id/ordinance_worker_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/ordinance_worker"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_enable_hours_worked"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/enable_hours_worked_entry"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/description_hours_worked"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/description_hours_worked"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"/>
 
 </LinearLayout>

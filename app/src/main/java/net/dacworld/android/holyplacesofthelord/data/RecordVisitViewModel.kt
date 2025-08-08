@@ -14,6 +14,8 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.flow.first
+import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 
 class RecordVisitViewModel(
     private val application: Application, // For ContentResolver if converting Uri to ByteArray
@@ -21,7 +23,8 @@ class RecordVisitViewModel(
     private val currentVisitId: Long?, // Null if creating a new visit
     private val placeIdArg: String,    // The ID of the Temple/Place
     private val placeNameArg: String,  // The name of the Temple/Place
-    private val placeTypeArg: String   // The type of the Temple/Place (e.g., "T")
+    private val placeTypeArg: String,   // The type of the Temple/Place (e.g., "T")
+    private val userPreferencesManager: UserPreferencesManager
 ) : AndroidViewModel(application) {
 
     private val _isEditing = currentVisitId != null && currentVisitId != 0L
@@ -43,42 +46,69 @@ class RecordVisitViewModel(
 
     init {
         loadInitialData()
-        // TODO: Load isOrdinanceWorker from actual preferences/DataStore if needed
-        // viewModelScope.launch {
-        //     _isOrdinanceWorker.value = settingsRepository.isOrdinanceWorker().first()
-        // }
+        // Observe the preference from UserPreferencesManager
+        viewModelScope.launch {
+            userPreferencesManager.enableHoursWorkedFlow.collect { isEnabled ->
+                // Update the UI state with the new preference value
+                _uiState.value?.let { currentUiState ->
+                    _uiState.postValue(currentUiState.copy(isHoursWorkedEntryEnabled = isEnabled))
+                }
+            }
+        }
     }
 
     private fun loadInitialData() {
-        if (_isEditing && currentVisitId != null) {
-            viewModelScope.launch {
-                // Collect the first emission from the Flow
-                val visit = visitDao.getVisitById(currentVisitId).firstOrNull() // Corrected line
+        viewModelScope.launch {
+            val initialHoursPreference = userPreferencesManager.enableHoursWorkedFlow.first()
+
+            if (_isEditing && currentVisitId != null) {
+                val visit = visitDao.getVisitById(currentVisitId).firstOrNull()
                 if (visit != null) {
-                    _uiState.value = VisitUiState.fromVisitEntity(visit)
+                    _uiState.postValue(
+                        VisitUiState.fromVisitEntity(visit).copy(
+                            isHoursWorkedEntryEnabled = initialHoursPreference
+                        )
+                    )
                 } else {
-                    // Visit not found for editing, or Flow emitted null first.
-                    // Fallback to new visit state with passed args.
-                    _uiState.value = createNewVisitState(placeIdArg, placeNameArg, placeTypeArg)
-                    // Optionally, signal an error or log this situation
-                    // e.g., Log.e("RecordVisitVM", "Visit with ID $currentVisitId not found for editing.")
+                    _uiState.postValue(
+                        createNewVisitState(
+                            placeIdArg,
+                            placeNameArg,
+                            placeTypeArg,
+                            initialHoursPreference // Pass preference
+                        )
+                    )
                 }
+            } else {
+                _uiState.postValue(
+                    createNewVisitState(
+                        placeIdArg,
+                        placeNameArg,
+                        placeTypeArg,
+                        initialHoursPreference // Pass preference
+                    )
+                )
             }
-        } else {
-            // Creating a new visit
-            _uiState.value = createNewVisitState(placeIdArg, placeNameArg, placeTypeArg)
         }
     }
 
 
-    private fun createNewVisitState(placeId: String, placeName: String, placeType: String): VisitUiState {
+    private fun createNewVisitState(
+        placeId: String,
+        placeName: String,
+        placeType: String,
+        isHoursEnabled: Boolean // Accept preference value
+    ): VisitUiState {
         return VisitUiState(
             placeID = placeId,
             holyPlaceName = placeName,
-            visitType = placeType, // Set the 'type' field of the Visit
-            dateVisited = Date(), // Default to current date/time
-            isFavorite = false // Default favorite status
-            // Other fields default to null or 0 as per VisitUiState definition
+            visitType = placeType,
+            dateVisited = Date(),
+            isFavorite = false,
+            // --- SET BASED ON PREFERENCE ---
+            isHoursWorkedEntryEnabled = isHoursEnabled,
+            // If hours are not enabled, ensure shiftHrs is 0 or null from the start
+            shiftHrs = if (isHoursEnabled) 0.0 else null // Or always 0.0 and UI hides it
         )
     }
 
@@ -101,8 +131,11 @@ class RecordVisitViewModel(
     }
 
     fun onHoursWorkedChanged(hoursString: String) {
-        val hours = hoursString.trim().toDoubleOrNull() ?: 0.0
-        _uiState.value = _uiState.value?.copy(shiftHrs = hours)
+        // Only update if the entry is actually enabled based on current state
+        if (_uiState.value?.isHoursWorkedEntryEnabled == true) {
+            val hours = hoursString.trim().toDoubleOrNull() ?: 0.0
+            _uiState.value = _uiState.value?.copy(shiftHrs = hours)
+        }
     }
 
     fun onCommentsChanged(comments: String) {
@@ -164,12 +197,10 @@ class RecordVisitViewModel(
         // Basic validation (example)
         if (currentUiState.holyPlaceName.isBlank() || currentUiState.placeID.isBlank()) {
             _saveResultEvent.value = Event(false)
-            // TODO: Expose more specific error messages to the UI if needed
             return
         }
         if (currentUiState.dateVisited == null) {
             _saveResultEvent.value = Event(false)
-            // TODO: Expose more specific error messages (e.g., "Date cannot be empty")
             return
         }
 
@@ -225,7 +256,9 @@ data class VisitUiState(
     val comments: String? = null,
     val selectedImageUri: Uri? = null,      // Temporary URI from image picker for preview
     val pictureByteArray: ByteArray? = null,// Image data as ByteArray for saving to DB
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val isHoursWorkedEntryEnabled: Boolean = false // Default to false, will be updated from preference
+
 ) {
     // Overriding equals and hashCode is important if this state is used in ways
     // that rely on object equality (e.g., in some LiveData transformations or tests),
@@ -253,6 +286,7 @@ data class VisitUiState(
             if (!pictureByteArray.contentEquals(other.pictureByteArray)) return false
         } else if (other.pictureByteArray != null) return false
         if (isFavorite != other.isFavorite) return false
+        if (isHoursWorkedEntryEnabled != other.isHoursWorkedEntryEnabled) return false
 
         return true
     }
@@ -272,6 +306,7 @@ data class VisitUiState(
         result = 31 * result + (selectedImageUri?.hashCode() ?: 0)
         result = 31 * result + (pictureByteArray?.contentHashCode() ?: 0)
         result = 31 * result + isFavorite.hashCode()
+        result = 31 * result + isHoursWorkedEntryEnabled.hashCode()
         return result
     }
 
@@ -291,7 +326,8 @@ data class VisitUiState(
                 comments = visit.comments,
                 selectedImageUri = null, // No initial URI when loading from DB
                 pictureByteArray = visit.picture, // Load byte array from DB
-                isFavorite = visit.isFavorite
+                isFavorite = visit.isFavorite,
+                isHoursWorkedEntryEnabled = false
             )
         }
     }
@@ -311,7 +347,8 @@ class RecordVisitViewModelFactory(
     private val visitId: Long?,      // Use Long? to indicate optionality
     private val placeId: String,
     private val placeName: String,
-    private val placeType: String
+    private val placeType: String,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RecordVisitViewModel::class.java)) {
@@ -322,7 +359,8 @@ class RecordVisitViewModelFactory(
                 visitId,
                 placeId,
                 placeName,
-                placeType
+                placeType,
+                userPreferencesManager
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

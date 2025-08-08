@@ -131,6 +131,14 @@
     <string name="info_article_link_title">Restoring the pentagram to its proper place</string>
     <string name="version_info_format"><![CDATA[Version %1$s | Data %2$s]]></string>
     <string name="status_unknown">Unknown</string>
+    <string name="description_hours_worked">Enabling this option will allow you to enter the number of hours you worked on a given day when recording a temple visit.</string>
+    <string name="enable_hours_worked_entry">Enable Hours Worked Entry</string>
+    <string name="ordinance_worker">ORDINANCE WORKER</string>
+    <string name="temple_goal_quote">“I urge you to find a way to make an appointment regularly with the Lord–to be in His holy house–then keep that appointment with exactness and joy. I promise you that the Lord will bring the miracles He knows you need as you make sacrifices to serve and worship in His temples.” - President Russell M. Nelson (Oct 2018)</string>
+    <string name="exclude_visits_with_no_ordinances">Exclude Visits with No Ordinances</string>
+    <string name="baptisms_and_or_confirmations">Baptisms and/or Confirmations</string>
+    <string name="annual_temple_goals">ANNUAL TEMPLE GOALS</string>
+    <string name="settings">Settings</string>
 
 
 </resources>
