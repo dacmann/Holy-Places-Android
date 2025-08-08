@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="?android:attr/colorBackground">
+
+    <ImageButton
+        android:id="@+id/button_close_settings_sheet"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:contentDescription="@string/cd_close_sheet"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_gravity="end"
+        app:tint="?attr/colorControlNormal"/>
+
+    <TextView
+        android:id="@+id/settings_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Settings"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/settings_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="This is where your app settings or options will be displayed. You might use Switches, RadioButtons, etc."
+        android:textAppearance="?attr/textAppearanceBody1"/>
+
+    <!-- Example: A Switch for a setting -->
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_example_setting"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Example Setting"
+        android:layout_marginTop="16dp"/>
+
+</LinearLayout>

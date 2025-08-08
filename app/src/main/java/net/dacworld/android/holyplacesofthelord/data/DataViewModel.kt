@@ -89,6 +89,15 @@ class DataViewModel(
     init {
         // Load initial change summary messages when ViewModel is created
         loadCurrentChangeSummary()
+        viewModelScope.launch {
+            userPreferencesManager.xmlVersionFlow.firstOrNull()?.let { persistedVersion -> // This uses your UserPreferencesManager
+                _currentDataVersion.value = persistedVersion
+                Log.d("DataViewModelInit", "Loaded currentDataVersion from Prefs: $persistedVersion")
+            } ?: run {
+                Log.d("DataViewModelInit", "No persisted version found in Prefs for currentDataVersion.")
+            }
+            // ...
+        }
     }
     private fun loadCurrentChangeSummary() {
         viewModelScope.launch {

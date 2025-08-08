@@ -73,4 +73,36 @@
         app:layout_constraintEnd_toEndOf="parent"
     />
 
+    <!-- Info Icon -->
+    <ImageView
+        android:id="@+id/info_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_info_circle_outline"
+        app:tint="@android:color/white"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="16dp"
+        android:contentDescription="@string/cd_info_icon"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/scriptureReference"
+        android:layout_marginTop="24dp"
+        android:layout_marginStart="10dp"/>
+
+    <!-- Settings Icon -->
+    <ImageView
+        android:id="@+id/settings_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_settings_outline"
+        app:tint="@android:color/white"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="16dp"
+        android:contentDescription="@string/cd_settings_icon"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/scriptureReference"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="10dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

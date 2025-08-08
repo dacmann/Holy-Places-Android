@@ -118,5 +118,19 @@
     <string name="title_map_tab">Map</string>
     <string name="filter_type_announced">Announced Temples</string>
     <string name="filter_label_all">All Holy Places</string>
+    <string name="cd_info_icon">Info</string>
+    <string name="cd_settings_icon">Settings</string>
+    <string name="cd_close_sheet">Done</string>
+    <string name="cd_app_logo">Holy Places Logo</string>
+    <string name="cd_profile_picture">Picture of Derek Cordon</string>
+    <string name="info_greetings_text">Greetings! Creating and maintaining this app is a labor of love. I hope it assists and motivates all who use it to frequently visit these Holy Places.</string>
+    <string name="info_contact_intro">Comments or feature suggestions? Please contact me. - Derek</string>
+    <string name="info_contact_me_email">Contact Me</string>
+    <string name="info_faq_button">FAQ</string>
+    <string name="info_logo_explanation">The Holy Places logo contains The Morning Star from the stained glass windows of the Nauvoo Temple. See below article.</string>
+    <string name="info_article_link_title">Restoring the pentagram to its proper place</string>
+    <string name="version_info_format"><![CDATA[Version %1$s | Data %2$s]]></string>
+    <string name="status_unknown">Unknown</string>
+
 
 </resources>

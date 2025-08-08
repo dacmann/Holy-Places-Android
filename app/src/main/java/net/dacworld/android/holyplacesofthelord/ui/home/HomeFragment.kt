@@ -71,7 +71,15 @@ class HomeFragment : Fragment() {
                 }
             }
         }
+        // --- START: ADDED CODE FOR INFO AND SETTINGS ICONS ---
+        binding.infoIcon.setOnClickListener {
+            InfoBottomSheetFragment().show(childFragmentManager, InfoBottomSheetFragment.TAG)
+        }
 
+        binding.settingsIcon.setOnClickListener {   11
+            SettingsBottomSheetFragment().show(childFragmentManager, SettingsBottomSheetFragment.TAG)
+        }
+        // --- END: ADDED CODE FOR INFO AND SETTINGS ICONS ---
     }
 
     private fun showInitialSeedDialog(details: UpdateDetails, onDismiss: () -> Unit) {

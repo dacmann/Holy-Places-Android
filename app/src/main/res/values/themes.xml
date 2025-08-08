@@ -80,11 +80,16 @@
 
     </style>
 
+    <style name="ShapeAppearance.App.CircleImageView" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">15%</item>
+    </style>
+
     <style name="SummaryTableHeader">
         <!-- Common attributes for all header cells -->
         <item name="android:layout_height">wrap_content</item>
         <item name="android:padding">8dp</item>
-        <item name="android:textColor">@android:color/white</item> <!-- Consider ?attr/colorOnPrimary for M3 themes -->
+        <item name="android:textColor">"@color/colorOnSecondary"</item>
 <!--        <item name="android:textStyle">bold</item>-->
         <item name="android:textSize">16sp</item>
         <!-- android:layout_width and android:layout_weight will be set per-cell or by TableLayout -->

@@ -34,9 +34,11 @@ import net.dacworld.android.holyplacesofthelord.databinding.FragmentPlaceDetailB
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.IntentUtils
 import androidx.core.net.toUri
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AlertDialog
+import net.dacworld.android.holyplacesofthelord.util.IntentUtils.openUrl
 import java.net.URLEncoder
 
 class PlaceDetailFragment : Fragment() {
@@ -256,8 +258,9 @@ class PlaceDetailFragment : Fragment() {
         } else {
             moreInfoButton.visibility = View.VISIBLE
             moreInfoButton.setOnClickListener {
-                // Your existing logic from context [1] for opening the URL
-                openUrl(infoLink, getString(R.string.error_no_app_for_info_url))
+                context?.let { ctx -> // Ensure context is not null
+                    IntentUtils.openUrl(ctx, infoLink, getString(R.string.error_no_app_for_info_url))
+                }
             }
             Log.d("PlaceDetailDebug", "More Info button: infoUrl is '$infoLink'. Showing button.")
         }
@@ -343,7 +346,9 @@ class PlaceDetailFragment : Fragment() {
         binding.buttonMoreInfo.setOnClickListener {
             temple.infoUrl?.let { url ->
                 if (url.isNotBlank()) {
-                    openUrl(url, getString(R.string.error_no_app_for_info_url))
+                    context?.let { ctx -> // Ensure context is not null
+                        IntentUtils.openUrl(ctx, url, getString(R.string.error_no_app_for_info_url))
+                    }
                 } else {
                     Toast.makeText(context, getString(R.string.info_url_not_available), Toast.LENGTH_SHORT).show()
                 }
@@ -353,26 +358,15 @@ class PlaceDetailFragment : Fragment() {
         binding.buttonSchedule.setOnClickListener {
             temple.siteUrl?.let { url ->
                 if (url.isNotBlank()) {
-                    openUrl(url, getString(R.string.error_no_app_for_schedule_url))
+                    context?.let { ctx -> // Ensure context is not null
+                        IntentUtils.openUrl(ctx, url, getString(R.string.error_no_app_for_info_url))
+                    }
                 } else {
                     Toast.makeText(context, getString(R.string.schedule_url_not_available), Toast.LENGTH_SHORT).show()
                 }
             } ?: Toast.makeText(context, getString(R.string.schedule_url_not_available), Toast.LENGTH_SHORT).show()
         }
         binding.buttonRecordVisit.isEnabled = true
-    }
-
-    private fun openUrl(urlString: String, noAppErrorMessage: String) {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlString))
-            startActivity(intent)
-        } catch (e: ActivityNotFoundException) {
-            Log.e("PlaceDetailFragment", "ActivityNotFoundException for URL: $urlString", e)
-            Toast.makeText(context, noAppErrorMessage, Toast.LENGTH_LONG).show()
-        } catch (e: Exception) { // Catch other potential exceptions like malformed URL
-            Log.e("PlaceDetailFragment", "Exception opening URL: $urlString", e)
-            Toast.makeText(context, getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show()
-        }
     }
 
     fun isPackageInstalled(packageName: String, packageManager: PackageManager): Boolean {
