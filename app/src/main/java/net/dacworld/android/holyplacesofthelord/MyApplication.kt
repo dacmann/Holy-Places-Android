@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase // Your AppDatabase
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager // Your DataStore manager
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
+import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser // Your XML Parser utility
 import java.io.InputStream
 
@@ -21,6 +22,7 @@ class MyApplication : Application() {
 
     // Make these accessible to the Factory, 'internal' is fine if factory is in same module.
     internal val templeDao: TempleDao by lazy { database.templeDao() }
+    internal val visitDao: VisitDao by lazy { database.visitDao() }
     internal val userPreferencesManager: UserPreferencesManager by lazy {
         UserPreferencesManager.getInstance(this)
     }

@@ -73,18 +73,53 @@ interface VisitDao {
     @Query("SELECT EXISTS(SELECT 1 FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_HOLY_PLACE_NAME} = :holyPlaceName AND ${VisitContract.COLUMN_DATE_VISITED} = :dateVisitedMillis LIMIT 1)")
     suspend fun visitExistsByNameAndDate(holyPlaceName: String, dateVisitedMillis: Long): Boolean
 
+    // --- Goal Progress Queries ---
+
+    /**
+     * Gets the total number of temple visits for a specific year.
+     * If excludeNoOrdinances is true, only counts visits where at least one ordinance was performed.
+     * Assumes 'T' in the 'visit_type' (Visit.type) column indicates a Temple visit.
+     */
+    @Query("""
+    SELECT COUNT(visit_id) FROM visits
+    WHERE year = :year AND ${VisitContract.COLUMN_VISIT_TYPE} = 'T' 
+    AND (:excludeNoOrdinances = 0 OR 
+         (${VisitContract.COLUMN_BAPTISMS} > 0 OR 
+          ${VisitContract.COLUMN_CONFIRMATIONS} > 0 OR 
+          ${VisitContract.COLUMN_INITIATORIES} > 0 OR 
+          ${VisitContract.COLUMN_ENDOWMENTS} > 0 OR 
+          ${VisitContract.COLUMN_SEALINGS} > 0))
+""")
+    fun getTempleVisitsCountForYear(year: String, excludeNoOrdinances: Boolean): Flow<Int>
+
+    /**
+     * Gets the total sum of baptisms for a specific year.
+     * Baptisms are stored as Short?, SUM will handle nulls as 0 in aggregation if other values exist.
+     */
+    @Query("SELECT SUM(${VisitContract.COLUMN_BAPTISMS}) FROM visits WHERE year = :year")
+    fun getTotalBaptismsForYear(year: String): Flow<Int?> // SUM can return null if no rows match
+
+    /**
+     * Gets the total sum of confirmations for a specific year.
+     */
+    @Query("SELECT SUM(${VisitContract.COLUMN_CONFIRMATIONS}) FROM visits WHERE year = :year")
+    fun getTotalConfirmationsForYear(year: String): Flow<Int?>
+
+    /**
+     * Gets the total sum of initiatories for a specific year.
+     */
+    @Query("SELECT SUM(${VisitContract.COLUMN_INITIATORIES}) FROM visits WHERE year = :year")
+    fun getTotalInitiatoriesForYear(year: String): Flow<Int?>
+
+    /**
+     * Gets the total sum of endowments for a specific year.
+     */
+    @Query("SELECT SUM(${VisitContract.COLUMN_ENDOWMENTS}) FROM visits WHERE year = :year")
+    fun getTotalEndowmentsForYear(year: String): Flow<Int?>
+
+    /**
+     * Gets the total sum of sealings for a specific year.
+     */
+    @Query("SELECT SUM(${VisitContract.COLUMN_SEALINGS}) FROM visits WHERE year = :year")
+    fun getTotalSealingsForYear(year: String): Flow<Int?>
 }
-
-
-// Assuming you have VisitContract.kt like this in your model package:
-// package net.dacworld.android.holyplacesofthelord.model
-//
-// object VisitContract {
-//     const val TABLE_NAME = "visits"
-//     const val COLUMN_ID = "visit_id"
-//     const val COLUMN_PLACE_ID = "place_id"
-//     const val COLUMN_DATE_VISITED = "date_visited"
-//     const val COLUMN_IS_FAVORITE = "is_favorite"
-//     const val COLUMN_YEAR = "year"
-//     // ... other column name constants
-// }

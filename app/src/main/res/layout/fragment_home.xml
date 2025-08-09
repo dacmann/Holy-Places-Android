@@ -105,4 +105,112 @@
         android:layout_marginTop="24dp"
         android:layout_marginEnd="10dp" />
 
+    <!-- Goal Progress Section START -->
+    <LinearLayout
+        android:id="@+id/goalProgressContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingTop="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp"
+        android:clipToPadding="false"
+        android:background="#80000000"
+        app:layout_constraintBottom_toTopOf="@id/bottom_inset_spacer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.9"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <View
+            android:id="@+id/preGoalTitleSeparator"
+            android:layout_width="180dp"
+            android:layout_height="1dp"
+            android:background="@android:color/white"
+            android:layout_marginBottom="0dp"/>
+
+        <TextView
+            android:id="@+id/goalProgressTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceSubtitle2"
+            android:textColor="@android:color/white"
+            tools:text="2025 Goal Progress" />
+
+        <View
+            android:id="@+id/postGoalTitleSeparator"
+            android:layout_width="180dp"
+            android:layout_height="1dp"
+            android:background="@android:color/white"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/visitsGoalText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBody1"
+            android:textColor="@android:color/white"
+            tools:text="0 of 12 Visits"
+            android:visibility="gone"
+            tools:visibility="visible"/> <!-- design preview -->
+
+        <TextView
+            android:id="@+id/baptConfGoalText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBody1"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="4dp"
+            tools:text="0 of 20 Bapt/Conf"
+            android:visibility="gone"
+            tools:visibility="visible"/> <!-- design preview -->
+
+        <TextView
+            android:id="@+id/initiatoriesGoalText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBody1"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="4dp"
+            tools:text="0 of 30 Initiatories"
+            android:visibility="gone"
+            tools:visibility="visible"/> <!-- design preview -->
+
+        <TextView
+            android:id="@+id/endowmentsGoalText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBody1"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="4dp"
+            tools:text="0 of 24 Endowments"
+            android:visibility="gone"
+            tools:visibility="visible"/> <!-- design preview -->
+
+        <TextView
+            android:id="@+id/sealingsGoalText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBody1"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="4dp"
+            tools:text="0 of 90 Sealings"
+            android:visibility="gone"
+            tools:visibility="visible"/> <!-- design preview -->
+
+    </LinearLayout>
+    <!-- Goal Progress Section END -->
+    <!-- SPACER VIEW -->
+    <View
+        android:id="@+id/bottom_inset_spacer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
