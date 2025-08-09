@@ -25,6 +25,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
+import net.dacworld.android.holyplacesofthelord.model.Visit
+import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser // Ensure this is imported
@@ -39,6 +41,7 @@ import java.net.URL
 class DataViewModel(
     application: Application,
     private val templeDao: TempleDao,
+    private val visitDao: VisitDao,
     private val userPreferencesManager: UserPreferencesManager
 ) : AndroidViewModel(application) { // Inherit from AndroidViewModel
 
@@ -296,12 +299,28 @@ class DataViewModel(
             val xmlTempleIds = parsedData.temples.map { it.id }.toSet()
             val pictureUpdateTasks = mutableListOf<PictureUpdateTask>()
 
+            val visitsToUpdate = mutableListOf<Visit>()
+
             // --- Metadata Pass ---
             for (xmlTempleFromParser in parsedData.temples) {
+                Log.d("DataViewModel", "Starting metadata pass...")
                 val xmlTemple = xmlTempleFromParser.copy(pictureData = null) // Ensure pictureData is null
                 val existingDbTempleMeta = existingDbTemplesMap[xmlTemple.id]
 
                 if (existingDbTempleMeta != null) { // Temple EXISTS in DB
+                    // +++ START: Visit Name Update - Check and Prepare +++
+                    if (existingDbTempleMeta.name != xmlTemple.name) {
+                        Log.i("DataViewModel", "Temple name change DETECTED for ID ${xmlTemple.id}: From '${existingDbTempleMeta.name}' to '${xmlTemple.name}'")
+                        val affectedVisits = visitDao.getVisitsListForTempleId(xmlTemple.id)
+                        if (affectedVisits.isNotEmpty()) {
+                            Log.d("DataViewModel", "Found ${affectedVisits.size} visits for temple ID ${xmlTemple.id} to update name.")
+                            affectedVisits.forEach { visit ->
+                                val updatedVisit = visit.copy(holyPlaceName = xmlTemple.name)
+                                visitsToUpdate.add(updatedVisit)
+                            }
+                        }
+                    }
+                    // +++ END: Visit Name Update - Check and Prepare +++
                     // Compare metadata (Temple.equals() ignores pictureData).
                     // Also check if pictureUrl itself changed.
                     val metadataFieldsChanged = xmlTemple.copy(pictureUrl = existingDbTempleMeta.pictureUrl) != existingDbTempleMeta
@@ -340,6 +359,13 @@ class DataViewModel(
                     }
                 }
             }
+
+            // +++ START: Visit Name Update - Execution +++
+            if (visitsToUpdate.isNotEmpty()) {
+                val updatedRowCount = visitDao.updateVisits(visitsToUpdate)
+                Log.i("DataViewModel", "Successfully updated $updatedRowCount visit records with new temple names.")
+            }
+            // +++ END: Visit Name Update - Execution +++
 
             // --- Picture Update Pass ---
             if (pictureUpdateTasks.isNotEmpty()) {

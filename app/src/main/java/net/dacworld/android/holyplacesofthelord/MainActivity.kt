@@ -32,7 +32,10 @@ class MainActivity : AppCompatActivity() {
 
     private val dataViewModel: DataViewModel by viewModels {
         val application = application as MyApplication
-        DataViewModelFactory(application, application.templeDao, application.userPreferencesManager)
+        DataViewModelFactory(application,
+            application.templeDao,
+            application.visitDao,
+            application.userPreferencesManager)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

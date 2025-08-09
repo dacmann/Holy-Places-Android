@@ -31,6 +31,10 @@ interface VisitDao {
     @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_PLACE_ID} = :templeId ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
     fun getVisitsForTemple(templeId: String): Flow<List<Visit>>
 
+    // NEW: Suspend function to get a list of visits for a specific Temple ID (for background processing)
+    @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_PLACE_ID} = :templeId")
+    suspend fun getVisitsListForTempleId(templeId: String): List<Visit>
+
     // Get favorite visits
     @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_IS_FAVORITE} = 1 ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
     fun getFavoriteVisits(): Flow<List<Visit>>
@@ -46,6 +50,10 @@ interface VisitDao {
 
     @Update
     suspend fun updateVisit(visit: Visit)
+    // NEW: Suspend function to update a list of visits (batch update)
+    @Update
+    suspend fun updateVisits(visits: List<Visit>): Int // Returns number of rows updated
+
 
     // --- Delete Operations ---
 
@@ -72,6 +80,19 @@ interface VisitDao {
      */
     @Query("SELECT EXISTS(SELECT 1 FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_HOLY_PLACE_NAME} = :holyPlaceName AND ${VisitContract.COLUMN_DATE_VISITED} = :dateVisitedMillis LIMIT 1)")
     suspend fun visitExistsByNameAndDate(holyPlaceName: String, dateVisitedMillis: Long): Boolean
+
+    /**
+     * Checks if a visit exists for a given holy place name on a specific calendar day.
+     * @param holyPlaceName The name of the holy place.
+     * @param startOfDayMillis The millisecond timestamp for the beginning of the day (e.g., 00:00:00.000).
+     * @param endOfDayMillis The millisecond timestamp for the beginning of the NEXT day (exclusive upper bound).
+     * @return True if a visit exists within that day range, false otherwise.
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM ${VisitContract.TABLE_NAME} WHERE " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME} = :holyPlaceName AND " +
+            "${VisitContract.COLUMN_DATE_VISITED} >= :startOfDayMillis AND " +
+            "${VisitContract.COLUMN_DATE_VISITED} < :endOfDayMillis LIMIT 1)")
+    suspend fun visitExistsByNameAndDayRange(holyPlaceName: String, startOfDayMillis: Long, endOfDayMillis: Long): Boolean
 
     // --- Goal Progress Queries ---
 

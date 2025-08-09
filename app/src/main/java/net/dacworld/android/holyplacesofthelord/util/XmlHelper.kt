@@ -37,6 +37,7 @@ object XmlHelper {
     private const val TAG_TOTAL_VISITS = "TotalVisits"
     private const val TAG_VISITS_COLLECTION = "Visits"
     private const val TAG_VISIT_ITEM = "Visit"
+    private const val TAG_PLACE_ID = "placeID"
     private const val TAG_HOLY_PLACE_NAME = "holyPlace" // From iOS XML
     private const val TAG_TYPE = "type"
     private const val TAG_DATE_VISITED = "dateVisited"
@@ -53,6 +54,7 @@ object XmlHelper {
     // DTO for parsing from XML before converting to Visit entity
     // This helps manage potentially missing fields or different types during parsing
     data class VisitDto(
+        val placeID: String?,
         val holyPlaceName: String?,
         val type: String?,
         val dateVisitedString: String?,
@@ -90,6 +92,8 @@ object XmlHelper {
 
         for (visit in visits) {
             serializer.startTag(ns, TAG_VISIT_ITEM)
+
+            serializer.startTag(ns, TAG_PLACE_ID).text(visit.placeID).endTag(ns, TAG_PLACE_ID)
 
             visit.holyPlaceName?.let { serializer.startTag(ns, TAG_HOLY_PLACE_NAME).text(it).endTag(ns, TAG_HOLY_PLACE_NAME) }
             visit.type?.let { serializer.startTag(ns, TAG_TYPE).text(it).endTag(ns, TAG_TYPE) }
@@ -156,6 +160,7 @@ object XmlHelper {
                             val text = parser.text
                             if (text != null && currentDto != null && currentTag != null) {
                                 when (currentTag) {
+                                    TAG_PLACE_ID -> currentDto.placeID = text.trim()
                                     TAG_HOLY_PLACE_NAME -> currentDto.holyPlaceName = text.trim()
                                     TAG_TYPE -> currentDto.type = text.trim()
                                     TAG_DATE_VISITED -> currentDto.dateVisitedString = text.trim()
@@ -214,6 +219,7 @@ object XmlHelper {
 
     // Mutable temporary holder for parsing a Visit item
     private data class MutableVisitDto(
+        var placeID: String? = null,
         var holyPlaceName: String? = null,
         var type: String? = null,
         var dateVisitedString: String? = null,
@@ -227,7 +233,7 @@ object XmlHelper {
         var baptisms: Short? = null
     ) {
         fun toVisitDto() = VisitDto(
-            holyPlaceName, type, dateVisitedString, comments, isFavorite,
+            placeID,holyPlaceName, type, dateVisitedString, comments, isFavorite,
             hoursWorked, sealings, endowments, initiatories, confirmations, baptisms
         )
     }

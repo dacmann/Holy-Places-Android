@@ -42,7 +42,7 @@ class HomeFragment : Fragment() {
     // Access the shared DataViewModel
     private val dataViewModel: DataViewModel by activityViewModels {
         val application = requireActivity().application as MyApplication
-        DataViewModelFactory(application,application.templeDao, application.userPreferencesManager)
+        DataViewModelFactory(application,application.templeDao, application.visitDao,application.userPreferencesManager)
     }
 
     // Flag to manage if the initial seed dialog is currently being shown by this fragment

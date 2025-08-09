@@ -48,7 +48,7 @@ class PlaceDetailFragment : Fragment() {
 
     private val dataViewModel: DataViewModel by activityViewModels {
         val application = requireActivity().application as MyApplication
-        DataViewModelFactory(application, application.templeDao, application.userPreferencesManager)
+        DataViewModelFactory(application, application.templeDao, application.visitDao,application.userPreferencesManager)
     }
 
     private val args: PlaceDetailFragmentArgs by navArgs()

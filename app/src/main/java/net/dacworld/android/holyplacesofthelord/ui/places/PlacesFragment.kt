@@ -72,7 +72,7 @@ class PlacesFragment : Fragment() {
     // Provide the factory to activityViewModels
     private val dataViewModel: DataViewModel by activityViewModels {
         val application = requireActivity().application as MyApplication
-        DataViewModelFactory(application,application.templeDao, application.userPreferencesManager)
+        DataViewModelFactory(application,application.templeDao, application.visitDao,application.userPreferencesManager)
     }
     private val sharedOptionsViewModel: SharedOptionsViewModel by activityViewModels {
         val application = requireActivity().application as MyApplication // Get UPM from Application

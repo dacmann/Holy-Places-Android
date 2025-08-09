@@ -43,6 +43,28 @@ interface TempleDao {
     @Query("SELECT temple_id FROM temples WHERE name = :name LIMIT 1")
     suspend fun getTempleIdByName(name: String): String?
 
+    // <<< START: ADDITIONS FOR ExportImportViewModel >>>
+    /**
+     * Fetches a single temple by its ID.
+     * Intended for one-shot synchronous fetching (within a coroutine), e.g., during data import.
+     * This version selects all columns, including pictureData if available and needed.
+     * If pictureData is not strictly needed for this operation, consider creating a variant
+     * that excludes it for performance, similar to getAllTemplesForSyncOrList.
+     * For current ExportImportViewModel usage, the full Temple object is convenient.
+     */
+    @Query("SELECT * FROM temples WHERE temple_id = :id")
+    suspend fun getTempleByIdForSync(id: String): Temple?
+
+    /**
+     * Fetches a single temple by its exact name.
+     * Intended for one-shot synchronous fetching (within a coroutine), e.g., as a fallback during data import.
+     * Returns the full Temple object.
+     * Ensure that 'name' has a unique constraint or be aware this will fetch the first match if names are not unique.
+     */
+    @Query("SELECT * FROM temples WHERE name = :name LIMIT 1")
+    suspend fun getTempleByNameForSync(name: String): Temple?
+    // <<< END: ADDITIONS FOR ExportImportViewModel >>>
+
     /**
      * Inserts a temple. If the Temple object has pictureData, it will be written.
      * During initial sync from XML, pictureData should be null.
