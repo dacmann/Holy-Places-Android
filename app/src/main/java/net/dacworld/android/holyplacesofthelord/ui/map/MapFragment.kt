@@ -259,13 +259,30 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
                 Expression.stop(Expression.literal("A"), Expression.literal("announced_pin_icon"))  // If type is "A", use "purple_pin_icon"
                 // Add more stops if you have more types and corresponding icons
             )
+
+            // Define the icon size based on zoom level
+            val iconSizeExpression = Expression.interpolate(
+                Expression.linear(), // Type of interpolation
+                Expression.zoom(),   // Input for interpolation is the current zoom level
+                // Define zoom stops and corresponding icon sizes.
+                // You'll need to adjust these values to your preference.
+                // Format: Expression.stop(zoomLevel, iconSizeMultiplier)
+                Expression.stop(1.0f, 0.1f),  // Zoomed out: very small icons
+                Expression.stop(3.0f, 0.15f),   //
+                Expression.stop(5.0f, 0.2f),  //
+                Expression.stop(8.0f, 0.25f),   // Original size around this zoom level
+                Expression.stop(12.0f, 0.3f), //
+                Expression.stop(15.0f, 0.35f),  // Zoomed in: larger icons
+                Expression.stop(18.0f, 0.4f)  // Very zoomed in: even larger
+            )
+
             Log.d(FRAGMENT_TAG, "Icon image expression created: ${iconImageExpression.toArray()}")
             val symbolLayer = SymbolLayer(SYMBOL_LAYER_ID, GEOJSON_SOURCE_ID)
                 .withProperties(
                     PropertyFactory.iconImage(iconImageExpression),
                     PropertyFactory.iconAllowOverlap(true),
                     PropertyFactory.iconIgnorePlacement(true),
-                    PropertyFactory.iconSize(Expression.literal(0.25f))
+                    PropertyFactory.iconSize(iconSizeExpression)
                 )
             style.addLayer(symbolLayer)
             Log.d(FRAGMENT_TAG, "SymbolLayer '$SYMBOL_LAYER_ID' added with dynamic icon color based on ColorUtils codes.")

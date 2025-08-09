@@ -1,6 +1,6 @@
 <!-- res/layout/custom_map_info_window.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="150dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/info_window_background"
@@ -8,6 +8,7 @@
     android:paddingBottom="10dp"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
+    android:maxWidth="150dp"
     android:elevation="4dp">
 
     <TextView

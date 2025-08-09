@@ -12,13 +12,6 @@
     -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!--
- Optional: For apps targeting Android 10 (API level 29) or higher,
-         if you need location access in the background.
-         You'll also need to follow specific guidelines for background location.
-    -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <uses-permission android:name="android.permission.INTERNET" />
