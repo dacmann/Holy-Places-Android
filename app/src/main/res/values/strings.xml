@@ -139,6 +139,8 @@
     <string name="baptisms_and_or_confirmations">Baptisms and/or Confirmations</string>
     <string name="annual_temple_goals">ANNUAL TEMPLE GOALS</string>
     <string name="settings">Settings</string>
+    <string name="intent_utils_no_email_app_found">No email app found!</string>
+    <string name="intent_utils_could_not_open_email">Could not open email, please try again.</string>
 
 
 </resources>

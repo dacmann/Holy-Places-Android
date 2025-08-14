@@ -102,12 +102,9 @@ class PlaceDetailFragment : Fragment() {
 
             if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
                 Log.d("PlaceDetailFragmentInsets", "App's BottomNavView found: Height=${appBottomNavView.height}, Visible=true")
-                // If your app's BottomNav is visible and taller than the system's nav bar,
-                // or if the system nav bar is very small (common in gesture mode),
-                // then the app's BottomNav height is likely the one to use as the primary navigation height.
-                if (effectiveNavHeight < appBottomNavView.height) {
+                if (effectiveNavHeight < appBottomNavView.height && imeInsets.bottom == 0) { // Only use app's bottom nav if IME is not visible
                     effectiveNavHeight = appBottomNavView.height
-                    Log.d("PlaceDetailFragmentInsets", "Using App's BottomNavView height ($effectiveNavHeight) as effectiveNavHeight")
+                    Log.d("PlaceDetailFragmentInsets", "Using App's BottomNavView height ($effectiveNavHeight) as effectiveNavHeight (IME not visible)")
                 }
             } else {
                 Log.d("PlaceDetailFragmentInsets", "App's BottomNavView not found or not visible.")
@@ -119,10 +116,11 @@ class PlaceDetailFragment : Fragment() {
 
             Log.d("PlaceDetailFragmentInsets", "IME.bottom: ${imeInsets.bottom}, EffectiveNavHeight: $effectiveNavHeight, Final desiredBottomPadding: $desiredBottomPadding")
 
-            v.updatePadding(
-                left = systemBarsForSides.left,
-                right = systemBarsForSides.right,
-                bottom = desiredBottomPadding
+            v.setPadding(
+                systemBarsForSides.left,
+                0,
+                systemBarsForSides.right,
+                desiredBottomPadding
                 // Top padding is not modified here, assuming AppBarLayout handles it
             )
 

@@ -64,6 +64,8 @@ import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.dataStore
 
+private const val METERS_IN_ONE_MILE = 1609.34
+
 class PlacesFragment : Fragment() {
 
     private var _binding: FragmentPlacesBinding? = null
@@ -181,7 +183,6 @@ class PlacesFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     dataViewModel.isLoading,
-                    // IMPORTANT CHANGE HERE: Use displayedListItems from SharedOptionsViewModel's UiState
                     sharedOptionsViewModel.uiState.map { it.displayedListItems }.distinctUntilChanged(),
                     sharedOptionsViewModel.uiState.map { it.currentSort }.distinctUntilChanged(),
                     sharedOptionsViewModel.uiState.map { it.currentFilter }.distinctUntilChanged(),
@@ -195,14 +196,39 @@ class PlacesFragment : Fragment() {
                     Log.d("PlacesFragment_Scroll", "Combine triggered. PrevSort: $previousSort, PrevFilter: $previousFilter, isInitialLoad: $isInitialLoad, query: '$searchQuery'")
                     Log.d("PlacesFragment_Combine", "Combine: isLoading=$isLoading, displayItemsCount=${displayItemsFromOptionsVM.size}, sort=$currentSort, filter=$currentFilter, query='$searchQuery'")
 
+                    // ****** START OF NEW/MODIFIED CODE FOR DISTANCE ******
+                    val itemsWithDistanceIfNeeded = if (currentSort == PlaceSort.NEAREST) {
+                        displayItemsFromOptionsVM.map { item ->
+                            if (item is DisplayListItem.TempleRowItem) {
+                                val distanceInMeters = item.temple.distance // Assumes this is in METERS
+                                if (distanceInMeters != null && distanceInMeters >= 0) { // Allow 0 distance
+                                    val distanceInMiles = distanceInMeters / METERS_IN_ONE_MILE
+                                    val distanceString = String.format("%.1f mi. - ", distanceInMiles)
+                                    item.copy(
+                                        temple = item.temple.copy(
+                                            snippet = distanceString + (item.temple.snippet ?: "")
+                                        )
+                                    )
+                                } else {
+                                    item // No valid distance, return item as is
+                                }
+                            } else {
+                                item // Keep HeaderItem as is
+                            }
+                        }
+                    } else {
+                        displayItemsFromOptionsVM // No change if not NEAREST sort
+                    }
+                    // ****** END OF NEW/MODIFIED CODE FOR DISTANCE ******
+
                     val searchFilteredDisplayItems = if (searchQuery.isBlank()) {
-                        displayItemsFromOptionsVM
+                        itemsWithDistanceIfNeeded
                     } else {
                         val filteredItems = mutableListOf<DisplayListItem>()
                         var currentHeader: DisplayListItem.HeaderItem? = null
                         val itemsUnderCurrentHeader = mutableListOf<DisplayListItem.TempleRowItem>()
 
-                        for (item in displayItemsFromOptionsVM) {
+                        for (item in itemsWithDistanceIfNeeded) {
                             if (item is DisplayListItem.HeaderItem) {
                                 if (currentHeader != null && itemsUnderCurrentHeader.isNotEmpty()) {
                                     filteredItems.add(currentHeader.copy(count = itemsUnderCurrentHeader.size)) // Update count
@@ -225,8 +251,8 @@ class PlacesFragment : Fragment() {
                             filteredItems.addAll(itemsUnderCurrentHeader)
                         }
                         // If no headers were involved (e.g. NEAREST sort), simple filter:
-                        if (displayItemsFromOptionsVM.all { it is DisplayListItem.TempleRowItem } && filteredItems.isEmpty() && displayItemsFromOptionsVM.isNotEmpty()){
-                            displayItemsFromOptionsVM.filter { listItem ->
+                        if (itemsWithDistanceIfNeeded.all { it is DisplayListItem.TempleRowItem } && filteredItems.isEmpty() && displayItemsFromOptionsVM.isNotEmpty()){
+                            itemsWithDistanceIfNeeded.filter { listItem ->
                                 (listItem as? DisplayListItem.TempleRowItem)?.temple?.let { temple ->
                                     temple.name.contains(searchQuery, ignoreCase = true) ||
                                             temple.snippet.contains(searchQuery, ignoreCase = true) ||

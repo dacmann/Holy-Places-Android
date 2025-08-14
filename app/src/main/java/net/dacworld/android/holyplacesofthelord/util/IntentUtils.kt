@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import android.util.Log // Add this if you want logging within the utility
+import net.dacworld.android.holyplacesofthelord.R
 
 object IntentUtils {
 
@@ -40,14 +41,14 @@ object IntentUtils {
             if (intent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(Intent.createChooser(intent, chooserTitle))
             } else {
-                Toast.makeText(context, "No email app found.", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, context.getString(R.string.intent_utils_no_email_app_found), Toast.LENGTH_LONG).show()
             }
         } catch (e: ActivityNotFoundException) {
             Log.e("IntentUtils", "ActivityNotFoundException for email to: $emailAddress", e)
-            Toast.makeText(context, "No email app found.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.intent_utils_no_email_app_found), Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Log.e("IntentUtils", "Exception opening email for $emailAddress", e)
-            Toast.makeText(context, "Could not open email. Please try again.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.intent_utils_could_not_open_email), Toast.LENGTH_LONG).show()
         }
     }
 }

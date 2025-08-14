@@ -85,14 +85,6 @@ class VisitDetailFragment : Fragment() {
         }
     }
 
-    // In VisitDetailFragment.kt
-
-    // In VisitDetailFragment.kt
-
-
-
-    // In VisitDetailFragment.kt
-
     private fun setupInsetHandling() {
         Log.d("VisitDetailInsets", "setupInsetHandling: Initializing.")
 
@@ -118,12 +110,7 @@ class VisitDetailFragment : Fragment() {
 
 
         // --- Bottom Inset Handling for the main content area ---
-        // Make sure 'viewToPadBottom' is the correct view that needs to avoid the nav bar/IME.
-        // If your scrollable content is inside NestedScrollView, use that.
-        // If the entire root container needs this padding, then visitDetailRootContainer is fine.
-        val viewToPadBottom = binding.visitDetailRootContainer // CURRENTLY: binding.visitDetailRootContainer
-        // CONSIDER if binding.visitDetailNestedScrollView is more appropriate
-
+        val viewToPadBottom = binding.visitDetailRootContainer
         Log.d("VisitDetailInsets", "setupInsetHandling: Setting up listener for ${viewToPadBottom.javaClass.simpleName} (ID: ${viewToPadBottom.id}) for bottom insets.")
         ViewCompat.setOnApplyWindowInsetsListener(viewToPadBottom) { v, windowInsets ->
             Log.d("VisitDetailInsets", "setupInsetHandling: ${viewToPadBottom.javaClass.simpleName} (ID: ${v.id}) listener CALLED.")
@@ -142,13 +129,7 @@ class VisitDetailFragment : Fragment() {
             }
 
             // --- Logic to consider app's BottomNavigationView height (from your original setupBottomInsetHandling) ---
-            // This logic was present in your setupBottomInsetHandling. If RecordVisitFragment
-            // also has similar logic for its bottom padding, ensure it's replicated here.
-            // If RecordVisitFragment does NOT have this specific BottomNavView check, then for strict
-            // replication, you might omit this or ensure its conditions are met appropriately.
-
             val activityRootView = requireActivity().window.decorView
-            // IMPORTANT: Ensure R.id.main_bottom_navigation is the correct ID from your Activity's layout
             val appBottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
 
             if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
@@ -166,21 +147,17 @@ class VisitDetailFragment : Fragment() {
 
             v.updatePadding(
                 left = v.paddingLeft,
-                top = v.paddingTop,
+                top = 0,
                 right = v.paddingRight,
-                bottom = desiredBottomPadding // Apply the calculated bottom padding
+                bottom = desiredBottomPadding
             )
             Log.d("VisitDetailInsets", "setupInsetHandling: ${viewToPadBottom.javaClass.simpleName} - Applied padding. View's paddingBottom: ${v.paddingBottom}")
 
-            // Return the original 'windowInsets' to allow propagation if needed,
-            // mirroring RecordVisitFragment's content view listener.
             windowInsets
         }
         Log.d("VisitDetailInsets", "setupInsetHandling: Listener for ${viewToPadBottom.javaClass.simpleName} (ID: ${viewToPadBottom.id}) SET UP.")
 
         // Requesting initial insets if views might not be attached yet.
-        // This can be helpful but isn't always strictly necessary if listeners are set early.
-        // Check if RecordVisitFragment does this for its content view.
         if (binding.visitDetailAppBarLayout.isAttachedToWindow) {
             ViewCompat.requestApplyInsets(binding.visitDetailAppBarLayout)
         } else {

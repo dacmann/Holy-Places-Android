@@ -17,6 +17,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.google.gson.JsonObject // For feature properties
 import net.dacworld.android.holyplacesofthelord.R
+import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
 import net.dacworld.android.holyplacesofthelord.data.MapViewModelFactory
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentMapBinding
 import net.dacworld.android.holyplacesofthelord.data.MapPlace
@@ -45,6 +46,8 @@ import android.view.MenuItem
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 
 class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListener, MenuProvider {
 
@@ -118,6 +121,45 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         Log.d(FRAGMENT_TAG, "onCreateMenu for MapFragment")
         menuInflater.inflate(R.menu.menu_map_toolbar, menu)
+        applyColorsToMenuItems(menu)
+    }
+
+    private fun applyColorsToMenuItems(menu: Menu) {
+        // Map menu item IDs to their corresponding PlaceFilter enum constant
+        // This determines which displayName and customColorRes to use for the menu item text
+        val menuItemToPlaceFilterMap = mapOf(
+            R.id.filter_type_all to PlaceFilter.HOLY_PLACES,
+            R.id.filter_type_active_temples to PlaceFilter.ACTIVE_TEMPLES,
+            R.id.filter_type_historical_sites to PlaceFilter.HISTORICAL_SITES,
+            R.id.filter_type_visitors_centers to PlaceFilter.VISITORS_CENTERS,
+            R.id.filter_type_under_construction to PlaceFilter.TEMPLES_UNDER_CONSTRUCTION,
+            R.id.filter_type_announced to PlaceFilter.ANNOUNCED_TEMPLES
+        )
+
+        for (i in 0 until menu.size()) {
+            val menuItem = menu.getItem(i)
+            val placeFilterForMenuItem = menuItemToPlaceFilterMap[menuItem.itemId]
+
+            if (placeFilterForMenuItem != null && placeFilterForMenuItem.customColorRes != null) {
+                try {
+                    val colorInt = ContextCompat.getColor(requireContext(), placeFilterForMenuItem.customColorRes!!) // Non-null asserted due to check
+                    val title = placeFilterForMenuItem.displayName // Use displayName from PlaceFilter
+                    val spannableString = SpannableString(title)
+                    spannableString.setSpan(
+                        ForegroundColorSpan(colorInt),
+                        0,
+                        title.length,
+                        SpannableString.SPAN_INCLUSIVE_INCLUSIVE
+                    )
+                    menuItem.title = spannableString // Set the styled title
+                    Log.d(FRAGMENT_TAG, "Applied color to menu item: '${menuItem.title}', Enum: ${placeFilterForMenuItem.name}")
+                } catch (e: Exception) {
+                    Log.e(FRAGMENT_TAG, "Error applying color to menu item (ID: ${menuItem.itemId}): ${e.message}", e)
+                }
+            } else if (menuItem.hasSubMenu()) { // Recursively apply to submenus if any
+                menuItem.subMenu?.let { applyColorsToMenuItems(it) }
+            }
+        }
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {

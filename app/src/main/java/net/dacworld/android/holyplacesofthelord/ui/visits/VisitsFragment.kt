@@ -38,6 +38,9 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.color.MaterialColors
 import net.dacworld.android.holyplacesofthelord.data.VisitDisplayListItem
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
+import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
 
 class VisitsFragment : Fragment() {
 
@@ -317,6 +320,51 @@ class VisitsFragment : Fragment() {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                 // Add menu items here
                 menuInflater.inflate(R.menu.menu_visits_toolbar, menu)
+                applyMenuTextAndColorsFromPlaceFilter(menu.findItem(R.id.action_filter_visits_submenu)?.subMenu)
+            }
+
+            // Map MenuItem IDs to the corresponding PlaceFilter enum constant
+            // This determines which PlaceFilter.displayName and PlaceFilter.customColorRes to use
+            private val menuItemToPlaceFilterMapForVisits: Map<Int, PlaceFilter> by lazy {
+                mapOf(
+                    // CORRECTED IDs for the filter items:
+                    R.id.filter_type_all to PlaceFilter.HOLY_PLACES, // Or PlaceFilter.HOLY_PLACES based on desired text
+                    R.id.filter_type_active_temples to PlaceFilter.ACTIVE_TEMPLES,
+                    R.id.filter_type_historical_sites to PlaceFilter.HISTORICAL_SITES,
+                    R.id.filter_type_under_construction to PlaceFilter.TEMPLES_UNDER_CONSTRUCTION,
+                    R.id.filter_type_visitors_centers to PlaceFilter.VISITORS_CENTERS
+                    // Announced Temples are not included in this menu as per your requirement
+                )
+            }
+
+            private fun applyMenuTextAndColorsFromPlaceFilter(subMenu: Menu?) {
+                if (subMenu == null) return
+                for (i in 0 until subMenu.size()) {
+                    val menuItem = subMenu.getItem(i)
+                    val placeFilterForMenuItem = menuItemToPlaceFilterMapForVisits[menuItem.itemId]
+
+                    if (placeFilterForMenuItem != null && placeFilterForMenuItem.customColorRes != null) {
+                        try {
+                            val colorInt = ContextCompat.getColor(requireContext(), placeFilterForMenuItem.customColorRes!!) // Non-null asserted due to check
+                            val title = placeFilterForMenuItem.displayName // Use displayName from PlaceFilter
+                            val spannableString = SpannableString(title)
+                            spannableString.setSpan(
+                                ForegroundColorSpan(colorInt),
+                                0,
+                                title.length,
+                                SpannableString.SPAN_INCLUSIVE_INCLUSIVE
+                            )
+                            menuItem.title = spannableString // Set the styled title
+                            Log.d("VisitsFragmentMenu", "Applied PlaceFilter text/color to menu item: '${menuItem.title}', Enum: ${placeFilterForMenuItem.name}")
+                        } catch (e: Exception) {
+                            Log.e("VisitsFragmentMenu", "Error applying PlaceFilter style to menu item (ID: ${menuItem.itemId}): ${e.message}", e)
+                        }
+                    } else if (placeFilterForMenuItem != null) {
+                        // If color is null but PlaceFilter is mapped, still set the displayName
+                        menuItem.title = placeFilterForMenuItem.displayName
+                        Log.d("VisitsFragmentMenu", "Applied PlaceFilter text (no color) to menu item: '${menuItem.title}', Enum: ${placeFilterForMenuItem.name}")
+                    }
+                }
             }
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
