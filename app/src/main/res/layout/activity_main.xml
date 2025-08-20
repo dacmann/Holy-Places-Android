@@ -22,7 +22,6 @@
         android:id="@+id/main_bottom_navigation"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:fitsSystemWindows="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -34,5 +33,5 @@
         app:itemBackground="@android:color/transparent"
         app:itemRippleColor="@android:color/transparent"
         android:background="@color/app_colorSurface" />
-
+    <!-- android:fitsSystemWindows="true" -->
 </androidx.constraintlayout.widget.ConstraintLayout>

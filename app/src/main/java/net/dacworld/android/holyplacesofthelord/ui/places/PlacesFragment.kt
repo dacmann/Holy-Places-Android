@@ -63,6 +63,10 @@ import net.dacworld.android.holyplacesofthelord.model.PlaceSort
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.dataStore
+import android.content.Context // << ADD THIS IMPORT if not present
+import android.view.inputmethod.InputMethodManager // << ADD THIS IMPORT
+import net.dacworld.android.holyplacesofthelord.MainActivity
+import androidx.core.graphics.Insets
 
 private const val METERS_IN_ONE_MILE = 1609.34
 
@@ -118,6 +122,9 @@ class PlacesFragment : Fragment() {
         // --- END NEW ---
     }
 
+    // Define a consistent TAG for logging from this fragment
+    private val TAG = "PlacesFragment_Keyboard"
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -156,26 +163,128 @@ class PlacesFragment : Fragment() {
         setupToolbar()
         setupSearchViewListeners()
 
-        placeAdapter = PlaceDisplayAdapter { temple -> // Or templeAdapter if that's the variable name
-            // Your existing click logic
+        placeAdapter = PlaceDisplayAdapter { temple ->
+            // Your existing click logic...
             Log.d("PlacesFragment", "Temple clicked: ${temple.name}, ID: ${temple.id}")
-            navigationViewModel.requestNavigationToPlaceDetail(temple.id) // Example from your code
+            val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            val currentFocus = activity?.currentFocus
+            if (currentFocus != null) {
+                imm?.hideSoftInputFromWindow(currentFocus.windowToken, 0)
+            } else {
+                imm?.hideSoftInputFromWindow(view.windowToken, 0)
+            }
+            navigationViewModel.requestNavigationToPlaceDetail(temple.id)
         }
         binding.placesRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = placeAdapter // Assign the correct adapter instance
-            // Add DividerItemDecoration if needed, but be mindful of headers.
-            // You might want a custom decoration that skips drawing dividers for header items.
-            if (itemDecorationCount == 0) { // Add decoration only once
+            adapter = placeAdapter
+            if (itemDecorationCount == 0) {
                 addItemDecoration(DividerItemDecoration(requireContext(), LinearLayoutManager.VERTICAL))
             }
         }
 
-        // --- SETUP FOR THE NEW TEXTVIEW OPTIONS "BUTTON" ---
-        binding.textViewOptions.setOnClickListener { // <<--- IMPORTANT: Use the new ID
-            Log.d("PlacesFragment", "Options TextView (styled as button) clicked!")
+        binding.textViewOptions.setOnClickListener { optionsView ->
+            Log.d(TAG, "Options TextView clicked. Attempting to hide keyboard and navigate.")
+            val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            val currentFocus = activity?.currentFocus
+            if (currentFocus != null) {
+                imm?.hideSoftInputFromWindow(currentFocus.windowToken, 0)
+            } else {
+                imm?.hideSoftInputFromWindow(optionsView.windowToken, 0)
+            }
             findNavController().navigate(R.id.action_placesFragment_to_optionsFragment)
         }
+
+        // <<<<<<<<<<<< START: NEW INSET HANDLING CODE FOR PLACESFRAGMENT >>>>>>>>>>>>>>>>
+        // Pad the RecyclerView to avoid the BottomNavigationView and IME.
+        val contentViewToPad = binding.placesRecyclerView // This is your primary scrolling view
+
+        ViewCompat.setOnApplyWindowInsetsListener(contentViewToPad) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+
+            val mainActivity = requireActivity() as? MainActivity
+            // Default to 0 if activity is not MainActivity or height isn't ready
+            val appBottomNavHeight = mainActivity?.getStableBottomNavActualHeight() ?: 0
+
+            // Log with a consistent TAG for this fragment's insets
+            val insetTag = "PlacesFragmentInsets"
+            Log.d(insetTag, "Listener Fired. View ID: ${v.id}")
+            Log.d(insetTag, "SystemBars: T=${systemBars.top}, B=${systemBars.bottom}, L=${systemBars.left}, R=${systemBars.right}")
+            Log.d(insetTag, "NavigationBars (System): B=${navigationBars.bottom}")
+            Log.d(insetTag, "IME: B=${imeInsets.bottom}")
+            Log.d(insetTag, "App BNV Height (from Activity): $appBottomNavHeight")
+            Log.d(insetTag, "View Initial Padding: L=${v.paddingLeft}, T=${v.paddingTop}, R=${v.paddingRight}, B=${v.paddingBottom}")
+
+            val isImeVisible = imeInsets.bottom > 0
+            var desiredBottomPadding = 0
+
+            if (isImeVisible) {
+                desiredBottomPadding = imeInsets.bottom
+                Log.d(insetTag, "IME is visible. DesiredBottomPadding = IME height: $desiredBottomPadding")
+            } else {
+                desiredBottomPadding = appBottomNavHeight
+                Log.d(insetTag, "IME NOT visible. DesiredBottomPadding = App BNV height: $desiredBottomPadding")
+                if (appBottomNavHeight == 0 && navigationBars.bottom > 0) {
+                    Log.w(insetTag, "App BNV height was 0. Using system navigationBars.bottom as fallback: ${navigationBars.bottom}")
+                    desiredBottomPadding = kotlin.math.max(desiredBottomPadding, navigationBars.bottom)
+                }
+            }
+            Log.d(insetTag, "Final Desired Bottom Padding for ${v.id}: $desiredBottomPadding")
+
+            // Apply padding to the RecyclerView
+            // Keep existing left/right/top padding unless explicitly changing them for system bars too.
+            // Assuming your Toolbar handles top insets.
+            v.setPadding(
+                v.paddingLeft,   // Keep existing left padding
+                v.paddingTop,    // Keep existing top padding (assuming toolbar handles status bar)
+                v.paddingRight,  // Keep existing right padding
+                desiredBottomPadding
+            )
+            // If you want RecyclerView to also respect system bar left/right insets for its content:
+            // v.setPadding(systemBars.left, v.paddingTop, systemBars.right, desiredBottomPadding)
+
+            Log.d(insetTag, "View ${v.id} Set Padding: L=${v.paddingLeft}, T=${v.paddingTop}, R=${v.paddingRight}, B=${v.paddingBottom}")
+
+            // --- Inset Consumption ---
+            val consumedInsetsBuilder = WindowInsetsCompat.Builder(insets)
+            var consumedSomething = false
+
+            if (isImeVisible && imeInsets.bottom > 0) {
+                consumedInsetsBuilder.setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE)
+                Log.d(insetTag, "Consumed IME insets.")
+                consumedSomething = true
+            }
+
+            if (!isImeVisible && appBottomNavHeight > 0 && navigationBars.bottom > 0) {
+                // If we padded for the BNV, and that BNV height inherently covers the system nav bar space
+                consumedInsetsBuilder.setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.NONE)
+                Log.d(insetTag, "Consumed NavigationBars insets (App BNV handled this space).")
+                consumedSomething = true
+            }
+
+            if (consumedSomething) {
+                return@setOnApplyWindowInsetsListener consumedInsetsBuilder.build()
+            } else {
+                return@setOnApplyWindowInsetsListener insets
+            }
+        }
+
+        // Request insets to be applied initially for the contentViewToPad
+        if (contentViewToPad.isAttachedToWindow) {
+            ViewCompat.requestApplyInsets(contentViewToPad)
+        } else {
+            contentViewToPad.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    v.removeOnAttachStateChangeListener(this)
+                    ViewCompat.requestApplyInsets(v)
+                }
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+        }
+        Log.d("PlacesFragmentInsets", "Finished setting up NEW inset handling for PlacesFragment.")
+        // <<<<<<<<<<<< END: NEW INSET HANDLING CODE FOR PLACESFRAGMENT >>>>>>>>>>>>>>>>
 
         // Main observer for UI content (temples, loading state, search filtering)
         // In PlacesFragment.kt - modify the main observer

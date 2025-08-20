@@ -40,6 +40,8 @@ import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AlertDialog
 import net.dacworld.android.holyplacesofthelord.util.IntentUtils.openUrl
 import java.net.URLEncoder
+import androidx.core.graphics.Insets
+import net.dacworld.android.holyplacesofthelord.MainActivity
 
 class PlaceDetailFragment : Fragment() {
 
@@ -88,43 +90,92 @@ class PlaceDetailFragment : Fragment() {
         // THE ONE AND ONLY LISTENER ATTACHMENT
         ViewCompat.setOnApplyWindowInsetsListener(contentViewToPad) { v, insets ->
             // Get specific inset types
-            val systemNavigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars()) // For system's own nav bar
-            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())                     // For the keyboard
-            val systemBarsForSides = insets.getInsets(WindowInsetsCompat.Type.systemBars())     // For L/R padding (e.g., gesture nav)
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars()) // System's own nav bar (gesture, etc.)
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
 
-            // Start with the height of the system's own navigation bar
-            var effectiveNavHeight = systemNavigationBars.bottom
-            Log.d("PlaceDetailFragmentInsets", "Initial systemNavigationBars.bottom: $effectiveNavHeight")
+            val mainActivity = requireActivity() as? MainActivity // Cast to your MainActivity
+            // Get the stable height from MainActivity
+            val appBottomNavHeight = mainActivity?.getStableBottomNavActualHeight() ?: 0
 
-            // Check for your app's BottomNavigationView
-            val activityRootView = requireActivity().window.decorView
-            val appBottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
+            Log.d("PlaceDetailFragmentInsets", "Listener Fired. View ID: ${v.id}")
+            Log.d("PlaceDetailFragmentInsets", "SystemBars Insets: T=${systemBars.top}, L=${systemBars.left}, R=${systemBars.right}, B=${systemBars.bottom}")
+            Log.d("PlaceDetailFragmentInsets", "NavigationBars Insets (System Gesture Nav): B=${navigationBars.bottom}")
+            Log.d("PlaceDetailFragmentInsets", "IME Insets: B=${imeInsets.bottom}")
+            Log.d("PlaceDetailFragmentInsets", "App BottomNav Height (from Activity): $appBottomNavHeight")
+            Log.d("PlaceDetailFragmentInsets", "View Initial Padding: L=${v.paddingLeft}, T=${v.paddingTop}, R=${v.paddingRight}, B=${v.paddingBottom}")
 
-            if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
-                Log.d("PlaceDetailFragmentInsets", "App's BottomNavView found: Height=${appBottomNavView.height}, Visible=true")
-                if (effectiveNavHeight < appBottomNavView.height && imeInsets.bottom == 0) { // Only use app's bottom nav if IME is not visible
-                    effectiveNavHeight = appBottomNavView.height
-                    Log.d("PlaceDetailFragmentInsets", "Using App's BottomNavView height ($effectiveNavHeight) as effectiveNavHeight (IME not visible)")
-                }
+
+            val isImeVisible = imeInsets.bottom > 0
+            var desiredBottomPadding = 0
+
+            if (isImeVisible) {
+                // If IME is visible, it takes precedence.
+                // The padding should be enough to clear the IME.
+                desiredBottomPadding = imeInsets.bottom
+                Log.d("PlaceDetailFragmentInsets", "IME is visible. DesiredBottomPadding = IME height: $desiredBottomPadding")
             } else {
-                Log.d("PlaceDetailFragmentInsets", "App's BottomNavView not found or not visible.")
+                // If IME is NOT visible, content should be padded to clear the app's BottomNavigationView.
+                // The appBottomNavHeight from MainActivity already accounts for the system navigation bar
+                // because the BNV itself is padded by MainActivity's inset listener.
+                desiredBottomPadding = appBottomNavHeight
+                Log.d("PlaceDetailFragmentInsets", "IME NOT visible. DesiredBottomPadding = App BNV height: $desiredBottomPadding")
+
+                // As a fallback, if appBottomNavHeight is 0 (e.g., during initial setup or if BNV is hidden),
+                // ensure at least system navigation bar space is cleared if that's greater.
+                // However, appBottomNavHeight SHOULD be the primary source here.
+                if (appBottomNavHeight == 0 && navigationBars.bottom > 0) {
+                    Log.w("PlaceDetailFragmentInsets", "App BNV height was 0. Using system navigationBars.bottom as fallback for padding: ${navigationBars.bottom}")
+                    desiredBottomPadding = kotlin.math.max(desiredBottomPadding, navigationBars.bottom)
+                }
             }
 
-            // The final bottom padding should be enough for whatever is tallest:
-            // the effective navigation area (system or app's) OR the keyboard.
-            val desiredBottomPadding = kotlin.math.max(effectiveNavHeight, imeInsets.bottom)
+            Log.d("PlaceDetailFragmentInsets", "Final Desired Bottom Padding: $desiredBottomPadding")
 
-            Log.d("PlaceDetailFragmentInsets", "IME.bottom: ${imeInsets.bottom}, EffectiveNavHeight: $effectiveNavHeight, Final desiredBottomPadding: $desiredBottomPadding")
-
+            // Apply padding
+            // TOP PADDING: Set to 0 if your AppBarLayout (containing placeDetailToolbar) handles top insets.
+            // If placeDetailToolbar is inside an AppBarLayout that has fitsSystemWindows=true or its own inset listener,
+            // then top padding for contentViewToPad here should be 0.
             v.setPadding(
-                systemBarsForSides.left,
-                0,
-                systemBarsForSides.right,
+                systemBars.left,
+                0,  // Assuming AppBarLayout handles status bar insets for the toolbar
+                systemBars.right,
                 desiredBottomPadding
-                // Top padding is not modified here, assuming AppBarLayout handles it
             )
+            Log.d("PlaceDetailFragmentInsets", "View Set Padding: L=${v.paddingLeft}, T=${v.paddingTop}, R=${v.paddingRight}, B=${v.paddingBottom}")
 
-            insets // Return inset
+            // --- Inset Consumption ---
+            val consumedInsetsBuilder = WindowInsetsCompat.Builder(insets)
+            var consumedSomething = false
+
+            // Consume IME if it was visible and we padded for it.
+            if (isImeVisible && imeInsets.bottom > 0) {
+                consumedInsetsBuilder.setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE)
+                Log.d("PlaceDetailFragmentInsets", "Consumed IME insets.")
+                consumedSomething = true
+            }
+
+            // Consume navigationBars insets if:
+            // 1. IME is NOT visible (otherwise IME handling takes precedence)
+            // 2. We are padding using appBottomNavHeight (which means the BNV is visible and providing its height)
+            // 3. And navigationBars.bottom > 0 (meaning there's a system nav bar to account for).
+            // The appBottomNavHeight effectively "handles" the navigationBars space because the BNV is above it.
+            if (!isImeVisible && appBottomNavHeight > 0 && navigationBars.bottom > 0) {
+                consumedInsetsBuilder.setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.NONE)
+                Log.d("PlaceDetailFragmentInsets", "Consumed NavigationBars insets (App BNV handled this space).")
+                consumedSomething = true
+            }
+            // Note: We don't need to consume systemBars.left/right/top here if this 'v' is the primary scrolling content
+            // and the AppBar is handling top. If 'v' was a specific child needing only certain parts of systemBars,
+            // consumption logic would be more granular. For this full-screen fragment content, this is typical.
+
+            if (consumedSomething) {
+                return@setOnApplyWindowInsetsListener consumedInsetsBuilder.build()
+            } else {
+                // If we didn't explicitly consume IME or NavigationBars (e.g., both were 0, or BNV was hidden and no IME),
+                // return the original insets. Other views might still need them (e.g., for displayCutout).
+                return@setOnApplyWindowInsetsListener insets
+            }
         }
         // Request insets to be applied initially.
         if (contentViewToPad.isAttachedToWindow) {
