@@ -143,7 +143,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
             if (placeFilterForMenuItem != null && placeFilterForMenuItem.customColorRes != null) {
                 try {
                     val colorInt = ContextCompat.getColor(requireContext(), placeFilterForMenuItem.customColorRes!!) // Non-null asserted due to check
-                    val title = placeFilterForMenuItem.displayName // Use displayName from PlaceFilter
+                    val title = requireContext().getString(placeFilterForMenuItem.displayNameRes)  // Use displayName from PlaceFilter
                     val spannableString = SpannableString(title)
                     spannableString.setSpan(
                         ForegroundColorSpan(colorInt),
@@ -176,7 +176,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
             }
             R.id.filter_type_all -> {
                 // titleText uses the android:title from menu_map_toolbar.xml for this item
-                titleText = getString(R.string.holy_places) // From menu_map_toolbar.xml's title
+                titleText = getString(R.string.filter_label_all) // From menu_map_toolbar.xml's title
                 placeTypeKeyForColor = "ALL_FILTER_TYPE" // Fixed internal key
                 filterToSet = TempleFilterType.ALL
                 Log.d(FRAGMENT_TAG, "Filter selected: All")

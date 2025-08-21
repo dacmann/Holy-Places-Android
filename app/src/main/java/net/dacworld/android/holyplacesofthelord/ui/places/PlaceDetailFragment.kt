@@ -285,7 +285,6 @@ class PlaceDetailFragment : Fragment() {
 
 
         binding.textViewFhCodeDetail.text = temple.fhCode ?: ""
-
         binding.textViewAddressDetail.text = temple.address
         binding.textViewAddressDetail.visibility = if (temple.address.isNullOrBlank()) View.GONE else View.VISIBLE
 
@@ -294,6 +293,7 @@ class PlaceDetailFragment : Fragment() {
 
         binding.textViewCountryDetail.text = temple.country
         binding.textViewCountryDetail.visibility = if (temple.country.isNullOrBlank()) View.GONE else View.VISIBLE
+        // --- End of Address Fields & Click Handling ---
 
         binding.textViewPhoneDetail.text = temple.phone ?: getString(R.string.phone_not_available)
 
@@ -330,16 +330,35 @@ class PlaceDetailFragment : Fragment() {
         // --- End of Conditional Button Text ---
 
         // Make the address clickable for navigation
-        if (temple.latitude != 0.0 || temple.longitude != 0.0) {
-            binding.textViewAddressDetail.setOnClickListener {
-                showNavigationChooser(temple)
-            }
-            Log.d("PlaceDetailFragment", "Address is clickable for navigation for ${temple.name}.")
+        val navigationChooserListener = View.OnClickListener {
+            Log.d("PlaceDetailFragment", "Address field clicked, showing custom navigation chooser for ${temple.name}.")
+            showNavigationChooser(temple) // This is your custom method
+        }
+
+        // Apply to textViewAddressDetail if it has text
+        if (!temple.address.isNullOrBlank()) {
+            binding.textViewAddressDetail.setOnClickListener(navigationChooserListener)
         } else {
             binding.textViewAddressDetail.setOnClickListener(null)
             binding.textViewAddressDetail.isClickable = false
-            Log.d("PlaceDetailFragment", "Address is NOT clickable (invalid lat/long).")
         }
+
+        // Apply to textViewCityStateDetail if it has text
+        if (!temple.cityState.isNullOrBlank()) {
+            binding.textViewCityStateDetail.setOnClickListener(navigationChooserListener)
+        } else {
+            binding.textViewCityStateDetail.setOnClickListener(null)
+            binding.textViewCityStateDetail.isClickable = false
+        }
+
+        // Apply to textViewCountryDetail if it has text
+        if (!temple.country.isNullOrBlank()) {
+            binding.textViewCountryDetail.setOnClickListener(navigationChooserListener)
+        } else {
+            binding.textViewCountryDetail.setOnClickListener(null)
+            binding.textViewCountryDetail.isClickable = false
+        }
+        // --- End of Address Fields & Click Handling ---
 
         // Phone
         val phoneNumber = temple.phone

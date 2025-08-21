@@ -1,5 +1,5 @@
 // summary/SummaryFragment.kt
-package net.dacworld.android.holyplacesofthelord.summary // Or your appropriate package
+package net.dacworld.android.holyplacesofthelord.ui.summary
 
 import android.graphics.Typeface
 import android.os.Bundle
@@ -17,7 +17,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import net.dacworld.android.holyplacesofthelord.R
+import net.dacworld.android.holyplacesofthelord.data.HolyPlaceStat
+import net.dacworld.android.holyplacesofthelord.data.MostVisitedPlaceItem
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentSummaryBinding
+import net.dacworld.android.holyplacesofthelord.data.SummaryViewModel
+import net.dacworld.android.holyplacesofthelord.data.TempleVisitYearStats
 
 class SummaryFragment : Fragment() {
 
@@ -25,6 +29,9 @@ class SummaryFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val summaryViewModel: SummaryViewModel by viewModels()
+
+    private var clickableYearColor: Int = 0
+    private var defaultYearHeaderColor: Int = 0
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,7 +48,11 @@ class SummaryFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        Log.d("Fragment_Lifecycle", "SummaryFragment onViewCreated ENTERED") // Unique, simple tag
         super.onViewCreated(view, savedInstanceState)
+
+        clickableYearColor = ContextCompat.getColor(requireContext(), R.color.brand_primary)
+        defaultYearHeaderColor = ContextCompat.getColor(requireContext(), R.color.brand_primary)
 
         setupInsetHandling()
 
@@ -59,13 +70,44 @@ class SummaryFragment : Fragment() {
         }
 
         // Temple Visits Section - Labels
-        summaryViewModel.currentYearLabel.observe(viewLifecycleOwner) { year ->
-            binding.textViewTVHeaderYearCurrent.text = year
-        }
-        summaryViewModel.previousYearLabel.observe(viewLifecycleOwner) { year ->
-            binding.textViewTVHeaderYearPrevious.text = year
+        summaryViewModel.rightYearHeaderUiLabel.observe(viewLifecycleOwner) { yearLabelText ->
+            Log.d("SummaryFragment_Observe", "rightYearHeaderUiLabel observed: '$yearLabelText'")
+            binding.textViewTVHeaderYearPrevious.text = yearLabelText
+            val isClickable = yearLabelText.endsWith(">")
+            binding.textViewTVHeaderYearPrevious.isClickable = isClickable
+            binding.textViewTVHeaderYearPrevious.setTextColor(if (isClickable) clickableYearColor else defaultYearHeaderColor)
         }
 
+        summaryViewModel.leftYearHeaderUiLabel.observe(viewLifecycleOwner) { yearLabelText ->
+            Log.d("SummaryFragment_Observe", "leftYearHeaderUiLabel observed: '$yearLabelText'")
+            binding.textViewTVHeaderYearCurrent.text = yearLabelText
+            val isClickable = yearLabelText.startsWith("<")
+            binding.textViewTVHeaderYearCurrent.isClickable = isClickable
+            binding.textViewTVHeaderYearCurrent.setTextColor(if (isClickable) clickableYearColor else defaultYearHeaderColor)
+        }
+        // Set click listeners for year navigation
+        binding.textViewTVHeaderYearPrevious.setOnClickListener {
+            Log.d("SummaryFragment_Click", "textViewTVHeaderYearPrevious CLICKED. IsClickable=${binding.textViewTVHeaderYearPrevious.isClickable}")
+            if (binding.textViewTVHeaderYearPrevious.isClickable) {
+                Log.d("SummaryFragment", "Right Year (Previous) Clicked")
+                summaryViewModel.onNavigateRightClicked() // New method in ViewModel
+            }
+        }
+
+        binding.textViewTVHeaderYearCurrent.setOnClickListener {
+            if (binding.textViewTVHeaderYearCurrent.isClickable) {
+                Log.d("SummaryFragment", "Left Year (Current) Clicked")
+                summaryViewModel.onNavigateLeftClicked() // New method in ViewModel
+            }
+        }
+        summaryViewModel.templeVisitPreviousYearStats.observe(viewLifecycleOwner) { stats ->
+            Log.d("SummaryFragment", "Observed stats for RIGHT column: Year ${stats.year}")
+            populateTempleVisitsRow(stats, "previous") // "previous" now refers to the right column's data
+        }
+        summaryViewModel.templeVisitCurrentYearStats.observe(viewLifecycleOwner) { stats ->
+            Log.d("SummaryFragment", "Observed stats for LEFT column: Year ${stats.year}")
+            populateTempleVisitsRow(stats, "current")  // "current" now refers to the left column's data
+        }
         // ---- START: Set Ordinance Name and All Total Text Colors ----
 
         // Unique Temples Row

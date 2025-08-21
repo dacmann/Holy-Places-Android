@@ -1,7 +1,8 @@
 // summary/SummaryViewModel.kt
-package net.dacworld.android.holyplacesofthelord.summary
+package net.dacworld.android.holyplacesofthelord.data
 
 import android.app.Application
+import android.util.Log
 import android.util.Xml
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -64,18 +65,36 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
     private val _holyPlacesStats = MutableLiveData<List<HolyPlaceStat>>()
     val holyPlacesStats: LiveData<List<HolyPlaceStat>> = _holyPlacesStats
 
-    private val _currentYearLabel = MutableLiveData<String>()
-    val currentYearLabel: LiveData<String> = _currentYearLabel
+    // --- START: Year Navigation Enhancements ---
+    // These internal vars will track the actual integer years for the columns
+    private var internalCurrentActualYear: Int = Calendar.getInstance().get(Calendar.YEAR)
+    private var internalLeftColumnYear: Int = internalCurrentActualYear - 1 // Default: year before current
+    private var internalRightColumnYear: Int = internalCurrentActualYear   // Default: current year
 
-    private val _previousYearLabel = MutableLiveData<String>()
-    val previousYearLabel: LiveData<String> = _previousYearLabel
+    // NEW LiveData for the header text labels "<YYYY" or "YYYY>"
+    private val _leftYearHeaderUiLabel = MutableLiveData<String>()
+    val leftYearHeaderUiLabel: LiveData<String> = _leftYearHeaderUiLabel
+
+    private val _rightYearHeaderUiLabel = MutableLiveData<String>()
+    val rightYearHeaderUiLabel: LiveData<String> = _rightYearHeaderUiLabel
+
+    // Your EXISTING LiveData for stats will be REPURPOSED:
+    // _templeVisitPreviousYearStats will show data for internalLeftColumnYear
+    // _templeVisitCurrentYearStats will show data for internalRightColumnYear
+    private val _templeVisitPreviousYearStats = MutableLiveData<TempleVisitYearStats>()
+    val templeVisitPreviousYearStats: LiveData<TempleVisitYearStats> = _templeVisitPreviousYearStats
 
     private val _templeVisitCurrentYearStats = MutableLiveData<TempleVisitYearStats>()
     val templeVisitCurrentYearStats: LiveData<TempleVisitYearStats> = _templeVisitCurrentYearStats
 
-    private val _templeVisitPreviousYearStats = MutableLiveData<TempleVisitYearStats>()
-    val templeVisitPreviousYearStats: LiveData<TempleVisitYearStats> = _templeVisitPreviousYearStats
-
+    // Your existing _currentYearLabel and _previousYearLabel are no longer directly used for header text
+    // but we can leave them if other parts of your app might use them.
+    // For this change, the fragment will observe the new UiLabel LiveData.
+    private val _currentYearLabel = MutableLiveData<String>() // Keep if needed elsewhere
+    val currentYearLabel: LiveData<String> = _currentYearLabel // Keep if needed elsewhere
+    private val _previousYearLabel = MutableLiveData<String>() // Keep if needed elsewhere
+    val previousYearLabel: LiveData<String> = _previousYearLabel // Keep if needed elsewhere
+    // --- END: Year Navigation Enhancements ---
     private val _templeVisitTotalStats = MutableLiveData<TempleVisitYearStats>()
     val templeVisitTotalStats: LiveData<TempleVisitYearStats> = _templeVisitTotalStats
 
@@ -90,9 +109,16 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
         const val TYPE_ANNOUNCED_TEMPLES = "A" // From your colors.xml (t2_announced_temples)
         const val TYPE_UNDER_CONSTRUCTION = "C" // From your colors.xml (t2_under_construction)
         // Add any other types you use and have colors for
+        // Define min year for navigation - adjust as needed based on your data
+        private const val MIN_NAVIGATION_YEAR = 1920 // Example: First year of potential data
+
     }
 
     init {
+        Log.d("SummaryVM", "ViewModel initialized.")
+        val systemYear = Calendar.getInstance().get(Calendar.YEAR)
+        internalLeftColumnYear = systemYear // Set initial state: Left column is current year
+        internalRightColumnYear = systemYear - 1 // Set initial state: Right column is year before current
         loadQuotes()
         loadSummaryData()
     }
@@ -114,6 +140,12 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun loadSummaryData() {
+        Log.d("SummaryVM", "loadSummaryData: Recalculating all summary data.")
+        // Set default years for the columns on a full refresh
+        internalCurrentActualYear = Calendar.getInstance().get(Calendar.YEAR)
+        // This call will set internal years, update UI labels, and trigger stat loading for these years
+        updateDynamicYearDisplayAndLoadStats(internalCurrentActualYear, internalCurrentActualYear - 1)
+
         viewModelScope.launch {
             // Fetch all necessary data
             val allVisits = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExport() }
@@ -122,9 +154,6 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             val totalTemplesCountDeferred = async(Dispatchers.IO) { templeDao.getCountByType(TYPE_TEMPLE) }
             val totalHistoricalCountDeferred = async(Dispatchers.IO) { templeDao.getCountByType(TYPE_HISTORICAL_SITE) }
             val totalVCCountDeferred = async(Dispatchers.IO) { templeDao.getCountByType(TYPE_VISITORS_CENTER) }
-            // Add deferred calls for other types if they are part of the "Holy Places" summary section
-            // For example, if "Announced" or "Under Construction" are also listed there with totals.
-            // If not, these specific totals aren't strictly needed here unless displayed in that section.
 
             // --- Holy Places Section ---
             val visitedPlaceNamesByType = mutableMapOf<String, MutableSet<String>>()
@@ -160,16 +189,8 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
 
             // --- Temple Visits Section (Focuses only on visits where Visit.type == "T") ---
             val calendar = Calendar.getInstance()
-            val currentYear = calendar.get(Calendar.YEAR)
-            val previousYear = currentYear - 1
-
-            _currentYearLabel.postValue(currentYear.toString())
-            _previousYearLabel.postValue(previousYear.toString())
 
             val actualTempleVisits = allVisits.filter { it.type == TYPE_TEMPLE }
-
-            _templeVisitCurrentYearStats.postValue(calculateYearStatsForTemples(actualTempleVisits, currentYear))
-            _templeVisitPreviousYearStats.postValue(calculateYearStatsForTemples(actualTempleVisits, previousYear))
             _templeVisitTotalStats.postValue(calculateYearStatsForTemples(actualTempleVisits, null)) // Overall
 
             // --- Most Visited Section (All place types) ---
@@ -196,7 +217,65 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             _mostVisitedPlaces.postValue(mostVisitedItems)
         }
     }
+    // NEW function to manage dynamic year display and trigger stat loading
+    private fun updateDynamicYearDisplayAndLoadStats(leftYearToDisplay: Int, rightYearToDisplay: Int) {
+        internalLeftColumnYear = leftYearToDisplay     // Example: 2025 (initially)
+        internalRightColumnYear = rightYearToDisplay   // Example: 2024 (initially)
+        val systemYear = Calendar.getInstance().get(Calendar.YEAR)
 
+        Log.d("SummaryVM_Direct", "DATA: LeftUI_Year=$internalLeftColumnYear, RightUI_Year=$internalRightColumnYear")
+
+        var finalLeftText: String
+        var finalRightText: String
+
+        // Case 1: Initial State (e.g., UI should be "2025" and "2024>")
+        if (internalLeftColumnYear == systemYear && internalRightColumnYear == (systemYear - 1)) {
+            finalLeftText = "$internalLeftColumnYear"
+            // Right gets ">" unless it's the absolute min year and can't be part of an older pair by shifting
+            if (internalRightColumnYear == MIN_NAVIGATION_YEAR && internalLeftColumnYear == (MIN_NAVIGATION_YEAR + 1)) {
+                finalRightText = "$internalRightColumnYear" // e.g. Left="1921", Right="1920"
+            } else {
+                finalRightText = "$internalRightColumnYear>" // e.g. Left="2025", Right="2024>"
+            }
+        }
+        // Case 2: Navigated to the oldest possible state (e.g., UI should be "1921" and "1920")
+        else if (internalRightColumnYear == MIN_NAVIGATION_YEAR && internalLeftColumnYear == (MIN_NAVIGATION_YEAR + 1)) {
+            finalLeftText = "$internalLeftColumnYear"
+            finalRightText = "$internalRightColumnYear"
+        }
+        // Case 3: Any other navigated state (e.g., UI should be "<2024" and "2023>")
+        else {
+            finalLeftText = "<$internalLeftColumnYear"
+            finalRightText = "$internalRightColumnYear>"
+        }
+
+        _leftYearHeaderUiLabel.value = finalLeftText
+        _rightYearHeaderUiLabel.value = finalRightText
+        Log.d("SummaryVM_Direct", "LABELS: LeftText='${finalLeftText}', RightText='${finalRightText}'")
+
+        loadStatsForCurrentlyDisplayedYears()
+    }
+
+    // NEW function to load stats for the two columns
+    private fun loadStatsForCurrentlyDisplayedYears() {
+        viewModelScope.launch {
+            // It's efficient to fetch all temple visits once here if this func is called after allVisits is ready
+            // Or, if not, fetch them. For simplicity, let's assume we re-filter or re-fetch.
+            val allTempleVisits = withContext(Dispatchers.IO) {
+                visitDao.getAllVisitsListForExport().filter { it.type == TYPE_TEMPLE }
+            }
+
+            Log.d("SummaryVM", "Loading stats for LEFT column (Year: $internalLeftColumnYear)")
+            _templeVisitCurrentYearStats.postValue( // This LiveData now serves the left dynamic column
+                calculateYearStatsForTemples(allTempleVisits, internalLeftColumnYear)
+            )
+
+            Log.d("SummaryVM", "Loading stats for RIGHT column (Year: $internalRightColumnYear)")
+            _templeVisitPreviousYearStats.postValue( // This LiveData now serves the right dynamic column
+                calculateYearStatsForTemples(allTempleVisits, internalRightColumnYear)
+            )
+        }
+    }
     private fun calculateYearStatsForTemples(
         templeVisits: List<Visit>, // These are already filtered to be Visit.type == "T"
         targetYear: Int?
@@ -209,8 +288,11 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             }())
         }
 
-        if (visitsForYear.isEmpty()) {
-            return TempleVisitYearStats(year = targetYear?.toString() ?: "Total")
+        if (visitsForYear.isEmpty() && targetYear != null) { // If specific year has no visits
+            return TempleVisitYearStats(year = targetYear.toString(), attended = 0, uniqueTemples = 0, hoursWorked = 0.0, sealings = 0, endowments = 0, initiatories = 0, confirmations = 0, baptisms = 0)
+        }
+        if (visitsForYear.isEmpty() && targetYear == null) { // If "Total" has no visits (empty DB)
+            return TempleVisitYearStats(year = "Total", attended = 0, uniqueTemples = 0, hoursWorked = 0.0, sealings = 0, endowments = 0, initiatories = 0, confirmations = 0, baptisms = 0)
         }
 
         val attended = visitsForYear.count() // All visits in this list are to Temples
@@ -235,7 +317,30 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             baptisms = baptisms
         )
     }
-
+    // NEW Navigation Methods
+    fun onNavigateRightClicked() {
+        Log.d("SummaryVM_Navigation", "onNavigateLeftClicked CALLED") // Log method call
+        if (internalRightColumnYear > MIN_NAVIGATION_YEAR) {
+            val newRight = internalRightColumnYear - 1
+            val newLeft = internalRightColumnYear
+            Log.d("SummaryVM", "Navigating right. New years: L=$newLeft, R=$newRight")
+            updateDynamicYearDisplayAndLoadStats(newLeft, newRight)
+        } else {
+            Log.d("SummaryVM", "Cannot navigate further right. At MIN_NAVIGATION_YEAR: $internalRightColumnYear")
+        }
+    }
+    fun onNavigateLeftClicked() {
+        Log.d("SummaryVM_Navigation", "onNavigateRightClicked CALLED") // Log method call
+        val maxNavigableYear = Calendar.getInstance().get(Calendar.YEAR)
+        if (internalLeftColumnYear < maxNavigableYear) { // Ensure left column doesn't exceed current year
+            val newLeft = internalLeftColumnYear + 1
+            val newRight = internalLeftColumnYear
+            Log.d("SummaryVM", "Navigating left. New years: L=$newLeft, R=$newRight")
+            updateDynamicYearDisplayAndLoadStats(newLeft, newRight)
+        } else {
+            Log.d("SummaryVM", "Cannot navigate further left. At max navigable year: $internalLeftColumnYear")
+        }
+    }
     private suspend fun parseQuotesFromXml(): List<String> = withContext(Dispatchers.IO) {
         val quotesList = mutableListOf<String>()
         try {

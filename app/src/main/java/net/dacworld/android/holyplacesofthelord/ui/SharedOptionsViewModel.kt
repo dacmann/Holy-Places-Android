@@ -100,7 +100,6 @@ class SharedOptionsViewModel(
 
             val availableSortsForLoadedFilter = getSortOptionsForFilter(loadedFilter)
             if (!availableSortsForLoadedFilter.contains(loadedSort)) {
-                Log.w("SharedVM_Init", "Loaded sort ${loadedSort.displayName} is not valid for loaded filter ${loadedFilter.displayName}. Resetting sort.")
                 loadedSort = availableSortsForLoadedFilter.firstOrNull() ?: PlaceSort.ALPHABETICAL
             }
 
@@ -114,7 +113,6 @@ class SharedOptionsViewModel(
                     //triggerLocationSetup = if (shouldTriggerLocationSetup) true else currentState.triggerLocationSetup
                 )
             }
-            Log.d("SharedVM_Init", "Initial state from UPM: Filter=${loadedFilter.displayName}, Sort=${loadedSort.displayName}")
 
             combine<Triple<PlaceFilter, PlaceSort, Location?>, List<Temple>, List<DisplayListItem>>(
                 _uiState.map { state ->
@@ -123,18 +121,11 @@ class SharedOptionsViewModel(
                 dataViewModel.allTemples // Source of all temples
             ) { (filter, sort, location), allTemplesFromDataVM -> // Parameters from the combine
 
-                Log.d("SharedVM", "Combining: Filter=${filter.displayName}, Sort=${sort.displayName}, AllTemplesCount=${allTemplesFromDataVM.size}")
-
-                // 1. Apply Filter (existing logic is good, result is List<Temple>)
+                // 1. Apply Filter
                 val filteredTemples = applyFilter(allTemplesFromDataVM, filter)
-                Log.d("SharedVM", "After filtering (${filter.displayName}): Count=${filteredTemples.size}")
 
-                // 2. Apply Sort (existing logic is good, result is List<Temple>)
-                //    The applySort function will need to be slightly modified if it previously modified
-                //    the list in place for 'NEAREST' sort by calling temple.setDistanceInMeters.
-                //    It's better if applySort returns a NEW sorted list.
+                // 2. Apply Sort
                 val sortedTemples = applySort(filteredTemples, sort, location)
-                Log.d("SharedVM", "After sorting (${sort.displayName}): Count=${sortedTemples.size}")
 
                 // 3. NEW STEP: Insert Headers into the sorted list
                 val listWithHeaders = insertHeadersIntoSortedList(sortedTemples, sort)
@@ -272,7 +263,6 @@ private fun insertHeadersIntoSortedList(
     if (sortedTemples.isEmpty()) return emptyList()
 
     val displayItems = mutableListOf<DisplayListItem>()
-    Log.d("SharedVM_Headers", "Inserting headers for sort: ${sortType.displayName}, ${sortedTemples.size} temples")
 
     when (sortType) {
         PlaceSort.ALPHABETICAL -> {
@@ -456,7 +446,6 @@ private fun insertHeadersIntoSortedList(
     return displayItems
 }
     fun setFilter(filterType: PlaceFilter) {
-        Log.d("SharedVM", "setFilter called with: ${filterType.displayName}")
         val newAvailableSorts = getSortOptionsForFilter(filterType)
         _uiState.update {
             it.copy(

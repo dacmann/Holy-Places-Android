@@ -346,7 +346,7 @@ class VisitsFragment : Fragment() {
                     if (placeFilterForMenuItem != null && placeFilterForMenuItem.customColorRes != null) {
                         try {
                             val colorInt = ContextCompat.getColor(requireContext(), placeFilterForMenuItem.customColorRes!!) // Non-null asserted due to check
-                            val title = placeFilterForMenuItem.displayName // Use displayName from PlaceFilter
+                            val title = requireContext().getString(placeFilterForMenuItem.displayNameRes) // Use displayName from PlaceFilter
                             val spannableString = SpannableString(title)
                             spannableString.setSpan(
                                 ForegroundColorSpan(colorInt),
@@ -361,7 +361,7 @@ class VisitsFragment : Fragment() {
                         }
                     } else if (placeFilterForMenuItem != null) {
                         // If color is null but PlaceFilter is mapped, still set the displayName
-                        menuItem.title = placeFilterForMenuItem.displayName
+                        menuItem.title = requireContext().getString(placeFilterForMenuItem.displayNameRes)
                         Log.d("VisitsFragmentMenu", "Applied PlaceFilter text (no color) to menu item: '${menuItem.title}', Enum: ${placeFilterForMenuItem.name}")
                     }
                 }

@@ -108,7 +108,7 @@
     <!-- Goal Progress Section START -->
     <LinearLayout
         android:id="@+id/goalProgressContainer"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center_horizontal"
@@ -121,7 +121,6 @@
         app:layout_constraintBottom_toTopOf="@id/bottom_inset_spacer"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintWidth_percent="0.9"
         android:visibility="gone"
         tools:visibility="visible">
 

@@ -11,7 +11,7 @@
             <group>
                 <item
                     android:id="@+id/filter_type_all"
-                    android:title="@string/holy_places" />
+                    android:title="@string/filter_label_all" />
                 <item
                     android:id="@+id/filter_type_active_temples"
                     android:title="@string/filter_type_active_temples" />

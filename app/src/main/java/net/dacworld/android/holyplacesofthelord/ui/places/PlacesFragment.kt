@@ -506,7 +506,6 @@ class PlacesFragment : Fragment() {
                     .map { Triple(it.currentSort, it.currentDeviceLocation, it.hasLocationPermission) } // Assuming hasLocationPermission is in your OptionsUiState
                     .distinctUntilChanged()
                     .collect { (currentSort, currentDeviceLocation, _) -> // hasLocationPermission from VM is not directly used here, we check fresh
-                        Log.d("PlacesFragment_PassiveObs", "Passive Check State: Sort=${currentSort.displayName}, VM.LocationSet=${currentDeviceLocation != null}, CheckDone=$initialPassiveLocationCheckDone")
 
                         if (currentSort == PlaceSort.NEAREST &&
                             currentDeviceLocation == null &&
@@ -725,7 +724,7 @@ class PlacesFragment : Fragment() {
             PlaceFilter.ANNOUNCED_TEMPLES -> "Announced"       // Shorter title
             // Add other specific short titles if needed
             // PlaceFilter.OPERATING_TEMPLES -> "Operating" // Example
-            else -> filter.displayName // Default to the existing displayName for other filters
+            else -> resources.getString(filter.displayNameRes) // Default to the existing displayName for other filters
         }
     }
 

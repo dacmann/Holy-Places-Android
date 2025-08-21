@@ -2,6 +2,7 @@ package net.dacworld.android.holyplacesofthelord.ui.home // Or your preferred pa
 
 import android.app.Dialog
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.data.SettingsViewModel
 import net.dacworld.android.holyplacesofthelord.data.SettingsViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
+import android.view.View.OnFocusChangeListener
 
 class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
 
@@ -106,26 +108,58 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
         }
     }
     private fun setupListeners() {
+        // Helper function to set up focus listener for selecting text
+        val selectAllOnFocusChange = OnFocusChangeListener { view, hasFocus ->
+            val editText = view as? android.widget.EditText
+            Log.d("FocusDebug", "onFocusChange: ${editText?.hint}, hasFocus: $hasFocus, currentText: '${editText?.text}'")
+            if (hasFocus) {
+                editText?.let { et ->
+                    et.post {
+                        et.text?.let { text ->
+                            Log.d("FocusDebug", "Posted action for ${et.hint}: currentText: '$text'")
+                            if (text.toString() == "0") {
+                                Log.d("FocusDebug", "Selecting all for ${et.hint}")
+                                et.selectAll()
+                            } else {
+                                Log.d("FocusDebug", "Not '0', moving cursor for ${et.hint}")
+                                if (et.hasFocus()) {
+                                    et.setSelection(text.length)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         binding.valueTempleVisitsGoal.doOnTextChanged { text, _, _, _ ->
             val value = text.toString().toIntOrNull() ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
             settingsViewModel.updateTempleVisitsGoal(value)
         }
+        binding.valueTempleVisitsGoal.onFocusChangeListener = selectAllOnFocusChange // Add this
+
         binding.valueBaptismsGoal.doOnTextChanged { text, _, _, _ ->
             val value = text.toString().toIntOrNull() ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
             settingsViewModel.updateBaptismsGoal(value)
         }
+        binding.valueBaptismsGoal.onFocusChangeListener = selectAllOnFocusChange // Add this
+
         binding.valueInitiatoriesGoal.doOnTextChanged { text, _, _, _ ->
             val value = text.toString().toIntOrNull() ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
             settingsViewModel.updateInitiatoriesGoal(value)
         }
+        binding.valueInitiatoriesGoal.onFocusChangeListener = selectAllOnFocusChange // Add this
+
         binding.valueEndowmentsGoal.doOnTextChanged { text, _, _, _ ->
             val value = text.toString().toIntOrNull() ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
             settingsViewModel.updateEndowmentsGoal(value)
         }
+        binding.valueEndowmentsGoal.onFocusChangeListener = selectAllOnFocusChange // Add this
+
         binding.valueSealingsGoal.doOnTextChanged { text, _, _, _ ->
             val value = text.toString().toIntOrNull() ?: UserPreferencesManager.DEFAULT_GOAL_VALUE
             settingsViewModel.updateSealingsGoal(value)
         }
+        binding.valueSealingsGoal.onFocusChangeListener = selectAllOnFocusChange // Add this
 
         binding.switchExcludeVisitsNoOrdinances.setOnCheckedChangeListener { _, isChecked ->
             settingsViewModel.updateExcludeVisitsNoOrdinances(isChecked)

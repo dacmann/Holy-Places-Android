@@ -2,6 +2,7 @@ package net.dacworld.android.holyplacesofthelord.ui.visits
 
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
@@ -314,9 +315,58 @@ class RecordVisitFragment : Fragment() {
             }
         })
 
-        editText.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && editText.text.isNullOrBlank()) {
-                editText.setText(if (isDecimal) "0.0" else "0")
+        // Modify the existing setOnFocusChangeListener
+        editText.setOnFocusChangeListener { view, hasFocus ->
+            val et = view as EditText // We know it's an EditText here
+            if (hasFocus) {
+                // Logic for when GAINING focus
+                et.post { // Post to allow layout to settle
+                    et.requestRectangleOnScreen(
+                        Rect(0, 0, et.width, et.height),
+                        false // Don't force immediate, allow smooth scroll
+                    )
+                }
+                et.post { // Use post for robustness
+                    et.text?.let { currentText ->
+                        val expectedInitialValue = if (isDecimal) "0.0" else "0" // Use isDecimal parameter
+                        if (currentText.toString() == expectedInitialValue) {
+                            Log.d("RecordVisitFocus", "Selecting all for ${et.idToString()}, value: '$currentText', isDecimal: $isDecimal")
+                            et.selectAll()
+                        } else {
+                            // Optional: Move cursor to end if not the initial value
+                            if (et.hasFocus()) { // Check focus again as it might change during post
+                                Log.d("RecordVisitFocus", "Not initial value for ${et.idToString()}, moving cursor to end. Value: '$currentText', isDecimal: $isDecimal")
+                                et.setSelection(currentText.length)
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Existing logic for when LOSING focus
+                if (et.text.isNullOrBlank()) {
+                    val defaultValue = if (isDecimal) "0.0" else "0" // Use isDecimal parameter
+                    Log.d("RecordVisitFocus", "Focus LOST and text is blank for ${et.idToString()}, setting to '$defaultValue', isDecimal: $isDecimal")
+                    et.setText(defaultValue)
+                } else {
+                    // For decimal fields, ensure correct formatting on focus lost if not blank
+                    if (isDecimal) {
+                        try {
+                            val numericValue = et.text.toString().toDouble()
+                            val formattedValue = String.format(Locale.US, "%.1f", numericValue)
+                            if (et.text.toString() != formattedValue) {
+                                et.setText(formattedValue)
+                            }
+                            Log.d("RecordVisitFocus", "Focus LOST for decimal field ${et.idToString()}, text is '${et.text}'. Applied formatting if needed.")
+                        } catch (e: NumberFormatException) {
+                            // If not a valid number, and not blank, default it.
+                            val defaultValue = String.format(Locale.US, "%.1f", 0.0)
+                            Log.e("RecordVisitFocus", "Error parsing decimal on focus lost for ${et.idToString()}. Setting to '$defaultValue'. Input: '${et.text}'", e)
+                            et.setText(defaultValue)
+                        }
+                    } else {
+                        Log.d("RecordVisitFocus", "Focus LOST for non-decimal field ${et.idToString()}, text is '${et.text}'. No change.")
+                    }
+                }
             }
         }
     }

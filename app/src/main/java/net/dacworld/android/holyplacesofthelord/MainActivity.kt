@@ -131,6 +131,9 @@ class MainActivity : AppCompatActivity() {
 
         // Optional: Control BottomNav visibility based on destination
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            // Log the destination ID and label (if available)
+            val destinationLabel = destination.label ?: "No Label"
+            Log.d("MainActivity_Nav", "Destination Changed. ID: ${destination.id}, ResName: ${try { resources.getResourceEntryName(destination.id) } catch (e: Exception) { "N/A" }}, Label: $destinationLabel")
             binding.mainBottomNavigation.visibility = when (destination.id) {
                 R.id.placeDetailFragment -> android.view.View.VISIBLE
                 else -> android.view.View.VISIBLE

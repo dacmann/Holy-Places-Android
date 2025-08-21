@@ -141,6 +141,21 @@
     <string name="settings">Settings</string>
     <string name="intent_utils_no_email_app_found">No email app found!</string>
     <string name="intent_utils_could_not_open_email">Could not open email, please try again.</string>
+    <!-- PlaceFilter Display Names -->
+    <string name="place_filter_holy_places">All Holy Places</string>
+    <string name="place_filter_active_temples">Active Temples</string>
+    <string name="place_filter_historical_sites">Historical Sites</string>
+    <string name="place_filter_visitors_centers">Visitors\' Centers</string> <!-- Escaped apostrophe -->
+    <string name="place_filter_temples_under_construction">Temples Under Construction</string>
+    <string name="place_filter_announced_temples">Announced Temples</string>
+    <string name="place_filter_all_temples">All Temples</string>
 
+    <!-- PlaceSort Display Names -->
+    <string name="place_sort_alphabetical">Alphabetical</string>
+    <string name="place_sort_nearest">Nearest</string>
+    <string name="place_sort_country">Country</string>
+    <string name="place_sort_dedication_date">Dedication Date</string>
+    <string name="place_sort_size">Size</string>
+    <string name="place_sort_announced_date">Announced Date</string>
 
 </resources>
