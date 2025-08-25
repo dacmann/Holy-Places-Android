@@ -1,7 +1,11 @@
 package net.dacworld.android.holyplacesofthelord.data // Or your preferred package for ViewModels
 
 import android.app.Application
+import android.content.ContentResolver
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -142,42 +146,184 @@ class RecordVisitViewModel(
         _uiState.value = _uiState.value?.copy(comments = comments.ifBlank { null })
     }
 
-    fun onImageSelected(imageUri: Uri?) {
+    fun onImageSelectionCleared() {
+        _uiState.value = _uiState.value?.copy(
+            selectedImageUri = null, // Clear original URI if it was stored for temporary preview
+            pictureByteArray = null  // Clear the (potentially processed) byte array
+        )
+    }
+
+    // NEW: Function called by the Fragment when a new image URI is picked
+    fun processImageUri(imageUri: Uri?) {
         if (imageUri == null) {
-            // Image removed by user or no image selected
-            _uiState.value = _uiState.value?.copy(
-                selectedImageUri = null,
-                pictureByteArray = null
-            )
-        } else {
-            // New image selected, convert it to ByteArray
-            _uiState.value = _uiState.value?.copy(selectedImageUri = imageUri) // Show preview immediately
-            viewModelScope.launch {
-                val byteArray = convertUriToByteArray(imageUri)
-                // Update only if the selected URI hasn't changed (user didn't pick another one quickly)
-                if (_uiState.value?.selectedImageUri == imageUri) {
-                    _uiState.value = _uiState.value?.copy(pictureByteArray = byteArray)
+            // User might have cancelled picker or it's a call to clear
+            onImageSelectionCleared()
+            return
+        }
+
+        // Show some immediate feedback if desired, e.g., by setting selectedImageUri for a temporary preview
+        // _uiState.value = _uiState.value?.copy(selectedImageUri = imageUri, pictureByteArray = null) // Optional: show original while processing
+
+        viewModelScope.launch {
+            // Perform image processing on a background thread
+            val processedByteArray = resizeAndCompressImage(getApplication<Application>().contentResolver, imageUri)
+
+            // Update UI state on the main thread
+            withContext(Dispatchers.Main) {
+                if (processedByteArray != null) {
+                    _uiState.value = _uiState.value?.copy(
+                        // selectedImageUri = imageUri, // Keep if you want to show original URI as preview source
+                        // OR set to null if preview should only use byteArray
+                        selectedImageUri = null, // Let's clear it and rely on byteArray for preview source
+                        pictureByteArray = processedByteArray
+                    )
+                } else {
+                    // Processing failed, ensure image is cleared
+                    onImageSelectionCleared()
+                    // TODO: Optionally notify user of processing failure via a LiveData event
                 }
             }
         }
     }
 
-    private suspend fun convertUriToByteArray(uri: Uri): ByteArray? {
-        return withContext(Dispatchers.IO) { // Perform heavy operation on IO thread
+    // NEW: Image processing logic
+    private suspend fun resizeAndCompressImage(contentResolver: ContentResolver, imageUri: Uri): ByteArray? {
+        return withContext(Dispatchers.IO) {
             try {
-                getApplication<Application>().contentResolver.openInputStream(uri)?.use { inputStream ->
-                    ByteArrayOutputStream().use { byteStream ->
-                        inputStream.copyTo(byteStream)
-                        byteStream.toByteArray()
+                // More robust loading with inSampleSize to prevent OOM on very large images
+                val options = BitmapFactory.Options()
+                options.inJustDecodeBounds = true // First, check dimensions without loading into memory
+                var inputStream = contentResolver.openInputStream(imageUri)
+                BitmapFactory.decodeStream(inputStream, null, options)
+                inputStream?.close()
+
+                if (options.outWidth == -1 || options.outHeight == -1) {
+                    Log.e("RecordVisitVM", "Failed to decode image bounds. URI: $imageUri")
+                    return@withContext null
+                }
+
+                val maxDimension = 1024 // Target max width or height in pixels
+
+                options.inSampleSize = calculateInSampleSize(options, maxDimension, maxDimension)
+                options.inJustDecodeBounds = false // Now load the subsampled image into memory
+
+                inputStream = contentResolver.openInputStream(imageUri)
+                var bitmap = BitmapFactory.decodeStream(inputStream, null, options)
+                inputStream?.close()
+
+                if (bitmap == null) { // Check if decoding failed even with inSampleSize
+                    Log.e("RecordVisitVM", "BitmapFactory failed to decode stream after subsampling. URI: $imageUri")
+                    return@withContext null
+                }
+
+                // --- Further Resize if needed after inSampleSize (more precise scaling) ---
+                val currentWidth = bitmap.width
+                val currentHeight = bitmap.height
+                var finalBitmap = bitmap
+
+                if (currentWidth > maxDimension || currentHeight > maxDimension) {
+                    val ratio: Float = if (currentWidth > currentHeight) {
+                        maxDimension.toFloat() / currentWidth
+                    } else {
+                        maxDimension.toFloat() / currentHeight
+                    }
+                    val newWidth = (currentWidth * ratio).toInt()
+                    val newHeight = (currentHeight * ratio).toInt()
+                    if (newWidth > 0 && newHeight > 0) { // Ensure valid dimensions
+                        finalBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+                        if (finalBitmap != bitmap) { // Only recycle if a new bitmap was created
+                            bitmap.recycle() // Recycle the intermediate bitmap if scaled
+                        }
+                    } else {
+                        Log.w("RecordVisitVM","Calculated new dimensions are zero or negative. Using bitmap from inSampleSize.")
                     }
                 }
+
+
+                // --- Compress Logic ---
+                ByteArrayOutputStream().use { outputStream ->
+                    // Adjust quality (0-100). JPEG is lossy.
+                    val success = finalBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream) // 80% quality JPEG
+                    if (finalBitmap != bitmap && !finalBitmap.isRecycled) { // If a new bitmap was created and not yet recycled
+                        finalBitmap.recycle()
+                    } else if (finalBitmap == bitmap && !bitmap.isRecycled) { // If original bitmap was used and not yet recycled
+                        bitmap.recycle() // Recycle the original if it wasn't scaled further or if scaling failed
+                    }
+
+                    if (!success) {
+                        Log.e("RecordVisitVM", "Bitmap compression failed for URI: $imageUri")
+                        return@withContext null
+                    }
+                    outputStream.toByteArray()
+                }
             } catch (e: IOException) {
-                e.printStackTrace() // Log the error
-                // Consider showing an error message to the user via a LiveData event
+                Log.e("RecordVisitVM", "IOException processing image URI: $imageUri", e)
+                null
+            } catch (oom: OutOfMemoryError) {
+                Log.e("RecordVisitVM", "OutOfMemoryError processing image URI: $imageUri", oom)
+                null
+            } catch (e: Exception) { // Catch any other unexpected errors during processing
+                Log.e("RecordVisitVM", "Unexpected error processing image URI: $imageUri", e)
                 null
             }
         }
     }
+
+    // NEW: Helper function to calculate inSampleSize
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        // Raw height and width of image
+        val height = options.outHeight
+        val width = options.outWidth
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight: Int = height / 2
+            val halfWidth: Int = width / 2
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        return inSampleSize
+    }
+
+//    fun onImageSelected(imageUri: Uri?) {
+//        if (imageUri == null) {
+//            // Image removed by user or no image selected
+//            _uiState.value = _uiState.value?.copy(
+//                selectedImageUri = null,
+//                pictureByteArray = null
+//            )
+//        } else {
+//            // New image selected, convert it to ByteArray
+//            _uiState.value = _uiState.value?.copy(selectedImageUri = imageUri) // Show preview immediately
+//            viewModelScope.launch {
+//                val byteArray = convertUriToByteArray(imageUri)
+//                // Update only if the selected URI hasn't changed (user didn't pick another one quickly)
+//                if (_uiState.value?.selectedImageUri == imageUri) {
+//                    _uiState.value = _uiState.value?.copy(pictureByteArray = byteArray)
+//                }
+//            }
+//        }
+//    }
+
+//    private suspend fun convertUriToByteArray(uri: Uri): ByteArray? {
+//        return withContext(Dispatchers.IO) { // Perform heavy operation on IO thread
+//            try {
+//                getApplication<Application>().contentResolver.openInputStream(uri)?.use { inputStream ->
+//                    ByteArrayOutputStream().use { byteStream ->
+//                        inputStream.copyTo(byteStream)
+//                        byteStream.toByteArray()
+//                    }
+//                }
+//            } catch (e: IOException) {
+//                e.printStackTrace() // Log the error
+//                // Consider showing an error message to the user via a LiveData event
+//                null
+//            }
+//        }
+//    }
 
     fun onToggleFavorite() {
         val current = _uiState.value ?: return

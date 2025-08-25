@@ -1,6 +1,7 @@
 package net.dacworld.android.holyplacesofthelord // Assuming this is your package
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.ProcessLifecycleOwner // For observing app lifecycle
@@ -29,6 +30,9 @@ class MyApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Thread.setDefaultUncaughtExceptionHandler(
+            AppGlobalExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler())
+        )
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         ProcessLifecycleOwner.get().lifecycleScope.launch {
             val isDataSeeded = userPreferencesManager.isInitialDataSeededFlow.first()
@@ -45,6 +49,23 @@ class MyApplication : Application() {
             } else {
                 Log.i("MyApplication", "Not first launch: Database already seeded or flag set.")
             }
+        }
+    }
+
+    class AppGlobalExceptionHandler(
+        private val applicationContext: Context,
+        private val defaultUEH: Thread.UncaughtExceptionHandler?
+    ) : Thread.UncaughtExceptionHandler {
+        override fun uncaughtException(thread: Thread, exception: Throwable) {
+            Log.e("AppCrash_Global", "Unhandled exception caught: ${exception.message}", exception)
+
+            // Here you could:
+            // 1. Log to a file on the device
+            // 2. Log to a remote crash reporting service (Firebase Crashlytics, Sentry ([2]), etc.)
+            // 3. Attempt a graceful shutdown or notify the user (tricky with a crash)
+
+            // IMPORTANT: Let the default handler do its job too (like showing "App has stopped")
+            defaultUEH?.uncaughtException(thread, exception)
         }
     }
 

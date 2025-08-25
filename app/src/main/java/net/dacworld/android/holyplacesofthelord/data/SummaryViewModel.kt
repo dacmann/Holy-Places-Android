@@ -147,9 +147,37 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
         updateDynamicYearDisplayAndLoadStats(internalCurrentActualYear, internalCurrentActualYear - 1)
 
         viewModelScope.launch {
-            // Fetch all necessary data
-            val allVisits = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExport() }
+            // --- START MODIFICATION 1: Fetch and Validate Visits ---
+            val allVisitsFromDb: List<Visit>
+            try {
+                allVisitsFromDb = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExport() }
+            } catch (e: Exception) {
+                Log.e("SummaryVM_CrashPrevent", "Critical error fetching visits from DB. Aborting summary load.", e)
+                // Optionally, post an error state to UI if you have one
+                // _errorState.postValue("Failed to load visit data. Please try again.")
+                return@launch // Stop further processing
+            }
 
+            val validVisits = allVisitsFromDb.filter { visit ->
+                var isValid = true
+                if (visit.holyPlaceName == null) {
+                    Log.w("SummaryVM_CrashPrevent", "Visit (id: ${visit.id ?: "unknown"}) has NULL holyPlaceName. Excluding from summary aggregations.")
+                    isValid = false
+                }
+                if (visit.type == null) {
+                    Log.w("SummaryVM_CrashPrevent", "Visit (id: ${visit.id ?: "unknown"}) has NULL type. Excluding from summary aggregations.")
+                    isValid = false
+                }
+                // For year-based stats, a null date makes the visit unusable FOR THOSE STATS.
+                // But it might still be valid for "most visited" list if name exists.
+                // The filtering for actualTempleVisits and in calculateYearStatsForTemples already checks dateVisited.
+                isValid
+            }
+
+            if (validVisits.size < allVisitsFromDb.size) {
+                Log.w("SummaryVM_CrashPrevent", "${allVisitsFromDb.size - validVisits.size} visits were filtered out from main summary processing due to missing critical data (name or type).")
+            }
+            // --- END MODIFICATION 1 ---
             // Fetch total counts for each place type concurrently
             val totalTemplesCountDeferred = async(Dispatchers.IO) { templeDao.getCountByType(TYPE_TEMPLE) }
             val totalHistoricalCountDeferred = async(Dispatchers.IO) { templeDao.getCountByType(TYPE_HISTORICAL_SITE) }
@@ -158,10 +186,8 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             // --- Holy Places Section ---
             val visitedPlaceNamesByType = mutableMapOf<String, MutableSet<String>>()
 
-            for (visit in allVisits) {
-                if (visit.type != null && visit.holyPlaceName != null) {
-                    visitedPlaceNamesByType.getOrPut(visit.type) { mutableSetOf() }.add(visit.holyPlaceName)
-                }
+            for (visit in validVisits) {
+                visitedPlaceNamesByType.getOrPut(visit.type!!) { mutableSetOf() }.add(visit.holyPlaceName!!)
             }
 
             _holyPlacesStats.postValue(listOfNotNull(
@@ -190,11 +216,16 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             // --- Temple Visits Section (Focuses only on visits where Visit.type == "T") ---
             val calendar = Calendar.getInstance()
 
-            val actualTempleVisits = allVisits.filter { it.type == TYPE_TEMPLE }
-            _templeVisitTotalStats.postValue(calculateYearStatsForTemples(actualTempleVisits, null)) // Overall
+            val actualTempleVisits = validVisits.filter {
+                it.type == TYPE_TEMPLE && it.dateVisited != null
+            }
+            if (actualTempleVisits.size < validVisits.filter{it.type == TYPE_TEMPLE}.size) {
+                Log.w("SummaryVM_CrashPrevent", "${validVisits.filter{it.type == TYPE_TEMPLE}.size - actualTempleVisits.size} temple visits were excluded from year stats due to missing dateVisited.")
+            }
+            _templeVisitTotalStats.postValue(calculateYearStatsForTemples(actualTempleVisits, null))
 
             // --- Most Visited Section (All place types) ---
-            val mostVisitedItems = allVisits
+            val mostVisitedItems = validVisits
                 .filter { it.holyPlaceName != null } // Ensure name exists
                 .groupBy { it.holyPlaceName!! } // Group by non-null place name
                 .map { entry ->
@@ -259,20 +290,35 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
     // NEW function to load stats for the two columns
     private fun loadStatsForCurrentlyDisplayedYears() {
         viewModelScope.launch {
-            // It's efficient to fetch all temple visits once here if this func is called after allVisits is ready
-            // Or, if not, fetch them. For simplicity, let's assume we re-filter or re-fetch.
-            val allTempleVisits = withContext(Dispatchers.IO) {
-                visitDao.getAllVisitsListForExport().filter { it.type == TYPE_TEMPLE }
+            val allVisitsFromDbForYearStats: List<Visit>
+            try {
+                allVisitsFromDbForYearStats = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExport() }
+            } catch (e: Exception) {
+                Log.e("SummaryVM_CrashPrevent", "Error fetching visits for year stats. Aborting.", e)
+                _templeVisitCurrentYearStats.postValue(calculateYearStatsForTemples(emptyList(), internalLeftColumnYear))
+                _templeVisitPreviousYearStats.postValue(calculateYearStatsForTemples(emptyList(), internalRightColumnYear))
+                return@launch
+            }
+
+            // Filter for valid temple visits with dates
+            val validTempleVisitsWithDates = allVisitsFromDbForYearStats.filter { visit ->
+                visit.type == TYPE_TEMPLE &&
+                        visit.holyPlaceName != null && // Essential for identifying the temple
+                        visit.dateVisited != null   // Essential for year calculation
+            }
+
+            if (validTempleVisitsWithDates.size < allVisitsFromDbForYearStats.filter { it.type == TYPE_TEMPLE }.size) {
+                Log.w("SummaryVM_CrashPrevent", "${allVisitsFromDbForYearStats.filter { it.type == TYPE_TEMPLE }.size - validTempleVisitsWithDates.size} temple visits excluded from year-specific stats due to missing name or date.")
             }
 
             Log.d("SummaryVM", "Loading stats for LEFT column (Year: $internalLeftColumnYear)")
             _templeVisitCurrentYearStats.postValue( // This LiveData now serves the left dynamic column
-                calculateYearStatsForTemples(allTempleVisits, internalLeftColumnYear)
+                calculateYearStatsForTemples(validTempleVisitsWithDates, internalLeftColumnYear)
             )
 
             Log.d("SummaryVM", "Loading stats for RIGHT column (Year: $internalRightColumnYear)")
             _templeVisitPreviousYearStats.postValue( // This LiveData now serves the right dynamic column
-                calculateYearStatsForTemples(allTempleVisits, internalRightColumnYear)
+                calculateYearStatsForTemples(validTempleVisitsWithDates, internalRightColumnYear)
             )
         }
     }

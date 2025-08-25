@@ -21,7 +21,23 @@ interface VisitDao {
 
     // --- Query Operations ---
 
-    @Query("SELECT * FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            // VisitContract.COLUMN_PICTURE_DATA IS INTENTIONALLY OMITTED HERE
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR} " + // Last column, no trailing comma
+            "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
     fun getAllVisits(): Flow<List<Visit>>
 
     @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_ID} = :visitId")
@@ -68,10 +84,26 @@ interface VisitDao {
 
     /**
      * Fetches all visits sorted by date, intended for export operations.
-     * The `pictureData` will be included if selected by the Visit entity's default query,
-     * but we will explicitly ignore it during XML generation.
+     * The pictureData column (VisitContract.COLUMN_PICTURE_DATA) is EXCLUDED
+     * from this query to prevent SQLiteBlobTooBigException.
      */
-    @Query("SELECT * FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} ASC")
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            // VisitContract.COLUMN_PICTURE_DATA IS INTENTIONALLY OMITTED HERE
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR} " + // Last column, no trailing comma
+            "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} ASC")
     suspend fun getAllVisitsListForExport(): List<Visit>
 
     /**

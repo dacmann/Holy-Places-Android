@@ -75,7 +75,7 @@ class RecordVisitFragment : Fragment() {
     }
 
     private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        viewModel.onImageSelected(uri)
+        viewModel.processImageUri(uri)
     }
 
     private val displayDateFormat = SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.getDefault())
@@ -213,7 +213,7 @@ class RecordVisitFragment : Fragment() {
             if (viewModel.uiState.value?.selectedImageUri == null && viewModel.uiState.value?.pictureByteArray == null) {
                 imagePickerLauncher.launch("image/*")
             } else {
-                viewModel.onImageSelected(null) // Signal removal
+                viewModel.onImageSelectionCleared()
             }
         }
 
@@ -449,28 +449,19 @@ class RecordVisitFragment : Fragment() {
         }
         // Image display logic using Coil
         when {
-            state.selectedImageUri != null -> { // User just picked an image
-                binding.imageViewVisitPicture.load(state.selectedImageUri) {
-                    //crossfade(true)
-                    //placeholder(R.drawable.ic_placeholder_image) // Optional placeholder
-                    //error(R.drawable.ic_broken_image) // Optional error drawable
+            state.pictureByteArray != null && state.pictureByteArray.isNotEmpty() -> {
+                // Load the processed image from ByteArray using Coil
+                binding.imageViewVisitPicture.load(state.pictureByteArray) {
+//                    crossfade(true)
+//                    placeholder(R.drawable.ic_menu_gallery) // Placeholder image
+//                    error(R.drawable.ic_menu_camera)       // Error image
                 }
                 binding.imageViewVisitPicture.visibility = View.VISIBLE
                 binding.buttonAddRemovePicture.text = getString(R.string.button_remove_picture)
                 binding.buttonAddRemovePicture.setIconResource(R.drawable.ic_delete)
             }
-            state.pictureByteArray != null && state.pictureByteArray.isNotEmpty() -> { // Existing image from DB
-                binding.imageViewVisitPicture.load(state.pictureByteArray) {
-                    //crossfade(true)
-                    //placeholder(R.drawable.ic_placeholder_image)
-                    //error(R.drawable.ic_broken_image)
-                }
-                binding.imageViewVisitPicture.visibility = View.VISIBLE
-                binding.buttonAddRemovePicture.text = getString(R.string.button_remove_picture) // Or "Change Picture"
-                binding.buttonAddRemovePicture.setIconResource(R.drawable.ic_delete) // Or "ic_edit"
-            }
-            else -> { // No image
-                binding.imageViewVisitPicture.setImageURI(null) // Clear
+            else -> { // No image selected, or it was cleared, or processing failed and nulled it
+                binding.imageViewVisitPicture.setImageDrawable(null) // Clear
                 binding.imageViewVisitPicture.visibility = View.GONE
                 binding.buttonAddRemovePicture.text = getString(R.string.button_add_picture)
                 binding.buttonAddRemovePicture.setIconResource(R.drawable.ic_add_a_photo)
