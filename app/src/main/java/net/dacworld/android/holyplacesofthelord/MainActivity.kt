@@ -159,34 +159,6 @@ class MainActivity : AppCompatActivity() {
                     -> View.GONE // Hide BottomNav on these screens
                 else -> View.VISIBLE     // Show BottomNav on all other (top-level tab) screens
             }
-            // Logic for selection (this remains important for when BottomNav IS visible)
-            var targetMenuId: Int? = null
-            when (destination.id) {
-                R.id.home_fragment_destination ->
-                    targetMenuId = R.id.home_fragment_destination
-
-                R.id.places_fragment_destination,
-                R.id.placeDetailFragment,
-                R.id.options_fragment_destination ->
-                    targetMenuId = R.id.places_fragment_destination
-
-                R.id.visits_fragment_destination,
-                R.id.visitDetailFragment,
-                R.id.recordVisitFragment,
-                R.id.exportImportFragment ->
-                    targetMenuId = R.id.visits_fragment_destination
-
-                R.id.summary_fragment_destination ->
-                    targetMenuId = R.id.summary_fragment_destination
-
-                R.id.map_fragment_destination ->
-                    targetMenuId = R.id.map_fragment_destination
-            }
-
-            if (targetMenuId != null && binding.mainBottomNavigation.selectedItemId != targetMenuId) {
-                Log.i("BottomNavUpdate", "Updating BottomNav selection from ${binding.mainBottomNavigation.selectedItemId} to $targetMenuId for dest: ${try { resources.getResourceEntryName(destination.id) } catch (e:Exception) {"ID Error"}}")
-                binding.mainBottomNavigation.selectedItemId = targetMenuId
-            }
 
         }
 
