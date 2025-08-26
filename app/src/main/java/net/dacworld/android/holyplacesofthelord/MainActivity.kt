@@ -2,7 +2,6 @@ package net.dacworld.android.holyplacesofthelord
 
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -11,22 +10,19 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.NavigationUI
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.shape.MaterialShapeDrawable
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.data.DataViewModel
 import net.dacworld.android.holyplacesofthelord.data.DataViewModelFactory
 import net.dacworld.android.holyplacesofthelord.databinding.ActivityMainBinding
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.view.View
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.setupActionBarWithNavController
 
 class MainActivity : AppCompatActivity() {
 
@@ -127,6 +123,19 @@ class MainActivity : AppCompatActivity() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment_activity_main) as NavHostFragment
         navController = navHostFragment.navController
+        // --- START OF MODIFICATION ---
+        // Define your top-level destinations. These are the IDs from your main_bottom_menu.xml
+        // and also the IDs of the corresponding fragment destinations in main_nav_graph.xml
+        val appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.home_fragment_destination,
+                R.id.places_fragment_destination,
+                R.id.visits_fragment_destination,
+                R.id.summary_fragment_destination,
+                R.id.map_fragment_destination
+            )
+        )
+
         binding.mainBottomNavigation.setupWithNavController(navController)
 
         // Optional: Control BottomNav visibility based on destination
@@ -134,10 +143,51 @@ class MainActivity : AppCompatActivity() {
             // Log the destination ID and label (if available)
             val destinationLabel = destination.label ?: "No Label"
             Log.d("MainActivity_Nav", "Destination Changed. ID: ${destination.id}, ResName: ${try { resources.getResourceEntryName(destination.id) } catch (e: Exception) { "N/A" }}, Label: $destinationLabel")
+
+            // Following code will show the nav bar on the detail screens.
+//            binding.mainBottomNavigation.visibility = when (destination.id) {
+//                R.id.placeDetailFragment -> android.view.View.VISIBLE
+//                else -> android.view.View.VISIBLE
+//            }
+            // --- CHANGE VISIBILITY LOGIC HERE ---
             binding.mainBottomNavigation.visibility = when (destination.id) {
-                R.id.placeDetailFragment -> android.view.View.VISIBLE
-                else -> android.view.View.VISIBLE
+                R.id.placeDetailFragment,       // Assuming this is your Place Detail screen ID
+                R.id.visitDetailFragment,      // Assuming this is your Visit Detail screen ID
+                R.id.recordVisitFragment,      // Assuming this is your Record Visit screen ID
+                R.id.options_fragment_destination, // If Options should also hide bottom nav
+                R.id.exportImportFragment    // If Export/Import should also hide bottom nav
+                    -> View.GONE // Hide BottomNav on these screens
+                else -> View.VISIBLE     // Show BottomNav on all other (top-level tab) screens
             }
+            // Logic for selection (this remains important for when BottomNav IS visible)
+            var targetMenuId: Int? = null
+            when (destination.id) {
+                R.id.home_fragment_destination ->
+                    targetMenuId = R.id.home_fragment_destination
+
+                R.id.places_fragment_destination,
+                R.id.placeDetailFragment,
+                R.id.options_fragment_destination ->
+                    targetMenuId = R.id.places_fragment_destination
+
+                R.id.visits_fragment_destination,
+                R.id.visitDetailFragment,
+                R.id.recordVisitFragment,
+                R.id.exportImportFragment ->
+                    targetMenuId = R.id.visits_fragment_destination
+
+                R.id.summary_fragment_destination ->
+                    targetMenuId = R.id.summary_fragment_destination
+
+                R.id.map_fragment_destination ->
+                    targetMenuId = R.id.map_fragment_destination
+            }
+
+            if (targetMenuId != null && binding.mainBottomNavigation.selectedItemId != targetMenuId) {
+                Log.i("BottomNavUpdate", "Updating BottomNav selection from ${binding.mainBottomNavigation.selectedItemId} to $targetMenuId for dest: ${try { resources.getResourceEntryName(destination.id) } catch (e:Exception) {"ID Error"}}")
+                binding.mainBottomNavigation.selectedItemId = targetMenuId
+            }
+
         }
 
         // --- 4. Initial Data Load ---

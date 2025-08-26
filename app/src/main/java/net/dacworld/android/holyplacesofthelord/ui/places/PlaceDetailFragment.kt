@@ -115,10 +115,11 @@ class PlaceDetailFragment : Fragment() {
                 desiredBottomPadding = imeInsets.bottom
                 Log.d("PlaceDetailFragmentInsets", "IME is visible. DesiredBottomPadding = IME height: $desiredBottomPadding")
             } else {
-                // If IME is NOT visible, content should be padded to clear the app's BottomNavigationView.
-                // The appBottomNavHeight from MainActivity already accounts for the system navigation bar
-                // because the BNV itself is padded by MainActivity's inset listener.
-                desiredBottomPadding = appBottomNavHeight
+                // --- MODIFIED LOGIC ---
+                // If IME is NOT visible, and since the app's BottomNavigationView is GONE on this screen,
+                // the content should only be padded to clear the underlying system navigation bar (gesture bar, etc.).
+                desiredBottomPadding = navigationBars.bottom
+                //desiredBottomPadding = appBottomNavHeight
                 Log.d("PlaceDetailFragmentInsets", "IME NOT visible. DesiredBottomPadding = App BNV height: $desiredBottomPadding")
 
                 // As a fallback, if appBottomNavHeight is 0 (e.g., during initial setup or if BNV is hidden),
