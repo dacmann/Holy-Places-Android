@@ -126,7 +126,7 @@ class VisitListAdapter(
             }
 
             val indicators = StringBuilder()
-            if (visit.picture != null) {
+            if (visit.hasPicture) {
                 indicators.append("  \uD83D\uDCF7")
             }
             if (visit.isFavorite) {

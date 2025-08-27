@@ -25,6 +25,7 @@ object VisitContract {
     const val COLUMN_SHIFT_HRS = "shift_hrs"
     const val COLUMN_VISIT_TYPE = "visit_type" // To avoid conflict with Temple's 'type'
     const val COLUMN_YEAR = "year"
+    const val COLUMN_HAS_PICTURE = "has_picture"
 }
 
 @Entity(
@@ -59,7 +60,7 @@ data class Visit(
     val confirmations: Short?,
 
     @ColumnInfo(name = VisitContract.COLUMN_DATE_VISITED)
-    val dateVisited: Date?, // java.util.Date - will require a TypeConverter
+    val dateVisited: Date?,
 
     @ColumnInfo(name = VisitContract.COLUMN_ENDOWMENTS)
     val endowments: Short?,
@@ -86,7 +87,11 @@ data class Visit(
     val type: String?, // e.g., T, H, A, C, V, etc."
 
     @ColumnInfo(name = VisitContract.COLUMN_YEAR)
-    val year: String? // Or Int? if it's always a numerical year
+    val year: String?,
+
+    @ColumnInfo(name = VisitContract.COLUMN_HAS_PICTURE, defaultValue = "0")
+    var hasPicture: Boolean = false
+
 ) {
     // Override equals and hashCode if you include ByteArray and need content equality
     override fun equals(other: Any?): Boolean {
@@ -113,6 +118,7 @@ data class Visit(
         if (shiftHrs != other.shiftHrs) return false
         if (type != other.type) return false
         if (year != other.year) return false
+        if (hasPicture != other.hasPicture) return false
 
         return true
     }
@@ -133,6 +139,7 @@ data class Visit(
         result = 31 * result + (shiftHrs?.hashCode() ?: 0)
         result = 31 * result + (type?.hashCode() ?: 0)
         result = 31 * result + (year?.hashCode() ?: 0)
+        result = 31 * result + hasPicture.hashCode()
         return result
     }
 }
@@ -140,6 +147,5 @@ data class Visit(
 // TempleContract object
  object TempleContract {
      const val TABLE_NAME = "temples"
-     const val COLUMN_ID = "temple_id" // Ensure this matches the PrimaryKey column name in Temple
-     // ... other temple column names
+     const val COLUMN_ID = "temple_id"
  }

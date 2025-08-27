@@ -288,43 +288,6 @@ class RecordVisitViewModel(
         return inSampleSize
     }
 
-//    fun onImageSelected(imageUri: Uri?) {
-//        if (imageUri == null) {
-//            // Image removed by user or no image selected
-//            _uiState.value = _uiState.value?.copy(
-//                selectedImageUri = null,
-//                pictureByteArray = null
-//            )
-//        } else {
-//            // New image selected, convert it to ByteArray
-//            _uiState.value = _uiState.value?.copy(selectedImageUri = imageUri) // Show preview immediately
-//            viewModelScope.launch {
-//                val byteArray = convertUriToByteArray(imageUri)
-//                // Update only if the selected URI hasn't changed (user didn't pick another one quickly)
-//                if (_uiState.value?.selectedImageUri == imageUri) {
-//                    _uiState.value = _uiState.value?.copy(pictureByteArray = byteArray)
-//                }
-//            }
-//        }
-//    }
-
-//    private suspend fun convertUriToByteArray(uri: Uri): ByteArray? {
-//        return withContext(Dispatchers.IO) { // Perform heavy operation on IO thread
-//            try {
-//                getApplication<Application>().contentResolver.openInputStream(uri)?.use { inputStream ->
-//                    ByteArrayOutputStream().use { byteStream ->
-//                        inputStream.copyTo(byteStream)
-//                        byteStream.toByteArray()
-//                    }
-//                }
-//            } catch (e: IOException) {
-//                e.printStackTrace() // Log the error
-//                // Consider showing an error message to the user via a LiveData event
-//                null
-//            }
-//        }
-//    }
-
     fun onToggleFavorite() {
         val current = _uiState.value ?: return
         _uiState.value = current.copy(isFavorite = !current.isFavorite)
@@ -352,6 +315,10 @@ class RecordVisitViewModel(
 
         viewModelScope.launch {
             try {
+                // Determine if there's a picture to save
+                val pictureData = currentUiState.pictureByteArray
+                val pictureIsPresent = pictureData != null && pictureData.isNotEmpty() // <<< CHECK FOR PICTURE
+
                 val visitToSave = Visit(
                     id = if (_isEditing) currentVisitId!! else 0L, // Use currentVisitId for updates, 0 for new
                     placeID = currentUiState.placeID,
@@ -366,8 +333,9 @@ class RecordVisitViewModel(
                     sealings = currentUiState.sealings,
                     shiftHrs = currentUiState.shiftHrs,
                     comments = currentUiState.comments?.trim()?.ifBlank { null },
-                    picture = currentUiState.pictureByteArray, // The ByteArray for the image
-                    isFavorite = currentUiState.isFavorite
+                    picture = pictureData, // The ByteArray for the image
+                    isFavorite = currentUiState.isFavorite,
+                    hasPicture = pictureIsPresent
                 )
 
                 if (_isEditing) {

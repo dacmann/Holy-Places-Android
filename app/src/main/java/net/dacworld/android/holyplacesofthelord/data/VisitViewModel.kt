@@ -31,7 +31,7 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
         visitDao = database.visitDao() // visitDao is initialized FIRST
 
         // NOW rawVisitsFromDB can be initialized, as visitDao is ready.
-        rawVisitsFromDB = visitDao.getAllVisits().asLiveData()
+        rawVisitsFromDB = visitDao.getVisitsForListAdapter().asLiveData()
 
         allVisits.addSource(rawVisitsFromDB) { visitsList ->
             // Pass the currentSearchQuery to the transformation function

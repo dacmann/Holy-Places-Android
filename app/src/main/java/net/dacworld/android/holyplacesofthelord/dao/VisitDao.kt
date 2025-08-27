@@ -36,9 +36,30 @@ interface VisitDao {
             "${VisitContract.COLUMN_SEALINGS}, " +
             "${VisitContract.COLUMN_SHIFT_HRS}, " +
             "${VisitContract.COLUMN_VISIT_TYPE}, " +
-            "${VisitContract.COLUMN_YEAR} " + // Last column, no trailing comma
+            "${VisitContract.COLUMN_YEAR}, " + // Last column, no trailing comma
+            "${VisitContract.COLUMN_HAS_PICTURE} " +
             "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
     fun getAllVisits(): Flow<List<Visit>>
+
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            // IMPORTANT: VisitContract.COLUMN_PICTURE_DATA (the blob) is OMITTED
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR}, " +
+            "${VisitContract.COLUMN_HAS_PICTURE} " + // INCLUDE the new has_picture flag
+            "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
+    fun getVisitsForListAdapter(): Flow<List<Visit>>
 
     @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_ID} = :visitId")
     fun getVisitById(visitId: Long): Flow<Visit?>
@@ -102,7 +123,8 @@ interface VisitDao {
             "${VisitContract.COLUMN_SEALINGS}, " +
             "${VisitContract.COLUMN_SHIFT_HRS}, " +
             "${VisitContract.COLUMN_VISIT_TYPE}, " +
-            "${VisitContract.COLUMN_YEAR} " + // Last column, no trailing comma
+            "${VisitContract.COLUMN_YEAR}, " + // Last column, no trailing comma
+            "${VisitContract.COLUMN_HAS_PICTURE} " +
             "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} ASC")
     suspend fun getAllVisitsListForExport(): List<Visit>
 
