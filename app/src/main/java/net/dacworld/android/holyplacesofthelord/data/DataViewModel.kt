@@ -15,11 +15,13 @@ import coil.request.SuccessResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -29,7 +31,10 @@ import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
-import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser // Ensure this is imported
+import net.dacworld.android.holyplacesofthelord.model.PlaceSort // <<< From OptionModels.kt
+import net.dacworld.android.holyplacesofthelord.model.PlaceVisitedScope // <<< We will define this
+import net.dacworld.android.holyplacesofthelord.ui.SharedToolbarViewModel
+import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser
 import org.xmlpull.v1.XmlPullParser // Keep for fetchRemoteVersion
 import org.xmlpull.v1.XmlPullParserFactory // Keep for fetchRemoteVersion
 import java.io.ByteArrayOutputStream
@@ -43,7 +48,7 @@ class DataViewModel(
     private val templeDao: TempleDao,
     private val visitDao: VisitDao,
     private val userPreferencesManager: UserPreferencesManager
-) : AndroidViewModel(application) { // Inherit from AndroidViewModel
+) : AndroidViewModel(application) {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -74,6 +79,22 @@ class DataViewModel(
     // For the "changes date" from the last successfully processed XML/DB state
     private val _currentDataChangesDate = MutableStateFlow<String?>(null)
     val currentDataChangesDate: StateFlow<String?> = _currentDataChangesDate.asStateFlow()
+
+    private val _currentPlaceVisitedScope = MutableStateFlow(PlaceVisitedScope.ALL)
+    val currentPlaceVisitedScope: StateFlow<PlaceVisitedScope> = _currentPlaceVisitedScope.asStateFlow() // Expose to Fragment
+
+    val visitedTemplePlaceIdsFlow: StateFlow<Set<String>> =
+        visitDao.getVisitedTemplePlaceIds() // This now returns Flow<List<String>>
+            .map { list -> list.toSet() }    // <<< Convert List to Set here
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptySet()
+            )
+
+    fun setPlaceVisitedScope(scope: PlaceVisitedScope) {
+        _currentPlaceVisitedScope.value = scope
+    }
 
     fun initialSeedDialogShown() {
         viewModelScope.launch {

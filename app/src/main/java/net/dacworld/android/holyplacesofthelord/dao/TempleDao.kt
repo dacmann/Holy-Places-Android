@@ -6,6 +6,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RoomWarnings
 import androidx.room.Update
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,7 @@ interface TempleDao {
      * This is intended for synchronization and list displays where the full blob is not needed.
      * The `picture_url` IS selected.
      */
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT temple_id, name, address, snippet, city_state, country, phone, latitude, longitude, \"order\", announced_date, site_url, type, info_url, sq_ft, fh_code, picture_url, (picture_data IS NOT NULL) as hasLocalPictureData FROM temples ORDER BY name ASC")
     suspend fun getAllTemplesForSyncOrList(): List<Temple> // pictureData will be null
 
@@ -105,20 +107,24 @@ interface TempleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllTemples(temples: List<Temple>)
 
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, type, sq_ft, fh_code FROM temples ORDER BY name ASC")
     fun getAllTemples(): Flow<List<Temple>> // Flow for reactive updates
 
     // New method to get a simple list for comparison
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, type, sq_ft, fh_code FROM temples ORDER BY name ASC")
     suspend fun getAllTemplesList(): List<Temple>
 
     @Query("SELECT * FROM temples WHERE temple_id = :id")
     suspend fun getTempleById(id: String): Temple?
 
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, type, sq_ft, fh_code FROM ${TempleContract.TABLE_NAME} WHERE name LIKE :searchQuery || '%' ORDER BY name ASC")
     fun searchTemplesByName(searchQuery: String): Flow<List<Temple>>
 
     // Example: Query to get temples by country
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, type, sq_ft, fh_code FROM ${TempleContract.TABLE_NAME} WHERE country = :countryName ORDER BY name ASC")
     fun getTemplesByCountry(countryName: String): Flow<List<Temple>>
 

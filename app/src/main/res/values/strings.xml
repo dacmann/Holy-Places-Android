@@ -158,4 +158,10 @@
     <string name="place_sort_size">Size</string>
     <string name="place_sort_announced_date">Announced Date</string>
 
+    <string name="scope_all">All</string>
+    <string name="scope_visited">Visited</string>
+    <string name="scope_not_visited">Not Visited</string>
+    <string name="no_search_results_message">No results found for \"%1$s\"</string>
+    <string name="no_temples_to_display">No places to show</string>
+
 </resources>

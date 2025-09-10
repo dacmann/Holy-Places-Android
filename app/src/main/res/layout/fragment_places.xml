@@ -82,6 +82,52 @@
             android:background="@drawable/search_view_background_themed"
             app:iconifiedByDefault="false"
             app:queryHint="@string/search_hint" />
+
+        <!-- VVV NEW: Scope Buttons Toggle Group VVV -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/place_visit_scope_toggle_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            android:visibility="visible"
+            tools:visibility="visible"> <!-- For preview purposes -->
+
+        <Button
+            android:id="@+id/button_scope_all_places"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/scope_all" /> <!-- Define in strings.xml -->
+
+        <Button
+            android:id="@+id/button_scope_visited_places"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/scope_visited" /> <!-- Define in strings.xml -->
+
+        <Button
+            android:id="@+id/button_scope_not_visited_places"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/scope_not_visited" /> <!-- Define in strings.xml -->
+
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+    <!-- ^^^ NEW: Scope Buttons Toggle Group ^^^ -->
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- RecyclerView constrained to scroll under the AppBarLayout -->

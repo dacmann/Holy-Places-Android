@@ -35,9 +35,41 @@
         <argument
             android:name="templeId"
             app:argType="string" />
+        <argument
+            android:name="sourceFragment"
+            app:argType="string"
+            android:defaultValue="places" />
         <action
             android:id="@+id/action_placeDetailFragment_to_recordVisitFragment"
             app:destination="@id/recordVisitFragment" />
+        <!-- Self-navigation action for PlacesFragment source -->
+        <action
+            android:id="@+id/action_placeDetailFragmentSelfFromPlaces"
+            app:destination="@id/placeDetailFragment"
+            app:popUpTo="@id/places_fragment_destination"
+            app:popUpToInclusive="false">
+            <argument
+                android:name="templeId"
+                app:argType="string" />
+            <argument
+                android:name="sourceFragment"
+                app:argType="string"
+                android:defaultValue="places" />
+        </action>
+        <!-- Self-navigation action for MapFragment source -->
+        <action
+            android:id="@+id/action_placeDetailFragmentSelfFromMap"
+            app:destination="@id/placeDetailFragment"
+            app:popUpTo="@id/map_fragment_destination"
+            app:popUpToInclusive="false">
+            <argument
+                android:name="templeId"
+                app:argType="string" />
+            <argument
+                android:name="sourceFragment"
+                app:argType="string"
+                android:defaultValue="map" />
+        </action>
     </fragment>
 
     <fragment
@@ -120,6 +152,10 @@
             <argument
                 android:name="templeId"
                 app:argType="string" />
+            <argument
+                android:name="sourceFragment"
+                app:argType="string"
+                android:defaultValue="map" />
         </action>
 
 </navigation>

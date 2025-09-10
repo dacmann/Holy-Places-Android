@@ -456,7 +456,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
                 if (navPlaceId.isNotEmpty()) {
                     Log.d(FRAGMENT_TAG, "Info window clicked for place ID: $navPlaceId. Navigating.")
                     try {
-                        val action = MapFragmentDirections.actionMapFragmentToPlaceDetailFragment(navPlaceId)
+                        val action = MapFragmentDirections.actionMapFragmentToPlaceDetailFragment(navPlaceId, "map")
                         findNavController().navigate(action)
                     } catch (e: IllegalStateException) {
                         Log.e(FRAGMENT_TAG, "Navigation failed: Have you rebuilt after adding the action to nav_graph? ${e.message}", e)

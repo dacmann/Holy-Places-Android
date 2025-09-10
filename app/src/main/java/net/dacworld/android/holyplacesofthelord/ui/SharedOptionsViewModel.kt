@@ -31,6 +31,9 @@ import net.dacworld.android.holyplacesofthelord.model.getSortOptionsForFilter
 import androidx.datastore.preferences.core.edit
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.ui.places.DisplayListItem
+import net.dacworld.android.holyplacesofthelord.model.PlaceVisitedScope
+import net.dacworld.android.holyplacesofthelord.ui.SharedToolbarViewModel
+
 
 class SharedOptionsViewModelFactory(
     private val dataViewModel: DataViewModel,
@@ -114,24 +117,45 @@ class SharedOptionsViewModel(
                 )
             }
 
-            combine<Triple<PlaceFilter, PlaceSort, Location?>, List<Temple>, List<DisplayListItem>>(
+            combine(
+                // Existing flows:
                 _uiState.map { state ->
                     Triple(state.currentFilter, state.currentSort, state.currentDeviceLocation)
-                }.distinctUntilChanged(),
-                dataViewModel.allTemples // Source of all temples
-            ) { (filter, sort, location), allTemplesFromDataVM -> // Parameters from the combine
+                }.distinctUntilChanged(), // #1
+                dataViewModel.allTemples, // #2
+                // New flows ADDED here for VISITED SCOPE ONLY:
+                dataViewModel.currentPlaceVisitedScope, // #3
+                dataViewModel.visitedTemplePlaceIdsFlow    // #4
+            ) { params ->
+                // Destructure parameters based on the order above:
+                val (currentFilter, currentSort, deviceLocation) = params[0] as Triple<PlaceFilter, PlaceSort, Location?>
+                val allTemplesFromDataVM = params[1] as List<Temple>
+                val visitedScope = params[2] as PlaceVisitedScope      // <<< NEW
+                val visitedIds = params[3] as Set<String>              // <<< NEW
 
-                // 1. Apply Filter
-                val filteredTemples = applyFilter(allTemplesFromDataVM, filter)
+                Log.d("SharedVM_Combine", "F=$currentFilter, S=$currentSort, Scope=$visitedScope, Temples=${allTemplesFromDataVM.size}")
 
-                // 2. Apply Sort
-                val sortedTemples = applySort(filteredTemples, sort, location)
+                // Step 1: Your existing primary filter
+                val primaryFilteredTemples = applyFilter(allTemplesFromDataVM, currentFilter)
+                Log.d("SharedVM_Step1", "Primary filter ($currentFilter): ${primaryFilteredTemples.size}")
 
-                // 3. NEW STEP: Insert Headers into the sorted list
-                val listWithHeaders = insertHeadersIntoSortedList(sortedTemples, sort)
-                Log.d("SharedVM", "After inserting headers: Count=${listWithHeaders.size}")
+                // Step 2: NEW Visited Scope Filter (applied to primaryFilteredTemples)
+                val scopeFilteredTemples = when (visitedScope) {
+                    PlaceVisitedScope.ALL -> primaryFilteredTemples
+                    PlaceVisitedScope.VISITED -> primaryFilteredTemples.filter { temple -> temple.id in visitedIds }
+                    PlaceVisitedScope.NOT_VISITED -> primaryFilteredTemples.filter { temple -> temple.id !in visitedIds }
+                }
+                Log.d("SharedVM_Step2", "Visited scope ($visitedScope): ${scopeFilteredTemples.size}")
 
-                listWithHeaders // This is the List<DisplayListItem>
+                // Step 3: Your existing Sort (operates on `scopeFilteredTemples`)
+                val sortedTemples = applySort(scopeFilteredTemples, currentSort, deviceLocation)
+                Log.d("SharedVM_Step3", "Sort ($currentSort): ${sortedTemples.size}")
+
+                // Step 4: Your existing Insert Headers
+                val listWithHeaders = insertHeadersIntoSortedList(sortedTemples, currentSort)
+                Log.d("SharedVM_Step4", "Headers: ${listWithHeaders.size}")
+
+                listWithHeaders // Return List<DisplayListItem>
             }
                 .distinctUntilChanged() // On List<DisplayListItem>
                 .catch { e ->

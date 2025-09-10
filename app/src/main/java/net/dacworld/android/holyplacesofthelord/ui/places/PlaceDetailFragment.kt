@@ -1,5 +1,14 @@
 package net.dacworld.android.holyplacesofthelord.ui.placedetail
 
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
+import androidx.core.view.GestureDetectorCompat
+import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel
+import net.dacworld.android.holyplacesofthelord.ui.places.DisplayListItem
+import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
+import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModelFactory
+import net.dacworld.android.holyplacesofthelord.ui.SharedToolbarViewModel
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -41,7 +50,12 @@ import androidx.appcompat.app.AlertDialog
 import net.dacworld.android.holyplacesofthelord.util.IntentUtils.openUrl
 import java.net.URLEncoder
 import androidx.core.graphics.Insets
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavDirections
+import kotlinx.coroutines.flow.collectLatest
 import net.dacworld.android.holyplacesofthelord.MainActivity
+import androidx.navigation.fragment.navArgs
 
 class PlaceDetailFragment : Fragment() {
 
@@ -53,9 +67,29 @@ class PlaceDetailFragment : Fragment() {
         DataViewModelFactory(application, application.templeDao, application.visitDao,application.userPreferencesManager)
     }
 
+     // NEW: Add NavigationViewModel
+     private val navigationViewModel: NavigationViewModel by activityViewModels()
+
+     // NEW: Add SharedOptionsViewModel to access current place list
+     private val sharedOptionsViewModel: SharedOptionsViewModel by activityViewModels {
+         val application = requireActivity().application as MyApplication
+         SharedOptionsViewModelFactory(
+             dataViewModel,
+             application.userPreferencesManager
+         )
+     }
+
+     private val sharedToolbarViewModel: SharedToolbarViewModel by activityViewModels()
+
     private val args: PlaceDetailFragmentArgs by navArgs()
+    // Add a property to track the source
+    private val sourceFragment: String by lazy { args.sourceFragment }
+
 
     private var currentTemple: Temple? = null
+
+    // NEW: Add gesture detector
+    private lateinit var gestureDetector: GestureDetectorCompat
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -67,6 +101,12 @@ class PlaceDetailFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Add this debug line
+        Log.d("PlaceDetailFragment", "Source fragment: $sourceFragment")
+
+        // NEW: Initialize gesture detector
+        gestureDetector = GestureDetectorCompat(requireContext(), SwipeGestureListener())
 
         val navController = findNavController()
 
@@ -82,6 +122,12 @@ class PlaceDetailFragment : Fragment() {
 
         binding.placeDetailToolbar.setNavigationOnClickListener {
             navController.navigateUp()
+        }
+
+        // NEW: Set up touch listener for swipe detection
+        binding.root.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
         }
 
         // <<<<<<<<<<<< START: ADD INSET HANDLING CODE HERE >>>>>>>>>>>>>>>>
@@ -219,6 +265,160 @@ class PlaceDetailFragment : Fragment() {
                 // This case should ideally not happen if a temple is loaded and displayed
                 Toast.makeText(context, getString(R.string.temple_details_not_available_for_visit), Toast.LENGTH_SHORT).show()
                 Log.e("PlaceDetailFragment", "Attempted to record visit but currentTemple is null.")
+            }
+        }
+        // NEW: Add observers for navigation events
+        setupNavigationObservers()
+    }
+
+    // NEW: Add gesture listener class
+    private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
+        private val SWIPE_THRESHOLD = 100
+        private val SWIPE_VELOCITY_THRESHOLD = 100
+
+        override fun onFling(
+            e1: MotionEvent?,
+            e2: MotionEvent,
+            velocityX: Float,
+            velocityY: Float
+        ): Boolean {
+            // Disable swipe when source is map
+            if (sourceFragment == "map") {
+                return false
+            }
+            
+            if (e1 == null || e2 == null) return false
+
+            val diffY = e2.y - e1.y
+            val diffX = e2.x - e1.x
+
+            if (Math.abs(diffY) > Math.abs(diffX)) {
+                if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (diffY > 0) {
+                        // Swipe down - go to previous place
+                        navigateToPreviousPlace()
+                    } else {
+                        // Swipe up - go to next place
+                        navigateToNextPlace()
+                    }
+                    return true
+                }
+            }
+            return false
+        }
+    }
+
+    // Add this helper function
+    private fun applySearchFiltering(items: List<DisplayListItem>, searchQuery: String): List<DisplayListItem> {
+        if (searchQuery.isBlank()) {
+            return items
+        }
+        
+        val filteredItems = mutableListOf<DisplayListItem>()
+        var currentHeader: DisplayListItem.HeaderItem? = null
+        val itemsUnderCurrentHeader = mutableListOf<DisplayListItem.TempleRowItem>()
+
+        for (item in items) {
+            if (item is DisplayListItem.HeaderItem) {
+                if (currentHeader != null && itemsUnderCurrentHeader.isNotEmpty()) {
+                    filteredItems.add(currentHeader.copy(count = itemsUnderCurrentHeader.size))
+                    filteredItems.addAll(itemsUnderCurrentHeader)
+                }
+                currentHeader = item
+                itemsUnderCurrentHeader.clear()
+            } else if (item is DisplayListItem.TempleRowItem) {
+                if (item.temple.name.contains(searchQuery, ignoreCase = true) ||
+                    item.temple.snippet.contains(searchQuery, ignoreCase = true) ||
+                    item.temple.cityState.contains(searchQuery, ignoreCase = true)
+                ) {
+                    itemsUnderCurrentHeader.add(item)
+                }
+            }
+        }
+        // Add any remaining items from the last header group
+        if (currentHeader != null && itemsUnderCurrentHeader.isNotEmpty()) {
+            filteredItems.add(currentHeader.copy(count = itemsUnderCurrentHeader.size))
+            filteredItems.addAll(itemsUnderCurrentHeader)
+        }
+        // If no headers were involved (e.g. NEAREST sort), simple filter:
+        return if (items.all { it is DisplayListItem.TempleRowItem } && filteredItems.isEmpty() && items.isNotEmpty()){
+            items.filter { listItem ->
+                (listItem as? DisplayListItem.TempleRowItem)?.temple?.let { temple ->
+                    temple.name.contains(searchQuery, ignoreCase = true) ||
+                            temple.snippet.contains(searchQuery, ignoreCase = true) ||
+                            temple.cityState.contains(searchQuery, ignoreCase = true)
+                } ?: false
+            }
+        } else {
+            filteredItems
+        }
+    }
+
+    // Then simplify your navigation methods:
+    private fun navigateToNextPlace() {
+        currentTemple?.let { temple ->
+            val currentPlaceId = temple.id
+            val currentList = sharedOptionsViewModel.uiState.value.displayedListItems
+            val searchQuery = sharedToolbarViewModel.uiState.value.searchQuery
+            val searchFilteredItems = applySearchFiltering(currentList, searchQuery)
+            val templeItems = searchFilteredItems.filterIsInstance<DisplayListItem.TempleRowItem>()
+            
+            val currentIndex = templeItems.indexOfFirst { it.temple.id == currentPlaceId }
+            if (currentIndex != -1 && currentIndex < templeItems.size - 1) {
+                val nextTemple = templeItems[currentIndex + 1].temple
+                navigationViewModel.requestNavigationToNextPlace(nextTemple.id)
+            }
+        }
+    }
+
+    private fun navigateToPreviousPlace() {
+        currentTemple?.let { temple ->
+            val currentPlaceId = temple.id
+            val currentList = sharedOptionsViewModel.uiState.value.displayedListItems
+            val searchQuery = sharedToolbarViewModel.uiState.value.searchQuery
+            val searchFilteredItems = applySearchFiltering(currentList, searchQuery)
+            val templeItems = searchFilteredItems.filterIsInstance<DisplayListItem.TempleRowItem>()
+            
+            val currentIndex = templeItems.indexOfFirst { it.temple.id == currentPlaceId }
+            if (currentIndex > 0) {
+                val previousTemple = templeItems[currentIndex - 1].temple
+                navigationViewModel.requestNavigationToPreviousPlace(previousTemple.id)
+            }
+        }
+    }
+    // Update this method to pass the sourceFragment
+    private fun getSelfNavigationAction(placeId: String): NavDirections {
+        return when (sourceFragment) {
+            "map" -> PlaceDetailFragmentDirections.actionPlaceDetailFragmentSelfFromMap(placeId, sourceFragment)
+            else -> PlaceDetailFragmentDirections.actionPlaceDetailFragmentSelfFromPlaces(placeId, sourceFragment)
+        }
+    }
+
+    // Update the setupNavigationObservers method
+    private fun setupNavigationObservers() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                navigationViewModel.navigateToNextPlace.collectLatest { placeId ->
+                    placeId?.let { nonNullPlaceId ->
+                        Log.d("PlaceDetailFragment", "Navigating to next place: $nonNullPlaceId")
+                        val action = getSelfNavigationAction(nonNullPlaceId)
+                        findNavController().navigate(action)
+                        navigationViewModel.onNextPlaceNavigated()
+                    }
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                navigationViewModel.navigateToPreviousPlace.collectLatest { placeId ->
+                    placeId?.let { nonNullPlaceId ->
+                        Log.d("PlaceDetailFragment", "Navigating to previous place: $nonNullPlaceId")
+                        val action = getSelfNavigationAction(nonNullPlaceId)
+                        findNavController().navigate(action)
+                        navigationViewModel.onPreviousPlaceNavigated()
+                    }
+                }
             }
         }
     }

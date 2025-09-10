@@ -62,11 +62,13 @@ import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
 import net.dacworld.android.holyplacesofthelord.model.PlaceSort
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModelFactory
+import net.dacworld.android.holyplacesofthelord.model.PlaceVisitedScope // <<< From OptionModels.kt
 import net.dacworld.android.holyplacesofthelord.data.dataStore
 import android.content.Context // << ADD THIS IMPORT if not present
 import android.view.inputmethod.InputMethodManager // << ADD THIS IMPORT
 import net.dacworld.android.holyplacesofthelord.MainActivity
 import androidx.core.graphics.Insets
+import com.google.android.material.button.MaterialButtonToggleGroup
 
 private const val METERS_IN_ONE_MILE = 1609.34
 
@@ -162,6 +164,8 @@ class PlacesFragment : Fragment() {
 
         setupToolbar()
         setupSearchViewListeners()
+        setupVisitScopeToggleButtons()
+        observeCombinedData()
 
         placeAdapter = PlaceDisplayAdapter { temple ->
             // Your existing click logic...
@@ -195,7 +199,6 @@ class PlacesFragment : Fragment() {
             findNavController().navigate(R.id.action_placesFragment_to_optionsFragment)
         }
 
-        // <<<<<<<<<<<< START: NEW INSET HANDLING CODE FOR PLACESFRAGMENT >>>>>>>>>>>>>>>>
         // Pad the RecyclerView to avoid the BottomNavigationView and IME.
         val contentViewToPad = binding.placesRecyclerView // This is your primary scrolling view
 
@@ -598,7 +601,7 @@ class PlacesFragment : Fragment() {
                         Log.d("PlacesFragmentNav", "Observed navigation request for place ID: $nonNullPlaceId. Navigating.")
                         try {
                             // Ensure PlacesFragmentDirections is correctly generated and imported
-                            val action = PlacesFragmentDirections.actionPlacesFragmentToPlaceDetailFragment(nonNullPlaceId)
+                            val action = PlacesFragmentDirections.actionPlacesFragmentToPlaceDetailFragment(nonNullPlaceId, "places")
                             findNavController().navigate(action)
                         } catch (e: IllegalStateException) { // More specific exception
                             Log.e("PlacesFragmentNav", "Navigation failed (IllegalStateException): ${e.message}. Current destination: ${findNavController().currentDestination?.label}", e)
@@ -773,19 +776,62 @@ class PlacesFragment : Fragment() {
     }
 
     private fun setupSearchViewListeners() {
-        binding.placesSearchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+        val searchView = binding.placesSearchView ?: return // Ensure it's not null
+
+        // Called when the user initially clicks/expands the search view.
+        // This now becomes the primary signal to ENTER search mode.
+        searchView.setOnSearchClickListener {
+            Log.d("PlacesFragment_Search", "Search clicked/expanded. Activating search mode.")
+//            if (!sharedToolbarViewModel.uiState.value.isSearchModeActive) {
+//                sharedToolbarViewModel.setSearchModeActive(true)
+//            }
+            // When search is expanded, the keyboard will typically appear.
+            // We don't want to change isSearchModeActive based on keyboard visibility alone.
+        }
+
+        // Called when the user clicks the 'X' button to clear the query and close/collapse the search view.
+        // This now becomes the primary signal to EXIT search mode.
+        searchView.setOnCloseListener {
+            Log.d("PlacesFragment_Search", "Search closed via 'X' button. Deactivating search mode.")
+//            if (sharedToolbarViewModel.uiState.value.isSearchModeActive) {
+//                sharedToolbarViewModel.setSearchModeActive(false)
+//            }
+            if (sharedToolbarViewModel.uiState.value.searchQuery.isNotEmpty()) {
+                sharedToolbarViewModel.setSearchQuery("")
+            }
+            // searchView.setQuery("", false) // The SearchView itself will clear its text.
+            false // Return false to allow the default action (closing the search view).
+        }
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                sharedToolbarViewModel.setSearchQuery(query.orEmpty().trim())
-                binding.placesSearchView.clearFocus() // Optional: dismiss keyboard
+                val submittedQuery = query.orEmpty().trim()
+                Log.d("PlacesFragment_Search", "Query submitted: $submittedQuery")
+                sharedToolbarViewModel.setSearchQuery(submittedQuery)
+                // Ensure search mode is (still) active when a query is submitted.
+//                if (submittedQuery.isNotEmpty() && !sharedToolbarViewModel.uiState.value.isSearchModeActive) {
+//                    sharedToolbarViewModel.setSearchModeActive(true)
+//                }
+                // Dismissing keyboard here is fine, it shouldn't hide buttons with the new logic.
+                searchView.clearFocus() // This will trigger setOnQueryTextFocusChangeListener with hasFocus = false
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                sharedToolbarViewModel.setSearchQuery(newText.orEmpty().trim())
+                val currentQuery = newText.orEmpty().trim()
+                Log.d("PlacesFragment_Search", "Query text changed: $currentQuery")
+                sharedToolbarViewModel.setSearchQuery(currentQuery)
+
+                // If text is entered, ensure search mode is active.
+//                if (currentQuery.isNotEmpty() && !sharedToolbarViewModel.uiState.value.isSearchModeActive) {
+//                    sharedToolbarViewModel.setSearchModeActive(true)
+//                    Log.d("PlacesFragment_Search", "Search mode (re)activated due to text change.")
+//                }
                 return true
             }
         })
     }
+
 
     private fun showUpdateDialog(details: UpdateDetails, onDismiss: () -> Unit) {
         if (!isAdded || context == null) { // Good practice to check if fragment is still added
@@ -851,5 +897,91 @@ class PlacesFragment : Fragment() {
         _binding = null
         Log.d("PlacesFragment", "LIFECYCLE: _binding and RecyclerView adapter set to null.") // Added log
         isDialogShowing = false // Reset flag
+    }
+    // Add this new method within PlacesFragment class
+
+    // In PlacesFragment.kt
+    // In PlacesFragment.kt ([1])
+    private fun setupVisitScopeToggleButtons() {
+        val toggleGroup = binding.placeVisitScopeToggleGroup
+
+        // Set initial checked state based on DataViewModel
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                dataViewModel.currentPlaceVisitedScope.collect { scope ->
+                    val currentCheckedId = when (scope) {
+                        PlaceVisitedScope.ALL -> R.id.button_scope_all_places
+                        PlaceVisitedScope.VISITED -> R.id.button_scope_visited_places
+                        PlaceVisitedScope.NOT_VISITED -> R.id.button_scope_not_visited_places
+                    }
+                    if (toggleGroup.checkedButtonId != currentCheckedId) {
+                        toggleGroup.check(currentCheckedId)
+                    }
+                }
+            }
+        }
+
+        toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                val newScope = when (checkedId) {
+                    R.id.button_scope_all_places -> PlaceVisitedScope.ALL
+                    R.id.button_scope_visited_places -> PlaceVisitedScope.VISITED
+                    R.id.button_scope_not_visited_places -> PlaceVisitedScope.NOT_VISITED
+                    else -> null
+                }
+                newScope?.let {
+                    if (dataViewModel.currentPlaceVisitedScope.value != it) {
+                        dataViewModel.setPlaceVisitedScope(it)
+                        Log.d("PlacesFragment", "Visited scope button changed. New scope: $it")
+                    }
+                }
+            }
+        }
+
+        // NO MORE VISIBILITY LOGIC HERE
+        // Ensure the toggleGroup is set to View.VISIBLE by default in your XML,
+        // or set it once here if needed, though XML is usually preferred for default states.
+        // Example: toggleGroup.visibility = View.VISIBLE // (If not already visible by default)
+    }
+
+    private fun observeCombinedData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                sharedOptionsViewModel.uiState
+                    .map { it.displayedListItems }
+                    .distinctUntilChanged()
+                    .collect { displayListItems ->
+                        Log.d("PlacesFragment_Observer", "Submitting ${displayListItems.size} display items to adapter.")
+                        placeAdapter.submitList(displayListItems)
+
+                        val currentSearchQuery = sharedToolbarViewModel.uiState.value.searchQuery
+                        val isSearchActive = currentSearchQuery.isNotEmpty()
+
+                        if (displayListItems.isEmpty()) {
+                            if (isSearchActive) { // Search is active and returned no results
+                                binding.emptyViewTextView.text = getString(R.string.no_search_results_message, currentSearchQuery) // <<< Use emptyViewTextView
+                                binding.emptyViewTextView.visibility = View.VISIBLE               // <<< Use emptyViewTextView
+                            } else { // No search active, and list is empty (e.g. no temples at all, or filter yields nothing)
+                                binding.emptyViewTextView.text = getString(R.string.no_temples_to_display)      // <<< Use emptyViewTextView
+                                binding.emptyViewTextView.visibility = View.VISIBLE               // <<< Use emptyViewTextView
+                            }
+                        } else { // List is not empty
+                            binding.emptyViewTextView.visibility = View.GONE                  // <<< Use emptyViewTextView
+                        }
+
+                        // Your existing scroll restoration logic
+                        if (pendingScrollRestore && savedRecyclerLayoutState != null && displayListItems.isNotEmpty()) {
+                            binding.placesRecyclerView.layoutManager?.onRestoreInstanceState(savedRecyclerLayoutState)
+                            Log.d("PlacesFragment_Scroll", "Scroll state RESTORED.")
+                            savedRecyclerLayoutState = null
+                            pendingScrollRestore = false
+                        } else if (displayListItems.isEmpty()) {
+                            pendingScrollRestore = false
+                            savedRecyclerLayoutState = null
+                        }
+                        isInitialLoad = false
+                    }
+            }
+        }
     }
 }

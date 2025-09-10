@@ -1,5 +1,6 @@
 package net.dacworld.android.holyplacesofthelord
 
+import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -23,6 +24,9 @@ import androidx.core.view.WindowInsetsCompat
 import android.view.View
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import androidx.core.content.edit
 
 class MainActivity : AppCompatActivity() {
 
@@ -39,6 +43,8 @@ class MainActivity : AppCompatActivity() {
 
     private var stableBottomNavActualHeight: Int = 0
     private var areActivityInsetsInitialized: Boolean = false
+
+    private val UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000L // 24 hours in milliseconds
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // If using the traditional splash screen method, you might have setTheme() here
@@ -144,11 +150,6 @@ class MainActivity : AppCompatActivity() {
             val destinationLabel = destination.label ?: "No Label"
             Log.d("MainActivity_Nav", "Destination Changed. ID: ${destination.id}, ResName: ${try { resources.getResourceEntryName(destination.id) } catch (e: Exception) { "N/A" }}, Label: $destinationLabel")
 
-            // Following code will show the nav bar on the detail screens.
-//            binding.mainBottomNavigation.visibility = when (destination.id) {
-//                R.id.placeDetailFragment -> android.view.View.VISIBLE
-//                else -> android.view.View.VISIBLE
-//            }
             // --- CHANGE VISIBILITY LOGIC HERE ---
             binding.mainBottomNavigation.visibility = when (destination.id) {
                 R.id.placeDetailFragment,       // Assuming this is your Place Detail screen ID
@@ -164,6 +165,27 @@ class MainActivity : AppCompatActivity() {
 
         // --- 4. Initial Data Load ---
         dataViewModel.checkForUpdates()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        checkForUpdatesIfNeeded()
+    }
+
+    private fun checkForUpdatesIfNeeded() {
+        val currentTime = System.currentTimeMillis()
+        
+        // Use SharedPreferences for a simple synchronous check
+        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val lastCheckTime = prefs.getLong("last_update_check", 0L)
+        val timeSinceLastCheck = currentTime - lastCheckTime
+    
+        if (timeSinceLastCheck >= UPDATE_CHECK_INTERVAL) {
+            lifecycleScope.launch {
+                dataViewModel.checkForUpdates()
+                prefs.edit { putLong("last_update_check", currentTime) }
+            }
+        }
     }
 
     // --- Method to provide stable BNV height to Fragments ---

@@ -6,6 +6,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RoomWarnings
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import net.dacworld.android.holyplacesofthelord.model.Visit
@@ -21,6 +22,7 @@ interface VisitDao {
 
     // --- Query Operations ---
 
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT " +
             "${VisitContract.COLUMN_ID}, " +
             "${VisitContract.COLUMN_PLACE_ID}, " +
@@ -41,6 +43,7 @@ interface VisitDao {
             "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
     fun getAllVisits(): Flow<List<Visit>>
 
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT " +
             "${VisitContract.COLUMN_ID}, " +
             "${VisitContract.COLUMN_PLACE_ID}, " +
@@ -83,6 +86,9 @@ interface VisitDao {
     @Query("SELECT COUNT(*) FROM ${VisitContract.TABLE_NAME}")
     suspend fun getVisitCount(): Int
 
+    @Query("SELECT DISTINCT ${VisitContract.COLUMN_PLACE_ID} FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_PLACE_ID} IS NOT NULL AND ${VisitContract.COLUMN_PLACE_ID} != ''")
+    fun getVisitedTemplePlaceIds(): Flow<List<String>> // <<< CHANGE HERE from Flow<Set<String>>
+
     // --- Update Operations ---
 
     @Update
@@ -108,6 +114,7 @@ interface VisitDao {
      * The pictureData column (VisitContract.COLUMN_PICTURE_DATA) is EXCLUDED
      * from this query to prevent SQLiteBlobTooBigException.
      */
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT " +
             "${VisitContract.COLUMN_ID}, " +
             "${VisitContract.COLUMN_PLACE_ID}, " +
@@ -142,6 +149,7 @@ interface VisitDao {
      * @param endOfDayMillis The millisecond timestamp for the beginning of the NEXT day (exclusive upper bound).
      * @return True if a visit exists within that day range, false otherwise.
      */
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT EXISTS(SELECT 1 FROM ${VisitContract.TABLE_NAME} WHERE " +
             "${VisitContract.COLUMN_HOLY_PLACE_NAME} = :holyPlaceName AND " +
             "${VisitContract.COLUMN_DATE_VISITED} >= :startOfDayMillis AND " +
@@ -155,6 +163,7 @@ interface VisitDao {
      * If excludeNoOrdinances is true, only counts visits where at least one ordinance was performed.
      * Assumes 'T' in the 'visit_type' (Visit.type) column indicates a Temple visit.
      */
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("""
     SELECT COUNT(visit_id) FROM visits
     WHERE year = :year AND ${VisitContract.COLUMN_VISIT_TYPE} = 'T' 

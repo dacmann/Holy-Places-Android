@@ -9,10 +9,11 @@ import kotlinx.coroutines.flow.update // Required for the .update {} extension
 
 // Data class to represent the entire UI state managed by this ViewModel
 data class ToolbarUiState(
-    val title: String = "Holy Places", // Default title
+    val title: String = "Holy Places",
     val count: Int = 0,
     val searchQuery: String = "",
-    val subtitle: String = ""
+    val subtitle: String = "",
+    val isSearchModeActive: Boolean = false
 )
 
 class SharedToolbarViewModel : ViewModel() {
@@ -61,4 +62,5 @@ class SharedToolbarViewModel : ViewModel() {
             }
         }
     }
+
 }
