@@ -1,9 +1,9 @@
 package net.dacworld.android.holyplacesofthelord.ui.placedetail
 
+import android.annotation.SuppressLint
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
-import androidx.core.view.GestureDetectorCompat
 import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel
 import net.dacworld.android.holyplacesofthelord.ui.places.DisplayListItem
 import net.dacworld.android.holyplacesofthelord.ui.SharedOptionsViewModel
@@ -56,6 +56,8 @@ import androidx.navigation.NavDirections
 import kotlinx.coroutines.flow.collectLatest
 import net.dacworld.android.holyplacesofthelord.MainActivity
 import androidx.navigation.fragment.navArgs
+import net.dacworld.android.holyplacesofthelord.ui.ImageViewerFragment
+import net.dacworld.android.holyplacesofthelord.ui.placedetail.PlaceDetailFragmentDirections
 
 class PlaceDetailFragment : Fragment() {
 
@@ -89,7 +91,7 @@ class PlaceDetailFragment : Fragment() {
     private var currentTemple: Temple? = null
 
     // NEW: Add gesture detector
-    private lateinit var gestureDetector: GestureDetectorCompat
+    private lateinit var gestureDetector: GestureDetector
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -99,6 +101,7 @@ class PlaceDetailFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -106,7 +109,7 @@ class PlaceDetailFragment : Fragment() {
         Log.d("PlaceDetailFragment", "Source fragment: $sourceFragment")
 
         // NEW: Initialize gesture detector
-        gestureDetector = GestureDetectorCompat(requireContext(), SwipeGestureListener())
+        gestureDetector = GestureDetector(requireContext(), SwipeGestureListener())
 
         val navController = findNavController()
 
@@ -269,6 +272,7 @@ class PlaceDetailFragment : Fragment() {
         }
         // NEW: Add observers for navigation events
         setupNavigationObservers()
+        setupImageClickListener()
     }
 
     // NEW: Add gesture listener class
@@ -421,6 +425,42 @@ class PlaceDetailFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun setupImageClickListener() {
+        binding.imageViewTempleDetail.setOnClickListener {
+            val temple = currentTemple
+            when {
+                temple?.pictureData != null -> {
+                    val base64String = android.util.Base64.encodeToString(temple.pictureData, android.util.Base64.DEFAULT)
+                    val action = PlaceDetailFragmentDirections.actionPlaceDetailFragmentToImageViewerFragment(
+                        imageUrl = "",
+                        imageDataBase64 = base64String
+                    )
+                    findNavController().navigate(action)
+                }
+                !temple?.pictureUrl.isNullOrEmpty() -> {
+                    val action = PlaceDetailFragmentDirections.actionPlaceDetailFragmentToImageViewerFragment(
+                        imageUrl = temple.pictureUrl,
+                        imageDataBase64 = ""
+                    )
+                    findNavController().navigate(action)
+                }
+            }
+        }
+    }
+    
+    private fun showImageViewer(imageViewerFragment: ImageViewerFragment) {
+        parentFragmentManager.beginTransaction()
+            .setCustomAnimations(
+                android.R.anim.fade_in,
+                android.R.anim.fade_out,
+                android.R.anim.fade_in,
+                android.R.anim.fade_out
+            )
+            .add(android.R.id.content, imageViewerFragment)
+            .addToBackStack("image_viewer")
+            .commit()
     }
 
     private fun loadTempleDetails(templeId: String) {

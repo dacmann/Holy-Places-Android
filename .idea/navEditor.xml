@@ -8,6 +8,11 @@
             <LayoutPositions>
               <option name="myPositions">
                 <map>
+                  <entry key="action_mapFragment_to_placeDetailFragment">
+                    <value>
+                      <LayoutPositions />
+                    </value>
+                  </entry>
                   <entry key="exportImportFragment">
                     <value>
                       <LayoutPositions>
@@ -21,6 +26,18 @@
                     </value>
                   </entry>
                   <entry key="home_fragment_destination">
+                    <value>
+                      <LayoutPositions>
+                        <option name="myPosition">
+                          <Point>
+                            <option name="x" value="12" />
+                            <option name="y" value="12" />
+                          </Point>
+                        </option>
+                      </LayoutPositions>
+                    </value>
+                  </entry>
+                  <entry key="imageViewerFragment">
                     <value>
                       <LayoutPositions>
                         <option name="myPosition">
@@ -67,6 +84,16 @@
                         </option>
                         <option name="myPositions">
                           <map>
+                            <entry key="action_placeDetailFragmentSelfFromMap">
+                              <value>
+                                <LayoutPositions />
+                              </value>
+                            </entry>
+                            <entry key="action_placeDetailFragmentSelfFromPlaces">
+                              <value>
+                                <LayoutPositions />
+                              </value>
+                            </entry>
                             <entry key="action_placeDetailFragment_to_recordVisitFragment">
                               <value>
                                 <LayoutPositions />
@@ -138,6 +165,11 @@
                         </option>
                         <option name="myPositions">
                           <map>
+                            <entry key="action_visitDetailFragmentSelf">
+                              <value>
+                                <LayoutPositions />
+                              </value>
+                            </entry>
                             <entry key="action_visitDetailFragment_to_recordVisitFragment">
                               <value>
                                 <LayoutPositions />

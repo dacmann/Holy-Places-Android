@@ -1,5 +1,6 @@
 package net.dacworld.android.holyplacesofthelord.ui.visits
 
+import android.annotation.SuppressLint
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Spannable
@@ -37,7 +38,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.view.GestureDetector
 import android.view.MotionEvent
-import androidx.core.view.GestureDetectorCompat
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.collectLatest
@@ -45,6 +45,7 @@ import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedVisitsViewModel
 import net.dacworld.android.holyplacesofthelord.data.VisitDisplayListItem
 import net.dacworld.android.holyplacesofthelord.data.VisitViewModel
+import android.util.Base64
 
 
 class VisitDetailFragment : Fragment() {
@@ -73,7 +74,7 @@ class VisitDetailFragment : Fragment() {
     private val sharedVisitsViewModel: SharedVisitsViewModel by activityViewModels()
     
     // Add gesture detector
-    private lateinit var gestureDetector: GestureDetectorCompat
+    private lateinit var gestureDetector: GestureDetector
 
     // Add a property to store the current visit list
     private var currentVisitList: List<VisitDisplayListItem>? = null
@@ -92,16 +93,16 @@ class VisitDetailFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Initialize gesture detector
-        gestureDetector = GestureDetectorCompat(requireContext(), SwipeGestureListener())
+        gestureDetector = GestureDetector(requireContext(), SwipeGestureListener())
         
         // Set up touch listener for swipe detection
         binding.visitDetailRootContainer.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
-            true // Consume the event
         }
 
         syncViewModels()
@@ -130,6 +131,13 @@ class VisitDetailFragment : Fragment() {
     private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
         private val SWIPE_THRESHOLD = 100
         private val SWIPE_VELOCITY_THRESHOLD = 100
+        private var isSwipeDetected = false
+    
+        override fun onDown(e: MotionEvent): Boolean {
+            isSwipeDetected = false
+            Log.d("VisitDetailFragment", "onDown called")
+            return true
+        }
     
         override fun onFling(
             e1: MotionEvent?,
@@ -140,14 +148,64 @@ class VisitDetailFragment : Fragment() {
             val diffY = e2.y - (e1?.y ?: 0f)
             val diffX = e2.x - (e1?.x ?: 0f)
             
+            Log.d("VisitDetailFragment", "onFling called - diffY: $diffY, diffX: $diffX, velocityY: $velocityY")
+            
             if (Math.abs(diffY) > Math.abs(diffX)) {
                 if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
+                    isSwipeDetected = true
+                    Log.d("VisitDetailFragment", "Swipe detected - diffY: $diffY")
                     if (diffY > 0) {
+                        Log.d("VisitDetailFragment", "Swipe down - navigating to previous visit")
                         navigateToPreviousVisit()
                     } else {
+                        Log.d("VisitDetailFragment", "Swipe up - navigating to next visit")
                         navigateToNextVisit()
                     }
                     return true
+                }
+            }
+            return false
+        }
+    
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            Log.d("VisitDetailFragment", "onSingleTapUp called - isSwipeDetected: $isSwipeDetected")
+            
+            // Only handle tap if no swipe was detected
+            if (!isSwipeDetected) {
+                // Check if the tap was on the image
+                val imageView = binding.detailVisitPicture
+                if (imageView.visibility == View.VISIBLE) {
+                    // Get the image view's position relative to the root container
+                    val location = IntArray(2)
+                    imageView.getLocationInWindow(location)
+                    val rootLocation = IntArray(2)
+                    binding.visitDetailRootContainer.getLocationInWindow(rootLocation)
+                    
+                    val imageRect = android.graphics.Rect(
+                        location[0] - rootLocation[0],
+                        location[1] - rootLocation[1],
+                        location[0] - rootLocation[0] + imageView.width,
+                        location[1] - rootLocation[1] + imageView.height
+                    )
+                    
+                    Log.d("VisitDetailFragment", "Image rect: $imageRect, tap point: (${e.x}, ${e.y})")
+                    
+                    if (imageRect.contains(e.x.toInt(), e.y.toInt())) {
+                        Log.d("VisitDetailFragment", "Tap was on image - opening image viewer")
+                        // Tap was on the image, open image viewer
+                        val visit = viewModel.visit.value
+                        visit?.picture?.let { pictureData ->
+                            if (pictureData.isNotEmpty()) {
+                                val base64String = Base64.encodeToString(pictureData, Base64.DEFAULT)
+                                val action = VisitDetailFragmentDirections.actionVisitDetailFragmentToImageViewerFragment(
+                                    imageUrl = "",
+                                    imageDataBase64 = base64String
+                                )
+                                findNavController().navigate(action)
+                            }
+                        }
+                        return true
+                    }
                 }
             }
             return false

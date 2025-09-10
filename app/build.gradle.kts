@@ -71,6 +71,8 @@ dependencies {
     // Data Store Preferences
     implementation(libs.androidx.datastore.preferences)
 
+    implementation(libs.photoview)
+
     // ... other dependencies
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

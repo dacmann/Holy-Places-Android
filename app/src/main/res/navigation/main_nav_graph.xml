@@ -56,6 +56,19 @@
                 app:argType="string"
                 android:defaultValue="places" />
         </action>
+
+        <action
+            android:id="@+id/action_placeDetailFragment_to_imageViewerFragment"
+            app:destination="@id/imageViewerFragment">
+            <argument
+                android:name="image_url"
+                app:argType="string"
+                android:defaultValue="" />
+            <argument
+                android:name="image_data_base64"
+                app:argType="string"
+                android:defaultValue="" />
+        </action>
         <!-- Self-navigation action for MapFragment source -->
         <action
             android:id="@+id/action_placeDetailFragmentSelfFromMap"
@@ -112,6 +125,19 @@
                 android:name="visitId"
                 app:argType="long" />
         </action>
+
+        <action
+            android:id="@+id/action_visitDetailFragment_to_imageViewerFragment"
+            app:destination="@id/imageViewerFragment">
+            <argument
+                android:name="image_url"
+                app:argType="string"
+                android:defaultValue="" />
+            <argument
+                android:name="image_data_base64"
+                app:argType="string"
+                android:defaultValue="" />
+        </action>
     </fragment>
 
     <fragment
@@ -155,7 +181,7 @@
         android:id="@+id/map_fragment_destination"
         android:name="net.dacworld.android.holyplacesofthelord.map.MapFragment"
         android:label="@string/title_map_tab"
-        tools:layout="@layout/fragment_map" />
+        tools:layout="@layout/fragment_map">
         <action
             android:id="@+id/action_mapFragment_to_placeDetailFragment"
             app:destination="@id/placeDetailFragment">
@@ -167,5 +193,21 @@
                 app:argType="string"
                 android:defaultValue="map" />
         </action>
+    </fragment>
+
+    <fragment
+        android:id="@+id/imageViewerFragment"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.ImageViewerFragment"
+        android:label="Image Viewer"
+        tools:layout="@layout/fragment_image_viewer">
+        <argument
+            android:name="image_url"
+            app:argType="string"
+            android:defaultValue="" />
+        <argument
+            android:name="image_data_base64"
+            app:argType="string"
+            android:defaultValue="" />
+    </fragment>
 
 </navigation>
