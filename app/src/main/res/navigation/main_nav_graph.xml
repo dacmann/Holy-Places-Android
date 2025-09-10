@@ -102,6 +102,16 @@
         <action
             android:id="@+id/action_visitDetailFragment_to_recordVisitFragment"
             app:destination="@id/recordVisitFragment" />
+        <!-- Add self-navigation action -->
+        <action
+            android:id="@+id/action_visitDetailFragmentSelf"
+            app:destination="@id/visitDetailFragment"
+            app:popUpTo="@id/visits_fragment_destination"
+            app:popUpToInclusive="false">
+            <argument
+                android:name="visitId"
+                app:argType="long" />
+        </action>
     </fragment>
 
     <fragment

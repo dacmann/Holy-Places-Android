@@ -19,6 +19,13 @@ class NavigationViewModel : ViewModel() {
     private val _navigateToPreviousPlace = MutableStateFlow<String?>(null)
     val navigateToPreviousPlace: StateFlow<String?> = _navigateToPreviousPlace.asStateFlow()
 
+    // Add support for visit navigation
+    private val _navigateToNextVisit = MutableStateFlow<Long?>(null)
+    val navigateToNextVisit: StateFlow<Long?> = _navigateToNextVisit.asStateFlow()
+    
+    private val _navigateToPreviousVisit = MutableStateFlow<Long?>(null)
+    val navigateToPreviousVisit: StateFlow<Long?> = _navigateToPreviousVisit.asStateFlow()
+
     fun requestNavigationToPlaceDetail(placeId: String) {
         _navigateToPlaceDetail.value = placeId
         Log.d("NavigationViewModel", "Navigation requested for place ID: $placeId")
@@ -51,5 +58,26 @@ class NavigationViewModel : ViewModel() {
     fun onPreviousPlaceNavigated() {
         _navigateToPreviousPlace.value = null
         Log.d("NavigationViewModel", "Previous place navigation event reset.")
+    }
+
+    // Add visit navigation methods
+    fun requestNavigationToNextVisit(visitId: Long) {
+        _navigateToNextVisit.value = visitId
+        Log.d("NavigationViewModel", "Next visit navigation requested for visit ID: $visitId")
+    }
+    
+    fun requestNavigationToPreviousVisit(visitId: Long) {
+        _navigateToPreviousVisit.value = visitId
+        Log.d("NavigationViewModel", "Previous visit navigation requested for visit ID: $visitId")
+    }
+    
+    fun onNextVisitNavigated() {
+        _navigateToNextVisit.value = null
+        Log.d("NavigationViewModel", "Next visit navigation event reset.")
+    }
+    
+    fun onPreviousVisitNavigated() {
+        _navigateToPreviousVisit.value = null
+        Log.d("NavigationViewModel", "Previous visit navigation event reset.")
     }
 }

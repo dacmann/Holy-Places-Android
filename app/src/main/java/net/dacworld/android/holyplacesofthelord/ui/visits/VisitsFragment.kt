@@ -40,6 +40,7 @@ import net.dacworld.android.holyplacesofthelord.data.VisitDisplayListItem
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
+import androidx.fragment.app.activityViewModels
 import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
 
 class VisitsFragment : Fragment() {
@@ -49,7 +50,7 @@ class VisitsFragment : Fragment() {
 
     // Using by viewModels() KTX extension
     private val visitViewModel: VisitViewModel by viewModels()
-    private val sharedVisitsViewModel: SharedVisitsViewModel by viewModels() // Or activityViewModels() if shared with Activity
+    private val sharedVisitsViewModel: SharedVisitsViewModel by activityViewModels()
 
     private lateinit var visitListAdapter: VisitListAdapter
 

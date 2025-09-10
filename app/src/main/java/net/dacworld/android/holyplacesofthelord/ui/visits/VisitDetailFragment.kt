@@ -35,6 +35,17 @@ import net.dacworld.android.holyplacesofthelord.data.VisitDetailViewModel
 import net.dacworld.android.holyplacesofthelord.data.VisitDetailViewModelFactory
 import java.text.SimpleDateFormat
 import java.util.*
+import android.view.GestureDetector
+import android.view.MotionEvent
+import androidx.core.view.GestureDetectorCompat
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.flow.collectLatest
+import net.dacworld.android.holyplacesofthelord.ui.NavigationViewModel
+import net.dacworld.android.holyplacesofthelord.ui.SharedVisitsViewModel
+import net.dacworld.android.holyplacesofthelord.data.VisitDisplayListItem
+import net.dacworld.android.holyplacesofthelord.data.VisitViewModel
+
 
 class VisitDetailFragment : Fragment() {
 
@@ -50,8 +61,22 @@ class VisitDetailFragment : Fragment() {
         )
     }
 
+    private val visitViewModel: VisitViewModel by activityViewModels()
+
     // Date formatter
     private val dateFormatter = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
+
+    // Add NavigationViewModel
+    private val navigationViewModel: NavigationViewModel by activityViewModels()
+    
+    // Add SharedVisitsViewModel to access visit list
+    private val sharedVisitsViewModel: SharedVisitsViewModel by activityViewModels()
+    
+    // Add gesture detector
+    private lateinit var gestureDetector: GestureDetectorCompat
+
+    // Add a property to store the current visit list
+    private var currentVisitList: List<VisitDisplayListItem>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,16 +95,160 @@ class VisitDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Initialize gesture detector
+        gestureDetector = GestureDetectorCompat(requireContext(), SwipeGestureListener())
+        
+        // Set up touch listener for swipe detection
+        binding.visitDetailRootContainer.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true // Consume the event
+        }
+
+        syncViewModels()
+
+        // Observe visit data and store it
+        visitViewModel.allVisits.observe(viewLifecycleOwner) { visits ->
+            currentVisitList = visits
+            Log.d("VisitDetailFragment", "Visit data updated: ${visits?.size ?: 0} visits")
+        }
+
         setupCustomToolbar()
         setupMenuProvider()
         setupInsetHandling()
-
-        //setupBottomInsetHandling()
+        setupNavigationObservers()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.visit.collect { visit ->
                     visit?.let { populateUi(it) }
+                }
+            }
+        }
+    }
+
+    // Add gesture listener class
+    private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
+        private val SWIPE_THRESHOLD = 100
+        private val SWIPE_VELOCITY_THRESHOLD = 100
+    
+        override fun onFling(
+            e1: MotionEvent?,
+            e2: MotionEvent,
+            velocityX: Float,
+            velocityY: Float
+        ): Boolean {
+            val diffY = e2.y - (e1?.y ?: 0f)
+            val diffX = e2.x - (e1?.x ?: 0f)
+            
+            if (Math.abs(diffY) > Math.abs(diffX)) {
+                if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (diffY > 0) {
+                        navigateToPreviousVisit()
+                    } else {
+                        navigateToNextVisit()
+                    }
+                    return true
+                }
+            }
+            return false
+        }
+    }
+    
+    // Add navigation methods
+    private fun navigateToNextVisit() {
+        val currentVisitId = args.visitId
+        val currentList = currentVisitList
+        
+        if (currentList == null) {
+            return
+        }
+        
+        val visitItems = currentList.filterIsInstance<VisitDisplayListItem.VisitRowItem>()
+        val currentIndex = visitItems.indexOfFirst { it.visit.id == currentVisitId }
+        
+        if (currentIndex != -1 && currentIndex < visitItems.size - 1) {
+            val nextVisit = visitItems[currentIndex + 1].visit
+            navigationViewModel.requestNavigationToNextVisit(nextVisit.id)
+        }
+    }
+    
+    private fun navigateToPreviousVisit() {
+        val currentVisitId = args.visitId
+        val currentList = currentVisitList
+        
+        if (currentList == null) {
+            return
+        }
+        
+        val visitItems = currentList.filterIsInstance<VisitDisplayListItem.VisitRowItem>()
+        val currentIndex = visitItems.indexOfFirst { it.visit.id == currentVisitId }
+        
+        if (currentIndex > 0) {
+            val previousVisit = visitItems[currentIndex - 1].visit
+            navigationViewModel.requestNavigationToPreviousVisit(previousVisit.id)
+        }
+    }
+    
+    // Add navigation observers
+    private fun setupNavigationObservers() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                navigationViewModel.navigateToNextVisit.collectLatest { visitId ->
+                    visitId?.let { nonNullVisitId ->
+                        Log.d("VisitDetailFragment", "Navigating to next visit: $nonNullVisitId")
+                        val action = VisitDetailFragmentDirections.actionVisitDetailFragmentSelf(nonNullVisitId)
+                        findNavController().navigate(action)
+                        navigationViewModel.onNextVisitNavigated()
+                    }
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                navigationViewModel.navigateToPreviousVisit.collectLatest { visitId ->
+                    visitId?.let { nonNullVisitId ->
+                        Log.d("VisitDetailFragment", "Navigating to previous visit: $nonNullVisitId")
+                        val action = VisitDetailFragmentDirections.actionVisitDetailFragmentSelf(nonNullVisitId)
+                        findNavController().navigate(action)
+                        navigationViewModel.onPreviousVisitNavigated()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun syncViewModels() {
+        // Immediately sync current values
+        val currentSortOrder = sharedVisitsViewModel.sortOrder.value
+        val currentFilter = sharedVisitsViewModel.selectedPlaceTypeFilter.value
+        val currentQuery = sharedVisitsViewModel.searchQuery.value
+        
+        // Force update the VisitViewModel with current values
+        currentSortOrder?.let { 
+            visitViewModel.updateSortOrder(it) 
+        }
+        currentFilter?.let { 
+            visitViewModel.updatePlaceTypeFilter(it) 
+        }
+        visitViewModel.setSearchQuery(currentQuery)
+        
+        // Observe for changes
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Sync sort order
+                sharedVisitsViewModel.sortOrder.observe(viewLifecycleOwner) { sortOrder ->
+                    visitViewModel.updateSortOrder(sortOrder)
+                }
+                
+                // Sync place type filter
+                sharedVisitsViewModel.selectedPlaceTypeFilter.observe(viewLifecycleOwner) { filter ->
+                    visitViewModel.updatePlaceTypeFilter(filter)
+                }
+                
+                // Sync search query
+                sharedVisitsViewModel.searchQuery.observe(viewLifecycleOwner) { query ->
+                    visitViewModel.setSearchQuery(query)
                 }
             }
         }

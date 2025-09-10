@@ -24,17 +24,66 @@
         />
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- NEW: Add scope buttons toggle group -->
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/map_visit_scope_toggle_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
+        android:visibility="visible"
+        app:layout_constraintTop_toBottomOf="@id/appBarLayoutMap"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible">
+
+        <Button
+            android:id="@+id/button_map_scope_all_places"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/scope_all" />
+
+        <Button
+            android:id="@+id/button_map_scope_visited_places"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/scope_visited" />
+
+        <Button
+            android:id="@+id/button_map_scope_not_visited_places"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/scope_not_visited" />
+
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
     <org.maplibre.android.maps.MapView
         android:id="@+id/mapView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/appBarLayoutMap"
+        app:layout_constraintTop_toBottomOf="@id/map_visit_scope_toggle_group"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:maplibre_cameraTargetLat="6.24914"
         app:maplibre_cameraTargetLng="-75.56493"
-        app:maplibre_cameraZoom="1.6" /> <!-- Initial zoom -->
+        app:maplibre_cameraZoom="1.6" />
 
     <TextView
         android:id="@+id/map_info_window_text"

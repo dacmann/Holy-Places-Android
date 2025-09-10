@@ -48,6 +48,17 @@ import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
+import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.repeatOnLifecycle
+import net.dacworld.android.holyplacesofthelord.MyApplication
+import net.dacworld.android.holyplacesofthelord.data.DataViewModel
+import net.dacworld.android.holyplacesofthelord.data.DataViewModelFactory
+import net.dacworld.android.holyplacesofthelord.model.PlaceVisitedScope
+import com.google.android.material.button.MaterialButtonToggleGroup
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
+
 
 class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListener, MenuProvider {
 
@@ -76,6 +87,12 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
     private val mapViewModel: net.dacworld.android.holyplacesofthelord.data.MapViewModel by viewModels {
         Log.d(FRAGMENT_TAG, "Creating MapViewModel using MapViewModelFactory.")
         MapViewModelFactory(requireActivity().application)
+    }
+
+    // Add DataViewModel
+    private val dataViewModel: DataViewModel by activityViewModels {
+        val application = requireActivity().application as MyApplication
+        DataViewModelFactory(application, application.templeDao, application.visitDao, application.userPreferencesManager)
     }
 
     // Reference to the info window TextView
@@ -113,6 +130,8 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
         setupToolbar()
         setupMap()
         observeViewModel()
+        setupVisitScopeToggleButtons()
+        ensureVisitedDataLoaded() 
 
         val menuHost: MenuHost = requireActivity()
         menuHost.addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
@@ -122,6 +141,108 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
         Log.d(FRAGMENT_TAG, "onCreateMenu for MapFragment")
         menuInflater.inflate(R.menu.menu_map_toolbar, menu)
         applyColorsToMenuItems(menu)
+    }
+
+    private fun ensureVisitedDataLoaded() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Ensure visited temple data is loaded
+                dataViewModel.visitedTemplePlaceIdsFlow.collect { visitedIds ->
+                    Log.d("MapFragment", "Visited IDs loaded: ${visitedIds.size} places")
+                    // Trigger a refresh of the map markers when visited data is available
+                    refreshMapMarkers()
+                }
+            }
+        }
+    }
+
+    // Add this method to your MapFragment class
+    private fun setupVisitScopeToggleButtons() {
+        Log.d("MapFragment", "setupVisitScopeToggleButtons() called")
+        val toggleGroup = binding.mapVisitScopeToggleGroup
+        Log.d("MapFragment", "toggleGroup found: $toggleGroup")
+    
+        if (toggleGroup == null) {
+            Log.e("MapFragment", "toggleGroup is null!")
+            return
+        }
+
+        // Set initial checked state based on DataViewModel
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                dataViewModel.currentPlaceVisitedScope.collect { scope ->
+                    Log.d("MapFragment", "Scope changed to: $scope")
+                    val currentCheckedId = when (scope) {
+                        PlaceVisitedScope.ALL -> R.id.button_map_scope_all_places
+                        PlaceVisitedScope.VISITED -> R.id.button_map_scope_visited_places
+                        PlaceVisitedScope.NOT_VISITED -> R.id.button_map_scope_not_visited_places
+                    }
+                    if (toggleGroup.checkedButtonId != currentCheckedId) {
+                        toggleGroup.check(currentCheckedId)
+                    }
+                }
+            }
+        }
+
+        toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            Log.d("MapFragment", "Button checked: $checkedId, isChecked: $isChecked")
+            if (isChecked) {
+                val newScope = when (checkedId) {
+                    R.id.button_map_scope_all_places -> PlaceVisitedScope.ALL
+                    R.id.button_map_scope_visited_places -> PlaceVisitedScope.VISITED
+                    R.id.button_map_scope_not_visited_places -> PlaceVisitedScope.NOT_VISITED
+                    else -> null
+                }
+                newScope?.let {
+                    if (dataViewModel.currentPlaceVisitedScope.value != it) {
+                        dataViewModel.setPlaceVisitedScope(it)
+                        Log.d("MapFragment", "Visited scope button changed. New scope: $it")
+                        // Refresh the map markers based on the new scope
+                        refreshMapMarkers()
+                    }
+                }
+            }
+        }
+    }
+
+    // Add this method to refresh map markers based on current scope
+    private fun refreshMapMarkers() {
+        // Get the current places from mapViewModel
+        val currentPlaces = mapViewModel.mapPlaces.value ?: return
+        
+        // Get the current scope and visited IDs
+        val currentScope = dataViewModel.currentPlaceVisitedScope.value
+        val visitedIds = dataViewModel.visitedTemplePlaceIdsFlow.value
+        
+        Log.d("MapFragment", "Refreshing markers - Scope: $currentScope, Visited IDs: ${visitedIds.size}")
+        
+        // Filter places based on scope
+        val filteredPlaces = when (currentScope) {
+            PlaceVisitedScope.ALL -> currentPlaces
+            PlaceVisitedScope.VISITED -> {
+                if (visitedIds.isEmpty()) {
+                    Log.d("MapFragment", "No visited data available yet, showing all places")
+                    currentPlaces
+                } else {
+                    currentPlaces.filter { it.id in visitedIds }
+                }
+            }
+            PlaceVisitedScope.NOT_VISITED -> {
+                if (visitedIds.isEmpty()) {
+                    Log.d("MapFragment", "No visited data available yet, showing all places")
+                    currentPlaces
+                } else {
+                    currentPlaces.filter { it.id !in visitedIds }
+                }
+            }
+        }
+        
+        Log.d("MapFragment", "Filtered places count: ${filteredPlaces.size}")
+        
+        // Load the filtered places into the map using your existing method
+        if (mapStyle?.isFullyLoaded == true) {
+            loadPlacesIntoSource(filteredPlaces)
+        }
     }
 
     private fun applyColorsToMenuItems(menu: Menu) {
