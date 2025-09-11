@@ -163,5 +163,6 @@
     <string name="scope_not_visited">Not Visited</string>
     <string name="no_search_results_message">No results found for \"%1$s\"</string>
     <string name="no_temples_to_display">No places to show</string>
+    <string name="close">Close</string>
 
 </resources>
