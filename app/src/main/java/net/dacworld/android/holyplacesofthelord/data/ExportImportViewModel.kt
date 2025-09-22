@@ -561,10 +561,10 @@ private class VisitProcessor(
     /**
      * Compresses photo data if it's too large for SQLite storage
      * @param originalData The original photo data
-     * @param maxSizeBytes Maximum size in bytes (default: 2MB)
+     * @param maxSizeBytes Maximum size in bytes (default: 4MB)
      * @return Compressed photo data or original if compression not needed
      */
-    private fun compressPhotoIfNeeded(originalData: ByteArray, maxSizeBytes: Int = 2_000_000): ByteArray {
+    private fun compressPhotoIfNeeded(originalData: ByteArray, maxSizeBytes: Int = 4_000_000): ByteArray {
         if (originalData.size <= maxSizeBytes) {
             Log.d("VisitProcessor", "Photo size ${originalData.size} bytes is within limit, no compression needed")
             return originalData
@@ -580,8 +580,8 @@ private class VisitProcessor(
                 return originalData
             }
 
-            // Ultra conservative compression - aim for 1.95MB target (97.5% of max)
-            val targetSizeBytes = (maxSizeBytes * 0.975).toInt() // 1.95MB target
+            // Ultra conservative compression - aim for 3.9MB target (97.5% of max)
+            val targetSizeBytes = (maxSizeBytes * 0.975).toInt() // 3.9MB target
             val compressionRatio = sqrt(targetSizeBytes.toFloat() / originalData.size)
             
             // Ensure minimum reasonable size (at least 1800px on the longer side)
