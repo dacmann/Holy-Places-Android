@@ -32,6 +32,9 @@ class SettingsViewModel(private val userPreferencesManager: UserPreferencesManag
     val enableHoursWorked: StateFlow<Boolean> = userPreferencesManager.enableHoursWorkedFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserPreferencesManager.DEFAULT_ENABLE_HOURS)
 
+    val defaultCommentsText: StateFlow<String> = userPreferencesManager.defaultCommentsTextFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserPreferencesManager.DEFAULT_COMMENTS_TEXT)
+
     // --- Methods to update preferences ---
     fun updateTempleVisitsGoal(value: Int) = viewModelScope.launch {
         userPreferencesManager.saveTempleVisitsGoal(value)
@@ -59,5 +62,9 @@ class SettingsViewModel(private val userPreferencesManager: UserPreferencesManag
 
     fun updateEnableHoursWorked(isEnabled: Boolean) = viewModelScope.launch {
         userPreferencesManager.saveEnableHoursWorked(isEnabled)
+    }
+
+    fun updateDefaultCommentsText(text: String) = viewModelScope.launch {
+        userPreferencesManager.saveDefaultCommentsText(text)
     }
 }

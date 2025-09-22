@@ -1,5 +1,5 @@
 [versions]
-agp = "8.11.1"
+agp = "8.11.2"
 androidPluginAnnotationV9 = "3.0.2"
 androidSdk = "11.13.1"
 coil = "2.7.0"

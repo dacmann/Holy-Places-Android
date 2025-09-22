@@ -43,6 +43,7 @@ import net.dacworld.android.holyplacesofthelord.model.Temple
 // Import your SharedToolbarViewModel
 import net.dacworld.android.holyplacesofthelord.ui.SharedToolbarViewModel
 import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
+import net.dacworld.android.holyplacesofthelord.util.SearchHelper
 import kotlin.text.contains
 import android.app.AlertDialog // Import AlertDialog for getButton
 import android.graphics.Color
@@ -349,10 +350,10 @@ class PlacesFragment : Fragment() {
                                 currentHeader = item // Store the new header
                                 itemsUnderCurrentHeader.clear()
                             } else if (item is DisplayListItem.TempleRowItem) {
-                                if (item.temple.name.contains(searchQuery, ignoreCase = true) ||
-                                    item.temple.snippet.contains(searchQuery, ignoreCase = true) ||
-                                    item.temple.cityState.contains(searchQuery, ignoreCase = true)
-                                ) {
+                                if (SearchHelper.matchesAllTerms(
+                                    searchQuery,
+                                    listOf(item.temple.name, item.temple.snippet, item.temple.cityState)
+                                )) {
                                     itemsUnderCurrentHeader.add(item)
                                 }
                             }
@@ -366,9 +367,10 @@ class PlacesFragment : Fragment() {
                         if (itemsWithDistanceIfNeeded.all { it is DisplayListItem.TempleRowItem } && filteredItems.isEmpty() && displayItemsFromOptionsVM.isNotEmpty()){
                             itemsWithDistanceIfNeeded.filter { listItem ->
                                 (listItem as? DisplayListItem.TempleRowItem)?.temple?.let { temple ->
-                                    temple.name.contains(searchQuery, ignoreCase = true) ||
-                                            temple.snippet.contains(searchQuery, ignoreCase = true) ||
-                                            temple.cityState.contains(searchQuery, ignoreCase = true)
+                                    SearchHelper.matchesAllTerms(
+                                        searchQuery,
+                                        listOf(temple.name, temple.snippet, temple.cityState)
+                                    )
                                 } ?: false
                             }
                         } else {

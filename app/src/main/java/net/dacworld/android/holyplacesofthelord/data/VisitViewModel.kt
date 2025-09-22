@@ -16,6 +16,7 @@ import net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder
 import androidx.lifecycle.MediatorLiveData
 import java.util.Calendar
 import kotlin.text.contains
+import net.dacworld.android.holyplacesofthelord.util.SearchHelper
 
 class VisitViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -101,11 +102,10 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
         // 1. Apply Search Query Filter FIRST (if query is not blank)
         val searchedVisits = if (searchQuery.isNotBlank()) {
             currentVisits.filter { visit ->
-                val placeNameMatches = visit.holyPlaceName?.contains(searchQuery, ignoreCase = true) == true
-                // Assuming your Visit data class has a 'notes' or 'comments' field.
-                // Replace 'visit.notes' with the actual field name if different.
-                val notesMatches = visit.comments?.contains(searchQuery, ignoreCase = true) == true
-                placeNameMatches || notesMatches
+                SearchHelper.matchesAllTerms(
+                    searchQuery,
+                    listOf(visit.holyPlaceName, visit.comments)
+                )
             }
         } else {
             currentVisits

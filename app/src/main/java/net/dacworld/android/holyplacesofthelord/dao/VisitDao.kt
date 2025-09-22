@@ -136,6 +136,13 @@ interface VisitDao {
     suspend fun getAllVisitsListForExport(): List<Visit>
 
     /**
+     * Gets a single visit with picture data by ID
+     * Used for loading photo data individually during export
+     */
+    @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_ID} = :visitId")
+    suspend fun getVisitWithPictureById(visitId: Long): Visit?
+
+    /**
      * Checks if a visit already exists with the given holy place name and date.
      * Note: dateVisitedMillis should be the Long representation of the Date (e.g., from Date.getTime()).
      */
@@ -155,6 +162,19 @@ interface VisitDao {
             "${VisitContract.COLUMN_DATE_VISITED} >= :startOfDayMillis AND " +
             "${VisitContract.COLUMN_DATE_VISITED} < :endOfDayMillis LIMIT 1)")
     suspend fun visitExistsByNameAndDayRange(holyPlaceName: String, startOfDayMillis: Long, endOfDayMillis: Long): Boolean
+
+    /**
+     * Gets a visit for a given holy place name on a specific calendar day.
+     * @param holyPlaceName The name of the holy place.
+     * @param startOfDayMillis The millisecond timestamp for the beginning of the day (e.g., 00:00:00.000).
+     * @param endOfDayMillis The millisecond timestamp for the beginning of the NEXT day (exclusive upper bound).
+     * @return The visit if it exists within that day range, null otherwise.
+     */
+    @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME} = :holyPlaceName AND " +
+            "${VisitContract.COLUMN_DATE_VISITED} >= :startOfDayMillis AND " +
+            "${VisitContract.COLUMN_DATE_VISITED} < :endOfDayMillis LIMIT 1")
+    suspend fun getVisitByNameAndDayRange(holyPlaceName: String, startOfDayMillis: Long, endOfDayMillis: Long): Visit?
 
     // --- Goal Progress Queries ---
 

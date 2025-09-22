@@ -55,6 +55,14 @@ abstract class AppDatabase : RoomDatabase() {
                     "holy_places_database" // Name of your database file
                 )
                     .addMigrations(MIGRATION_1_2)
+                    .addCallback(object : RoomDatabase.Callback() {
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            // Configure SQLite to handle larger BLOBs
+                            db.execSQL("PRAGMA cursor_window_size = 20000000") // 20MB
+                            db.execSQL("PRAGMA page_size = 65536") // 64KB pages
+                        }
+                    })
                     // .fallbackToDestructiveMigration() // Use this ONLY during development if you don't want to write migrations yet
                     // This will clear all data on schema change. NOT for production.
                     .build()

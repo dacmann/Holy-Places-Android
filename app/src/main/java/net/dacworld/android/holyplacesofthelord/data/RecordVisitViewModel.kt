@@ -64,6 +64,7 @@ class RecordVisitViewModel(
     private fun loadInitialData() {
         viewModelScope.launch {
             val initialHoursPreference = userPreferencesManager.enableHoursWorkedFlow.first()
+            val defaultCommentsText = userPreferencesManager.defaultCommentsTextFlow.first()
 
             if (_isEditing && currentVisitId != null) {
                 val visit = visitDao.getVisitById(currentVisitId).firstOrNull()
@@ -79,7 +80,8 @@ class RecordVisitViewModel(
                             placeIdArg,
                             placeNameArg,
                             placeTypeArg,
-                            initialHoursPreference // Pass preference
+                            initialHoursPreference, // Pass preference
+                            defaultCommentsText
                         )
                     )
                 }
@@ -89,7 +91,8 @@ class RecordVisitViewModel(
                         placeIdArg,
                         placeNameArg,
                         placeTypeArg,
-                        initialHoursPreference // Pass preference
+                        initialHoursPreference, // Pass preference
+                        defaultCommentsText
                     )
                 )
             }
@@ -101,7 +104,8 @@ class RecordVisitViewModel(
         placeId: String,
         placeName: String,
         placeType: String,
-        isHoursEnabled: Boolean // Accept preference value
+        isHoursEnabled: Boolean, // Accept preference value
+        defaultCommentsText: String
     ): VisitUiState {
         return VisitUiState(
             placeID = placeId,
@@ -112,7 +116,9 @@ class RecordVisitViewModel(
             // --- SET BASED ON PREFERENCE ---
             isHoursWorkedEntryEnabled = isHoursEnabled,
             // If hours are not enabled, ensure shiftHrs is 0 or null from the start
-            shiftHrs = if (isHoursEnabled) 0.0 else null // Or always 0.0 and UI hides it
+            shiftHrs = if (isHoursEnabled) 0.0 else null, // Or always 0.0 and UI hides it
+            // Set default comments text from preferences
+            comments = defaultCommentsText
         )
     }
 

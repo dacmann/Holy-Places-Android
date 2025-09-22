@@ -5,14 +5,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="?attr/colorSurface"> <!-- Using colorSurface or a dark background -->
+    android:background="?attr/colorSurface">
 
-    <!-- Top Bar with Title and Close Button -->
+    <!-- Sticky Top Bar with Title and Close Button -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"> <!-- Add some margin below the top bar -->
+        android:padding="16dp"
+        android:paddingBottom="8dp"
+        android:background="?attr/colorSurface"
+        android:elevation="4dp">
 
         <TextView
             android:id="@+id/settings_title_header"
@@ -22,7 +24,6 @@
             android:text="@string/settings"
             android:textAppearance="?attr/textAppearanceHeadline6"
             android:textColor="?android:attr/textColorPrimary" />
-        <!-- Or ?android:attr/textColorPrimaryInverse if your background is dark -->
 
         <ImageButton
             android:id="@+id/button_close_settings_sheet"
@@ -36,6 +37,20 @@
             app:tint="?attr/colorControlNormal"/>
 
     </RelativeLayout>
+
+    <!-- Scrollable Content -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:paddingTop="0dp">
 
     <!-- ANNUAL TEMPLE GOALS Section -->
     <TextView
@@ -255,5 +270,35 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"/>
+
+    <!-- VISIT COMMENTS Section -->
+    <TextView
+        android:id="@+id/visit_comments_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/visit_comments"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/text_input_layout_default_comments"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/settings_default_comments_hint"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/edit_text_default_comments"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="2"
+            android:maxLines="4"
+            android:inputType="textMultiLine|textCapSentences" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+
+    </ScrollView>
 
 </LinearLayout>

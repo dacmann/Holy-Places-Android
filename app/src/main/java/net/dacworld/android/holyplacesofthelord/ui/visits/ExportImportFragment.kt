@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -54,6 +55,16 @@ class ExportImportFragment : Fragment() {
         setupLaunchers()
         setupClickListeners()
         observeViewModel()
+        
+        // Initialize photo export options
+        showPhotoExportOptions()
+        updateEstimatedSize()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Update estimated size when fragment becomes visible
+        updateEstimatedSize()
     }
 
     // In ExportImportFragment.kt
@@ -171,6 +182,13 @@ class ExportImportFragment : Fragment() {
                 )
             )
         }
+        
+        // Setup photo export switch listener
+        binding.switchIncludePhotos.setOnCheckedChangeListener { _, isChecked ->
+            Log.d("ExportImportFragment", "Photo toggle changed to: $isChecked")
+            viewModel.setIncludePhotos(isChecked)
+            updateEstimatedSize()
+        }
     }
 
     private fun observeViewModel() {
@@ -183,12 +201,11 @@ class ExportImportFragment : Fragment() {
                 }
                 is OperationStatus.InProgress -> {
                     binding.progressbarOperation.visibility = View.VISIBLE
-                    binding.textviewStatus.text = if (binding.buttonExportXml.isPressed || binding.buttonImportXml.isPressed) { // A bit of a hack to guess operation
-                        getString(R.string.status_exporting) // Default to exporting, or refine this
+                    binding.textviewStatus.text = if (viewModel.isExporting) {
+                        getString(R.string.status_exporting)
                     } else {
                         getString(R.string.status_importing)
                     }
-                    // More accurately: you could have separate LiveData for export/import state
                     // or pass operation type to ViewModel and reflect it back.
                     // For now, this is a simple guess. The ViewModel will update with final message.
                     setButtonsEnabled(false)
@@ -196,9 +213,8 @@ class ExportImportFragment : Fragment() {
                 is OperationStatus.Success -> {
                     binding.progressbarOperation.visibility = View.GONE
                     binding.textviewStatus.text = status.message
-                    Toast.makeText(context, status.message, Toast.LENGTH_LONG).show()
                     setButtonsEnabled(true)
-                    viewModel.resetOperationStatus()
+                    // Don't reset here - wait for dialog to be dismissed
                 }
                 is OperationStatus.Error -> {
                     binding.progressbarOperation.visibility = View.GONE
@@ -209,13 +225,59 @@ class ExportImportFragment : Fragment() {
                 }
             }
         }
+
+        // Observe import results to show dialog
+        viewModel.importResults.observe(viewLifecycleOwner) { results ->
+            results?.let { showImportResultsDialog(it) }
+        }
     }
 
     private fun setButtonsEnabled(enabled: Boolean) {
         binding.buttonExportXml.isEnabled = enabled
         binding.buttonImportXml.isEnabled = enabled
     }
+    
+    private fun updateEstimatedSize() {
+        val includePhotos = binding.switchIncludePhotos.isChecked
+        Log.d("ExportImportFragment", "Updating estimated size, includePhotos: $includePhotos")
+        viewModel.calculateEstimatedFileSize { estimatedSize ->
+            val formatter = android.text.format.Formatter.formatFileSize(requireContext(), estimatedSize)
+            binding.textviewEstimatedSize.text = getString(R.string.estimated_size_format, formatter)
+            Log.d("ExportImportFragment", "Estimated size updated: $formatter")
+        }
+    }
+    
+    private fun showPhotoExportOptions() {
+        binding.photoExportOptions.visibility = View.VISIBLE
+    }
+    
+    private fun hidePhotoExportOptions() {
+        binding.photoExportOptions.visibility = View.GONE
+    }
 
+    private fun showImportResultsDialog(results: net.dacworld.android.holyplacesofthelord.data.ImportResults) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_import_results, null)
+        
+        // Set the values
+        dialogView.findViewById<android.widget.TextView>(R.id.textview_successfully_imported).text = results.successfullyImported.toString()
+        dialogView.findViewById<android.widget.TextView>(R.id.textview_updated_existing).text = results.updatedExisting.toString()
+        dialogView.findViewById<android.widget.TextView>(R.id.textview_photos_imported).text = results.photosImported.toString()
+        dialogView.findViewById<android.widget.TextView>(R.id.textview_skipped_duplicates).text = results.skippedDuplicates.toString()
+        dialogView.findViewById<android.widget.TextView>(R.id.textview_skipped_missing_temples).text = results.skippedMissingTemples.toString()
+        dialogView.findViewById<android.widget.TextView>(R.id.textview_parsing_errors).text = results.parsingErrors.toString()
+        dialogView.findViewById<android.widget.TextView>(R.id.textview_temple_name_corrections).text = results.templeNameCorrections.toString()
+        
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                dialog.dismiss()
+                viewModel.resetOperationStatus()
+            }
+            .setCancelable(false)
+            .create()
+        
+        dialog.show()
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

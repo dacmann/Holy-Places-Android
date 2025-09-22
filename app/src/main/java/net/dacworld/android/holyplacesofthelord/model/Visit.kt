@@ -90,7 +90,7 @@ data class Visit(
     val year: String?,
 
     @ColumnInfo(name = VisitContract.COLUMN_HAS_PICTURE, defaultValue = "0")
-    var hasPicture: Boolean = false
+    val hasPicture: Boolean = false
 
 ) {
     // Override equals and hashCode if you include ByteArray and need content equality

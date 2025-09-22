@@ -57,6 +57,7 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val GOAL_SEALINGS_KEY = intPreferencesKey("goal_sealings")
         val EXCLUDE_VISITS_NO_ORDINANCES_KEY = booleanPreferencesKey("exclude_visits_no_ordinances")
         val ENABLE_HOURS_WORKED_KEY = booleanPreferencesKey("enable_hours_worked")
+        val DEFAULT_COMMENTS_TEXT_KEY = stringPreferencesKey("default_comments_text")
 
     }
 
@@ -143,6 +144,30 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
     suspend fun saveEnableHoursWorked(value: Boolean) {
         dataStoreInstance.edit { preferences ->
             preferences[PreferencesKeys.ENABLE_HOURS_WORKED_KEY] = value
+        }
+    }
+
+    val defaultCommentsTextFlow: Flow<String> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.DEFAULT_COMMENTS_TEXT_KEY] ?: UserPreferencesManager.DEFAULT_COMMENTS_TEXT
+        }
+
+    suspend fun saveDefaultCommentsText(value: String) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.DEFAULT_COMMENTS_TEXT_KEY] = value
+        }
+    }
+
+    /**
+     * Initialize default comments text from string resource if not already set
+     */
+    suspend fun initializeDefaultCommentsTextIfNeeded(context: android.content.Context) {
+        dataStoreInstance.edit { preferences ->
+            if (preferences[PreferencesKeys.DEFAULT_COMMENTS_TEXT_KEY] == null) {
+                val defaultText = context.getString(net.dacworld.android.holyplacesofthelord.R.string.default_comments_text)
+                preferences[PreferencesKeys.DEFAULT_COMMENTS_TEXT_KEY] = defaultText
+            }
         }
     }
     // Storing details for the one-time initial seed dialog
@@ -319,6 +344,7 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         const val DEFAULT_GOAL_VALUE = 0
         const val DEFAULT_EXCLUDE_VISITS = false
         const val DEFAULT_ENABLE_HOURS = false
+        const val DEFAULT_COMMENTS_TEXT = "Attended with..." // Fallback only - actual default comes from string resource
         @Volatile
         private var INSTANCE: UserPreferencesManager? = null
 

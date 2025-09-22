@@ -495,14 +495,37 @@ class VisitDetailFragment : Fragment() {
             }
 
             // Picture
+            Log.d("VisitDetailFragment", "Processing photo for visit: ${visit.holyPlaceName}")
+            Log.d("VisitDetailFragment", "Photo data present: ${visit.picture != null}")
+            Log.d("VisitDetailFragment", "Photo data size: ${visit.picture?.size ?: 0} bytes")
+            Log.d("VisitDetailFragment", "hasPicture flag: ${visit.hasPicture}")
+            
             if (visit.picture != null && visit.picture.isNotEmpty()) {
+                Log.d("VisitDetailFragment", "Photo data is valid, showing image for visit: ${visit.holyPlaceName}")
                 detailVisitPicture.visibility = View.VISIBLE
+                
+                // Log the first few bytes to verify data integrity
+                val firstBytes = visit.picture.take(10).joinToString(" ") { "%02X".format(it) }
+                Log.d("VisitDetailFragment", "Photo data header (first 10 bytes): $firstBytes")
+                
                 detailVisitPicture.load(visit.picture) {
                     crossfade(true)
                     //placeholder(R.drawable.ic_image_placeholder) // Optional: create a placeholder drawable
                     //error(R.drawable.ic_image_broken) // Optional: create a broken image drawable
+                    listener(
+                        onStart = { 
+                            Log.d("VisitDetailFragment", "Started loading image for visit: ${visit.holyPlaceName}")
+                        },
+                        onSuccess = { _, _ -> 
+                            Log.d("VisitDetailFragment", "Successfully loaded image for visit: ${visit.holyPlaceName}")
+                        },
+                        onError = { _, result -> 
+                            Log.e("VisitDetailFragment", "Failed to load image for visit: ${visit.holyPlaceName}", result.throwable)
+                        }
+                    )
                 }
             } else {
+                Log.w("VisitDetailFragment", "No photo data or empty photo data for visit: ${visit.holyPlaceName}")
                 detailVisitPicture.visibility = View.GONE
             }
         }

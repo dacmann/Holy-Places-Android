@@ -44,6 +44,49 @@
             android:layout_marginTop="24dp"
             android:text="@string/import_visits_xml" />
 
+        <!-- Photo Export Options -->
+        <LinearLayout
+            android:id="@+id/photo_export_options"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@drawable/rounded_background"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/include_photos"
+                    android:textAppearance="?attr/textAppearanceBody1" />
+
+                <Switch
+                    android:id="@+id/switch_include_photos"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/textview_estimated_size"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/estimated_size_default"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
+
         <TextView
             android:id="@+id/textview_status"
             android:layout_width="match_parent"

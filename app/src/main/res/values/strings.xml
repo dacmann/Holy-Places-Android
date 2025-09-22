@@ -90,7 +90,7 @@
     <string name="title_export_import">Export/Import Visits</string>
     <string name="export_visits_xml">Export Visits to XML</string>
     <string name="import_visits_xml">Import Visits from XML</string>
-    <string name="export_successful">Export successful: %1$d visits written to %2$s</string>
+    <string name="export_successful">Export successful: %1$d visits exported</string>
     <string name="export_failed">Export failed: %1$s</string>
     <string name="export_no_visits">No visits to export.</string>
     <string name="import_report_successful_skipped_errors">Import complete. Imported: %1$d, Skipped (duplicates): %2$d, Skipped (missing temple/data): %3$d, Errors: %4$d</string>
@@ -164,5 +164,29 @@
     <string name="no_search_results_message">No results found for \"%1$s\"</string>
     <string name="no_temples_to_display">No places to show</string>
     <string name="close">Close</string>
+    
+    <!-- Photo Export/Import Strings -->
+    <string name="include_photos">Include Photos in Export</string>
+    <string name="estimated_size_default">Estimated size: Calculating…</string>
+    <string name="estimated_size_format">Estimated size: %1$s</string>
+    <string name="export_successful_with_photos">Export successful: %1$d visits with %2$d photos exported</string>
+    <string name="import_report_successful_with_photos">Import complete. Imported: %1$d visits with %2$d photos, Skipped (duplicates): %3$d, Skipped (missing temple/data): %4$d, Errors: %5$d</string>
+    <string name="import_report_successful_no_photos">Import complete. Imported: %1$d visits (photos skipped due to memory constraints), Skipped (duplicates): %2$d, Skipped (missing temple/data): %3$d, Errors: %4$d</string>
+
+    <!-- Import Results Dialog -->
+    <string name="import_results_title">Import Results</string>
+    <string name="import_results_successfully_imported">Successfully Imported:</string>
+    <string name="import_results_updated_existing">Updated Existing:</string>
+    <string name="import_results_photos_imported">Photos Imported:</string>
+    <string name="import_results_skipped_duplicates">Skipped (Duplicates):</string>
+    <string name="import_results_skipped_missing_temples">Skipped (Missing Temples):</string>
+    <string name="import_results_parsing_errors">Parsing Errors:</string>
+    <string name="import_results_temple_name_corrections">Temple Name Corrections:</string>
+
+    <!-- Default Comments Text -->
+    <string name="default_comments_text">Attended with...</string>
+    <string name="visit_comments">Visit Comments</string>
+    <string name="settings_default_comments_title">Default Comments Text</string>
+    <string name="settings_default_comments_hint">Enter default text for visit comments</string>
 
 </resources>

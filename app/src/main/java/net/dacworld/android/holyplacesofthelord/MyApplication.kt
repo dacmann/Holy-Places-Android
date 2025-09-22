@@ -49,6 +49,9 @@ class MyApplication : Application() {
             } else {
                 Log.i("MyApplication", "Not first launch: Database already seeded or flag set.")
             }
+            
+            // Initialize default comments text from string resource if not already set
+            userPreferencesManager.initializeDefaultCommentsTextIfNeeded(this@MyApplication)
         }
     }
 

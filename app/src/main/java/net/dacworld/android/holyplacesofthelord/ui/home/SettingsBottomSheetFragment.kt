@@ -26,6 +26,7 @@ import android.view.View.OnFocusChangeListener
 class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
 
     private var _binding: LayoutSettingsBottomSheetBinding? = null
+    private var isUpdatingTextProgrammatically = false
     private val binding get() = _binding!!
 
     private val settingsViewModel: SettingsViewModel by viewModels {
@@ -104,6 +105,17 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
                         }
                     }
                 }
+                launch {
+                    settingsViewModel.defaultCommentsText.collect { text ->
+                        if (binding.editTextDefaultComments.text.toString() != text) {
+                            isUpdatingTextProgrammatically = true
+                            binding.editTextDefaultComments.setText(text)
+                            // Small delay to ensure UI updates properly
+                            kotlinx.coroutines.delay(50)
+                            isUpdatingTextProgrammatically = false
+                        }
+                    }
+                }
             }
         }
     }
@@ -167,6 +179,13 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
         binding.switchEnableHoursWorked.setOnCheckedChangeListener { _, isChecked ->
             settingsViewModel.updateEnableHoursWorked(isChecked)
         }
+
+        binding.editTextDefaultComments.doOnTextChanged { text, _, _, _ ->
+            if (!isUpdatingTextProgrammatically) {
+                val value = text.toString()
+                settingsViewModel.updateDefaultCommentsText(value)
+            }
+        }
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -183,10 +202,8 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
                 layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
                 it.layoutParams = layoutParams
 
-                // Optional: Adjust peek height if you want some initial visibility before full expansion
-                // behavior.peekHeight = resources.displayMetrics.heightPixels / 2
-                // Optional: Skip collapsed state if you only want expanded or hidden
-                // behavior.skipCollapsed = true
+                // Skip collapsed state to prevent layout issues
+                behavior.skipCollapsed = true
             }
         }
         return dialog
