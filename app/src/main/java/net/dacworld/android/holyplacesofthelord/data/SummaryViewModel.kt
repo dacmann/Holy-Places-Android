@@ -10,6 +10,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.R // For strings like default_quote
@@ -57,6 +59,7 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
 
     private val visitDao: VisitDao = AppDatabase.getDatabase(application).visitDao()
     private val templeDao: TempleDao = AppDatabase.getDatabase(application).templeDao()
+    private val preferencesManager: UserPreferencesManager = UserPreferencesManager.getInstance(application)
 
     private val _quote = MutableLiveData<String>()
     val quote: LiveData<String> = _quote
@@ -100,6 +103,10 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
 
     private val _mostVisitedPlaces = MutableLiveData<List<MostVisitedPlaceItem>>()
     val mostVisitedPlaces: LiveData<List<MostVisitedPlaceItem>> = _mostVisitedPlaces
+
+    private val _shouldShowRatingPrompt = MutableLiveData<Boolean>()
+    val shouldShowRatingPrompt: LiveData<Boolean> = _shouldShowRatingPrompt
+    private var ratingPromptShownThisSession = false
 
     // Define place type constants as they appear in Visit.type and Temple.type
     companion object {
@@ -147,6 +154,10 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
         updateDynamicYearDisplayAndLoadStats(internalCurrentActualYear, internalCurrentActualYear - 1)
 
         viewModelScope.launch {
+            // Check if we should show the rating prompt
+            checkAndUpdateRatingPromptVisibility()
+            
+
             // --- START MODIFICATION 1: Fetch and Validate Visits ---
             val allVisitsFromDb: List<Visit>
             try {
@@ -322,6 +333,49 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             )
         }
     }
+
+    private suspend fun checkAndUpdateRatingPromptVisibility() {
+        // Don't show if already shown this session
+        if (ratingPromptShownThisSession) {
+            _shouldShowRatingPrompt.postValue(false)
+            return
+        }
+        
+        val visitCount = withContext(Dispatchers.IO) { visitDao.getVisitCount() }
+        val ratingStatus = preferencesManager.ratingPromptStatusFlow.map { it }.first()
+        
+        // Show if: has 4+ visits AND hasn't permanently dismissed AND hasn't completed rating
+        // "maybe_later" is session-based now, so we ignore it in persistent checks
+        val shouldShow = visitCount >= 4 && 
+                        ratingStatus != UserPreferencesManager.RATING_STATUS_DONT_ASK_AGAIN &&
+                        ratingStatus != UserPreferencesManager.RATING_STATUS_COMPLETED
+        
+        _shouldShowRatingPrompt.postValue(shouldShow)
+        Log.d("SummaryVM", "Rating prompt check: visitCount=$visitCount, status=$ratingStatus, shouldShow=$shouldShow")
+    }
+
+    fun onRateNowClicked() {
+        viewModelScope.launch {
+            preferencesManager.saveRatingPromptStatus(UserPreferencesManager.RATING_STATUS_COMPLETED)
+            ratingPromptShownThisSession = true
+            _shouldShowRatingPrompt.postValue(false)
+        }
+    }
+
+    fun onMaybeLaterClicked() {
+        // Only dismiss for this session, will show again on next app launch
+        ratingPromptShownThisSession = true
+        _shouldShowRatingPrompt.value = false
+    }
+
+    fun onDontAskAgainClicked() {
+        viewModelScope.launch {
+            preferencesManager.saveRatingPromptStatus(UserPreferencesManager.RATING_STATUS_DONT_ASK_AGAIN)
+            ratingPromptShownThisSession = true
+            _shouldShowRatingPrompt.postValue(false)
+        }
+    }
+
     private fun calculateYearStatsForTemples(
         templeVisits: List<Visit>, // These are already filtered to be Visit.type == "T"
         targetYear: Int?

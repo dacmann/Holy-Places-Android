@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore // Ensure this import is present
@@ -58,6 +59,13 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val EXCLUDE_VISITS_NO_ORDINANCES_KEY = booleanPreferencesKey("exclude_visits_no_ordinances")
         val ENABLE_HOURS_WORKED_KEY = booleanPreferencesKey("enable_hours_worked")
         val DEFAULT_COMMENTS_TEXT_KEY = stringPreferencesKey("default_comments_text")
+        
+        // Rating prompt status key
+        val RATING_PROMPT_STATUS_KEY = stringPreferencesKey("rating_prompt_status")
+        
+        // Backup reminder keys
+        val LAST_EXPORT_DATE_KEY = longPreferencesKey("last_export_date")
+        val BACKUP_REMINDER_DISMISSED_KEY = booleanPreferencesKey("backup_reminder_dismissed")
 
     }
 
@@ -168,6 +176,46 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
                 val defaultText = context.getString(net.dacworld.android.holyplacesofthelord.R.string.default_comments_text)
                 preferences[PreferencesKeys.DEFAULT_COMMENTS_TEXT_KEY] = defaultText
             }
+        }
+    }
+
+    // --- Rating Prompt Status ---
+    val ratingPromptStatusFlow: Flow<String> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.RATING_PROMPT_STATUS_KEY] ?: RATING_STATUS_NOT_SHOWN
+        }
+
+    suspend fun saveRatingPromptStatus(status: String) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.RATING_PROMPT_STATUS_KEY] = status
+        }
+    }
+
+    // --- Backup Reminder ---
+    val lastExportDateFlow: Flow<Long> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.LAST_EXPORT_DATE_KEY] ?: 0L
+        }
+
+    suspend fun saveLastExportDate(timestamp: Long) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.LAST_EXPORT_DATE_KEY] = timestamp
+            // Clear the dismissed flag when a successful export happens
+            preferences[PreferencesKeys.BACKUP_REMINDER_DISMISSED_KEY] = false
+        }
+    }
+
+    val backupReminderDismissedFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.BACKUP_REMINDER_DISMISSED_KEY] ?: false
+        }
+
+    suspend fun dismissBackupReminder() {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.BACKUP_REMINDER_DISMISSED_KEY] = true
         }
     }
     // Storing details for the one-time initial seed dialog
@@ -345,6 +393,15 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         const val DEFAULT_EXCLUDE_VISITS = false
         const val DEFAULT_ENABLE_HOURS = false
         const val DEFAULT_COMMENTS_TEXT = "Attended with..." // Fallback only - actual default comes from string resource
+        
+        // Rating prompt status values
+        const val RATING_STATUS_NOT_SHOWN = "not_shown"
+        const val RATING_STATUS_MAYBE_LATER = "maybe_later"
+        const val RATING_STATUS_DONT_ASK_AGAIN = "dont_ask_again"
+        const val RATING_STATUS_COMPLETED = "completed"
+        
+        // Backup reminder constants
+        const val THREE_MONTHS_MILLIS = 7776000000L // 90 days in milliseconds
         @Volatile
         private var INSTANCE: UserPreferencesManager? = null
 

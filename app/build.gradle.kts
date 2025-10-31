@@ -15,8 +15,8 @@ android {
         applicationId = "net.dacworld.android.holyplacesofthelord"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.5"
+        versionCode = 11
+        versionName = "1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -72,6 +72,9 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.photoview)
+
+    // Google Play In-App Review
+    implementation(libs.review.ktx)
 
     // ... other dependencies
     implementation(libs.androidx.core.ktx)

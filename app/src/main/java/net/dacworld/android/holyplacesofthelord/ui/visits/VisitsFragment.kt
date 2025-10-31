@@ -505,6 +505,8 @@ class VisitsFragment : Fragment() {
                 if (isVisitsInitialLoad) {
                     isVisitsInitialLoad = false
                     Log.d("VisitsFragment", "isVisitsInitialLoad has been set to false.")
+                    // Check backup reminder status after initial load
+                    visitViewModel.checkBackupReminderStatus()
                 }
                 shouldScrollAfterNextSubmit = false // Reset this flag after any potential scroll
             }
@@ -534,6 +536,13 @@ class VisitsFragment : Fragment() {
             }
 
         } // End of visitViewModel.allVisits.observe
+
+        // Backup reminder observer
+        visitViewModel.shouldShowBackupReminder.observe(viewLifecycleOwner) { shouldShow ->
+            if (shouldShow) {
+                showBackupReminderDialog()
+            }
+        }
 
         sharedVisitsViewModel.sortOrder.observe(viewLifecycleOwner) { sortOrder ->
             sortOrder?.let { currentSortOrder ->
@@ -627,6 +636,24 @@ class VisitsFragment : Fragment() {
                 visitViewModel.setSearchQuery(queryToUse) // Pass the normalized query
             }
         }
+    }
+
+    private fun showBackupReminderDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.backup_reminder_title)
+            .setMessage(R.string.backup_reminder_message)
+            .setPositiveButton(R.string.backup_reminder_backup_now) { dialog, _ ->
+                visitViewModel.onBackupReminderShown()
+                // Navigate to Export/Import screen
+                findNavController().navigate(R.id.action_visitsFragment_to_exportImportFragment)
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.backup_reminder_remind_later) { dialog, _ ->
+                visitViewModel.onBackupReminderDismissed()
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     override fun onDestroyView() {

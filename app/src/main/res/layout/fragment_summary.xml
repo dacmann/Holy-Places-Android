@@ -53,6 +53,13 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent">
 
+                <include
+                    android:id="@+id/ratingPromptCard"
+                    layout="@layout/card_rating_prompt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone" />
+
                 <TableLayout
                     android:id="@+id/tableLayoutHolyPlaces"
                     android:layout_width="match_parent"

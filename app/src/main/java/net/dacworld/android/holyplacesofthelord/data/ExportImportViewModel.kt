@@ -52,6 +52,7 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
 
     private val visitDao = AppDatabase.getDatabase(application).visitDao()
     private val templeDao = AppDatabase.getDatabase(application).templeDao()
+    private val preferencesManager = UserPreferencesManager.getInstance(application)
 
     private val _operationStatus = MutableLiveData<OperationStatus>(OperationStatus.Idle)
     val operationStatus: LiveData<OperationStatus> = _operationStatus
@@ -104,6 +105,9 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
                 } else {
                     getApplication<Application>().getString(R.string.export_successful, visits.size)
                 }
+                
+                // Save the export timestamp
+                preferencesManager.saveLastExportDate(System.currentTimeMillis())
                 
                 _operationStatus.postValue(OperationStatus.Success(successMessage))
             } catch (e: Exception) {

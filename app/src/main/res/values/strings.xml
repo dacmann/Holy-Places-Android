@@ -189,4 +189,17 @@
     <string name="settings_default_comments_title">Default Comments Text</string>
     <string name="settings_default_comments_hint">Enter default text for visit comments</string>
 
+    <!-- Rating Prompt -->
+    <string name="rating_prompt_title">Enjoying the app?</string>
+    <string name="rating_prompt_message">Your feedback helps us improve! If you\'re enjoying Holy Places of the Lord, please take a moment to rate us on the Google Play Store.</string>
+    <string name="rating_prompt_rate_now">Rate Now</string>
+    <string name="rating_prompt_maybe_later">Maybe Later</string>
+    <string name="rating_prompt_dont_ask">Don\'t Ask Again</string>
+
+    <!-- Backup Reminder -->
+    <string name="backup_reminder_title">Backup Your Visits</string>
+    <string name="backup_reminder_message">Your visit data is stored locally on your device and could be lost if the app is accidentally deleted. We recommend backing up your visits using the Export feature (available in the upper right corner of this screen).</string>
+    <string name="backup_reminder_backup_now">Back Up Now</string>
+    <string name="backup_reminder_remind_later">Remind Me Later</string>
+
 </resources>

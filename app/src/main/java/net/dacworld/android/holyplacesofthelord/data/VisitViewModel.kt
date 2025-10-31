@@ -5,8 +5,10 @@ import android.app.Application
 //import android.icu.util.Calendar
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
 import net.dacworld.android.holyplacesofthelord.model.Visit
@@ -21,11 +23,17 @@ import net.dacworld.android.holyplacesofthelord.util.SearchHelper
 class VisitViewModel(application: Application) : AndroidViewModel(application) {
 
     private val visitDao: VisitDao
+    private val preferencesManager: UserPreferencesManager = UserPreferencesManager.getInstance(application)
     private val rawVisitsFromDB: LiveData<List<Visit>>
     val allVisits: MediatorLiveData<List<VisitDisplayListItem>> = MediatorLiveData()
     private var currentSortOrder: VisitSortOrder = VisitSortOrder.BY_DATE_DESC
     private var currentPlaceTypeFilter: VisitPlaceTypeFilter = VisitPlaceTypeFilter.ALL // Default to ALL
     private var currentSearchQuery: String = ""
+
+    // Backup reminder state
+    private val _shouldShowBackupReminder = MutableLiveData<Boolean>()
+    val shouldShowBackupReminder: LiveData<Boolean> = _shouldShowBackupReminder
+    private var backupReminderShownThisSession = false
 
     init {
         val database = AppDatabase.getDatabase(application)
@@ -255,6 +263,49 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Add other business logic related to visits here if necessary
+
+    // --- Backup Reminder Methods ---
+    fun checkBackupReminderStatus() {
+        // Don't show if already shown this session
+        if (backupReminderShownThisSession) {
+            _shouldShowBackupReminder.value = false
+            return
+        }
+
+        viewModelScope.launch {
+            // Check if user has at least 1 visit
+            val visitCount = visitDao.getVisitCount()
+            if (visitCount == 0) {
+                _shouldShowBackupReminder.postValue(false)
+                return@launch
+            }
+
+            val lastExportDate = preferencesManager.lastExportDateFlow.first()
+
+            val shouldShow = if (lastExportDate == 0L) {
+                // Never exported before
+                true
+            } else {
+                // Check if more than 3 months have passed
+                val currentTime = System.currentTimeMillis()
+                val timeDiff = currentTime - lastExportDate
+                timeDiff > UserPreferencesManager.THREE_MONTHS_MILLIS
+            }
+
+            _shouldShowBackupReminder.postValue(shouldShow)
+        }
+    }
+
+    fun onBackupReminderShown() {
+        backupReminderShownThisSession = true
+        _shouldShowBackupReminder.value = false
+    }
+
+    fun onBackupReminderDismissed() {
+        // Only dismiss for this session, will show again on next app launch
+        backupReminderShownThisSession = true
+        _shouldShowBackupReminder.value = false
+    }
 }
 
 sealed interface VisitDisplayListItem {
