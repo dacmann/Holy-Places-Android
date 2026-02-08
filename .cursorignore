@@ -1,0 +1,56 @@
+# Generated files and directories
+.gradle/
+.idea/
+.DS_Store
+build/
+app/build/
+gradle/
+local.properties
+bin/
+gen/
+out/
+
+# Files for credentials and secrets
+.env
+*.jks
+*.keystore
+secrets.properties
+
+# IDE and Editor-specific files
+*.iml
+.idea/
+.history/
+
+# Dependency files
+# The AI doesn't need to read the source code of your dependencies
+libs/
+vendor/
+
+# Binary files
+*.apk
+*.aar
+*.jar
+*.so
+*.o
+*.class
+*.aab
+*.ap_
+
+# Log and temporary files
+*.log
+tmp/
+
+# Android Studio Navigation editor files
+.navigation/
+
+# Android Studio captures folder
+captures/
+
+# External native build folder created in .idea
+.cxx/
+
+# Google Services (move if needed)
+google-services.json # If you don't want to commit this (e.g., for open source)
+
+# Secrets (add your own)
+secrets.properties
