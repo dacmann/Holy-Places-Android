@@ -16,7 +16,6 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.play.core.review.ReviewManagerFactory
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.data.HolyPlaceStat
 import net.dacworld.android.holyplacesofthelord.data.MostVisitedPlaceItem
@@ -182,7 +181,9 @@ class SummaryFragment : Fragment() {
         
         ratingCard.findViewById<View>(R.id.buttonRateNow)?.setOnClickListener {
             Log.d("SummaryFragment", "Rate Now button clicked")
-            launchInAppReview()
+            // Open Play Store directly - the In-App Review API is unreliable
+            // and often silently succeeds without showing anything
+            openPlayStoreListing()
             summaryViewModel.onRateNowClicked()
         }
 
@@ -194,31 +195,6 @@ class SummaryFragment : Fragment() {
         ratingCard.findViewById<View>(R.id.buttonDontAskAgain)?.setOnClickListener {
             Log.d("SummaryFragment", "Don't Ask Again button clicked")
             summaryViewModel.onDontAskAgainClicked()
-        }
-    }
-
-    private fun launchInAppReview() {
-        Log.d("SummaryFragment", "launchInAppReview called")
-        val manager = ReviewManagerFactory.create(requireContext())
-        val request = manager.requestReviewFlow()
-        request.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                Log.d("SummaryFragment", "Review flow request successful")
-                val reviewInfo = task.result
-                val flow = manager.launchReviewFlow(requireActivity(), reviewInfo)
-                flow.addOnCompleteListener { flowTask ->
-                    Log.d("SummaryFragment", "In-app review flow completed. Success: ${flowTask.isSuccessful}")
-                    // The flow has finished, but we can't tell if user actually rated
-                    // Fallback: If the In-App Review didn't show (common in dev), open Play Store
-                    if (!flowTask.isSuccessful) {
-                        openPlayStoreListing()
-                    }
-                }
-            } else {
-                Log.e("SummaryFragment", "Error requesting review flow, opening Play Store instead", task.exception)
-                // Fallback to opening Play Store directly
-                openPlayStoreListing()
-            }
         }
     }
 

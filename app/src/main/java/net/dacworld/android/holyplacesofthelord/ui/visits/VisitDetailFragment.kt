@@ -30,6 +30,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentVisitDetailBinding
+import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils // Assuming ColorUtils is in this package
 import net.dacworld.android.holyplacesofthelord.data.VisitDetailViewModel
@@ -79,6 +80,9 @@ class VisitDetailFragment : Fragment() {
     // Add a property to store the current visit list
     private var currentVisitList: List<VisitDisplayListItem>? = null
 
+    // Store current temple for place image fallback and tap handler
+    private var currentTemple: Temple? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enterTransition = MaterialFadeThrough()
@@ -121,7 +125,15 @@ class VisitDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.visit.collect { visit ->
-                    visit?.let { populateUi(it) }
+                    visit?.let { populateUi(it, viewModel.temple.value) }
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.temple.collect { temple ->
+                    currentTemple = temple
+                    viewModel.visit.value?.let { visit -> populateUi(visit, temple) }
                 }
             }
         }
@@ -192,11 +204,16 @@ class VisitDetailFragment : Fragment() {
                     
                     if (imageRect.contains(e.x.toInt(), e.y.toInt())) {
                         Log.d("VisitDetailFragment", "Tap was on image - opening image viewer")
-                        // Tap was on the image, open image viewer
                         val visit = viewModel.visit.value
-                        visit?.picture?.let { pictureData ->
-                            if (pictureData.isNotEmpty()) {
-                                val base64String = Base64.encodeToString(pictureData, Base64.DEFAULT)
+                        val temple = currentTemple
+                        val pictureData = when {
+                            visit?.picture != null && visit.picture.isNotEmpty() -> visit.picture
+                            temple?.pictureData != null -> temple.pictureData
+                            else -> null
+                        }
+                        pictureData?.let { data ->
+                            if (data.isNotEmpty()) {
+                                val base64String = Base64.encodeToString(data, Base64.DEFAULT)
                                 val action = VisitDetailFragmentDirections.actionVisitDetailFragmentToImageViewerFragment(
                                     imageUrl = "",
                                     imageDataBase64 = base64String
@@ -464,7 +481,7 @@ class VisitDetailFragment : Fragment() {
         }, viewLifecycleOwner, Lifecycle.State.RESUMED) // Use viewLifecycleOwner and RESUMED state
     }
 
-    private fun populateUi(visit: Visit) {
+    private fun populateUi(visit: Visit, temple: Temple?) {
         binding.apply {
             // Place Name and Color
             detailVisitPlaceName.text = visit.holyPlaceName
@@ -477,8 +494,6 @@ class VisitDetailFragment : Fragment() {
             // Favorite Indicator
             if (visit.isFavorite) {
                 detailVisitFavoriteIndicator.visibility = View.VISIBLE
-                // Optionally, set a specific tint for the favorite star if it's different from the default
-                // detailVisitFavoriteIndicator.setColorFilter(ContextCompat.getColor(requireContext(), R.color.your_favorite_color))
             } else {
                 detailVisitFavoriteIndicator.visibility = View.GONE
             }
@@ -494,39 +509,23 @@ class VisitDetailFragment : Fragment() {
                 detailVisitComments.visibility = View.GONE
             }
 
-            // Picture
-            Log.d("VisitDetailFragment", "Processing photo for visit: ${visit.holyPlaceName}")
-            Log.d("VisitDetailFragment", "Photo data present: ${visit.picture != null}")
-            Log.d("VisitDetailFragment", "Photo data size: ${visit.picture?.size ?: 0} bytes")
-            Log.d("VisitDetailFragment", "hasPicture flag: ${visit.hasPicture}")
-            
-            if (visit.picture != null && visit.picture.isNotEmpty()) {
-                Log.d("VisitDetailFragment", "Photo data is valid, showing image for visit: ${visit.holyPlaceName}")
-                detailVisitPicture.visibility = View.VISIBLE
-                
-                // Log the first few bytes to verify data integrity
-                val firstBytes = visit.picture.take(10).joinToString(" ") { "%02X".format(it) }
-                Log.d("VisitDetailFragment", "Photo data header (first 10 bytes): $firstBytes")
-                
-                detailVisitPicture.load(visit.picture) {
-                    crossfade(true)
-                    //placeholder(R.drawable.ic_image_placeholder) // Optional: create a placeholder drawable
-                    //error(R.drawable.ic_image_broken) // Optional: create a broken image drawable
-                    listener(
-                        onStart = { 
-                            Log.d("VisitDetailFragment", "Started loading image for visit: ${visit.holyPlaceName}")
-                        },
-                        onSuccess = { _, _ -> 
-                            Log.d("VisitDetailFragment", "Successfully loaded image for visit: ${visit.holyPlaceName}")
-                        },
-                        onError = { _, result -> 
-                            Log.e("VisitDetailFragment", "Failed to load image for visit: ${visit.holyPlaceName}", result.throwable)
-                        }
-                    )
+            // Picture: visit photo first, then place image as fallback
+            when {
+                visit.picture != null && visit.picture.isNotEmpty() -> {
+                    detailVisitPicture.visibility = View.VISIBLE
+                    detailVisitPicture.load(visit.picture) {
+                        crossfade(true)
+                    }
                 }
-            } else {
-                Log.w("VisitDetailFragment", "No photo data or empty photo data for visit: ${visit.holyPlaceName}")
-                detailVisitPicture.visibility = View.GONE
+                temple?.pictureData != null -> {
+                    detailVisitPicture.visibility = View.VISIBLE
+                    detailVisitPicture.load(temple.pictureData) {
+                        crossfade(true)
+                    }
+                }
+                else -> {
+                    detailVisitPicture.visibility = View.GONE
+                }
             }
         }
     }

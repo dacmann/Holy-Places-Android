@@ -69,7 +69,16 @@ class InfoBottomSheetFragment : BottomSheetDialogFragment() {
         // Email Button
         binding.emailLinkButton.setOnClickListener {
             context?.let { ctx ->
-                IntentUtils.openEmail(ctx, "dacmann@icloud.com", "Holy Places App Feedback")
+                val deviceName = "${android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${android.os.Build.MODEL}"
+                val androidVersion = android.os.Build.VERSION.RELEASE
+                val appVersion = BuildConfig.VERSION_NAME
+                val dataVersion = dataViewModel.currentDataVersion.value ?: "Unknown"
+                val emailBody = "\n\n\n-----------------------------------\n" +
+                        "Device: $deviceName\n" +
+                        "Android Version: $androidVersion\n" +
+                        "Holy Places Version: $appVersion | $dataVersion\n" +
+                        "-----------------------------------"
+                IntentUtils.openEmail(ctx, "dacmann@icloud.com", "Holy Places App Feedback", emailBody)
             }
         }
 

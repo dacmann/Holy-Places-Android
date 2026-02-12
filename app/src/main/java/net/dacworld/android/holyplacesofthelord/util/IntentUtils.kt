@@ -28,13 +28,16 @@ object IntentUtils {
         }
     }
 
-    fun openEmail(context: Context, emailAddress: String, subject: String = "", chooserTitle: String = "Send Email") {
+    fun openEmail(context: Context, emailAddress: String, subject: String = "", body: String = "", chooserTitle: String = "Send Email") {
         try {
             val intent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("mailto:") // Only email apps should handle this
                 putExtra(Intent.EXTRA_EMAIL, arrayOf(emailAddress))
                 if (subject.isNotBlank()) {
                     putExtra(Intent.EXTRA_SUBJECT, subject)
+                }
+                if (body.isNotBlank()) {
+                    putExtra(Intent.EXTRA_TEXT, body)
                 }
             }
             // Check if an app can handle this intent
