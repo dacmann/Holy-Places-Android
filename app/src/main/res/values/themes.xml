@@ -184,6 +184,13 @@
         <item name="fontFamily">?attr/fontFamilyApp</item>
         <item name="android:fontFamily">?attr/fontFamilyApp</item>
     </style>
+
+    <!-- Toolbar title with Baskerville for Achievements screen -->
+    <style name="TextAppearance.App.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="fontFamily">@font/baskerville_font_family</item>
+        <item name="android:fontFamily">@font/baskerville_font_family</item>
+    </style>
+
     <!-- ADDED: Custom Material Alert Dialog Theme -->
     <style name="AppTheme.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <!-- This will apply to the text of the positive button -->

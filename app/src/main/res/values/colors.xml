@@ -29,18 +29,27 @@
 
     <color name="QuoteBlue">#005393</color>
     <color name="BaptismBlue">#005493</color>
-    <color name="Confirmations">#D64E52</color>"
+    <color name="Confirmations">#D64E52</color>
     <color name="Initiatories">#c4c400</color>
     <color name="Endowments">#FEAE73</color>
     <color name="Sealings">#68478D</color>
     <color name="t1_temples">#D64E52</color>
-    <color name="t1_historic_site">#006955</color>"
+    <color name="t1_historic_site">#006955</color>
     <color name="t1_visitors_centers">#696752</color>
     <color name="t1_announced_temples">#97B597</color>
     <color name="t1_under_construction">#FEAE73</color>
     <color name="t2_temples">#8F6B85</color>
-    <color name="t2_historic_site">#FF8D22</color>"
+    <color name="t2_historic_site">#FF8D22</color>
     <color name="t2_visitors_centers">#FFCA27</color>
     <color name="t2_announced_temples">#FFC296</color>
     <color name="t2_under_construction">#5B78B2</color>
+
+    <!-- Achievement type colors -->
+    <color name="achievement_baptisms">@color/BaptismBlue</color>
+    <color name="achievement_initiatories">@color/Initiatories</color>
+    <color name="achievement_endowments">@color/Endowments</color>
+    <color name="achievement_sealings">@color/Sealings</color>
+    <color name="achievement_worker">#5F6368</color>
+    <color name="achievement_temples">@color/t2_temples</color>
+    <color name="achievement_historic">@color/t2_historic_site</color>
 </resources>

@@ -110,6 +110,30 @@ interface VisitDao {
     suspend fun deleteAllVisits()
 
     /**
+     * Fetches all visits sorted by date DESC (newest first), for achievement calculation.
+     * Picture data excluded for performance.
+     */
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR}, " +
+            "${VisitContract.COLUMN_HAS_PICTURE} " +
+            "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
+    suspend fun getAllVisitsForAchievementCalc(): List<Visit>
+
+    /**
      * Fetches all visits sorted by date, intended for export operations.
      * The pictureData column (VisitContract.COLUMN_PICTURE_DATA) is EXCLUDED
      * from this query to prevent SQLiteBlobTooBigException.

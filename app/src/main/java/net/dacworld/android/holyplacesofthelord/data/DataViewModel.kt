@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.dacworld.android.holyplacesofthelord.BuildConfig
+import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.model.Visit
@@ -44,7 +46,7 @@ import java.net.URL
 
 
 class DataViewModel(
-    application: Application,
+    private val application: Application,
     private val templeDao: TempleDao,
     private val visitDao: VisitDao,
     private val userPreferencesManager: UserPreferencesManager
@@ -110,6 +112,17 @@ class DataViewModel(
         _remoteUpdateDetails.value = null
     }
 
+    // --- For What's New (app version) Dialog ---
+    private val _whatsNewUpdateDetails = MutableStateFlow<UpdateDetails?>(null)
+    val whatsNewUpdateDetails: StateFlow<UpdateDetails?> = _whatsNewUpdateDetails.asStateFlow()
+
+    fun whatsNewDialogShown() {
+        viewModelScope.launch {
+            userPreferencesManager.saveLastSeenAppVersion(BuildConfig.VERSION_CODE)
+            _whatsNewUpdateDetails.value = null
+        }
+    }
+
     init {
         // Load initial change summary messages when ViewModel is created
         loadCurrentChangeSummary()
@@ -121,6 +134,25 @@ class DataViewModel(
                 Log.d("DataViewModelInit", "No persisted version found in Prefs for currentDataVersion.")
             }
             // ...
+        }
+        viewModelScope.launch {
+            checkWhatsNew()
+        }
+    }
+
+    private suspend fun checkWhatsNew() {
+        val lastSeen = userPreferencesManager.lastSeenAppVersionFlow.firstOrNull() ?: 0
+        val current = BuildConfig.VERSION_CODE
+        // Show dialog when user hasn't seen this version yet: first install (lastSeen==0) or update (lastSeen < current)
+        if (lastSeen != current) {
+            val title = application.getString(R.string.whats_new_title_1_7)
+            val msg1 = application.getString(R.string.whats_new_achievement_system)
+            val msg2 = application.getString(R.string.whats_new_visit_picture_fallback)
+            _whatsNewUpdateDetails.value = UpdateDetails(
+                updateTitle = title,
+                messages = listOf(msg1, msg2)
+            )
+            Log.d("DataViewModel", "What's New dialog will show: lastSeen=$lastSeen, current=$current")
         }
     }
     private fun loadCurrentChangeSummary() {

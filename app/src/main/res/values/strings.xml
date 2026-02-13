@@ -202,4 +202,104 @@
     <string name="backup_reminder_backup_now">Back Up Now</string>
     <string name="backup_reminder_remind_later">Remind Me Later</string>
 
+    <!-- Achievements -->
+    <string name="tap_for_achievements">Tap for Achievements</string>
+    <string name="no_achievements_yet">No Achievements Yet</string>
+    <string name="title_achievements">Achievements</string>
+    <string name="achievements_completed">Completed</string>
+    <string name="achievements_not_completed">Not Completed</string>
+    <string name="achievement_at">at %1$s</string>
+    <string name="achievement_on">on %1$s</string>
+    <string name="cd_achievement_icon">Achievement icon</string>
+
+    <!-- Achievement names and details (localization-ready, from iOS) -->
+    <string-array name="achievement_baptisms_names">
+        <item>Excellent! (Baptisms)</item>
+        <item>Wonderful! (Baptisms)</item>
+        <item>Incredible! (Baptisms)</item>
+        <item>Extraordinary! (Baptisms)</item>
+        <item>Astounding! (Baptisms)</item>
+        <item>Unbelievable! (Baptisms)</item>
+    </string-array>
+    <string name="achievement_details_complete_baptisms">Complete %d Baptisms</string>
+
+    <string-array name="achievement_initiatories_names">
+        <item>Excellent! (Initiatories)</item>
+        <item>Wonderful! (Initiatories)</item>
+        <item>Incredible! (Initiatories)</item>
+        <item>Extraordinary! (Initiatories)</item>
+        <item>Astounding! (Initiatories)</item>
+        <item>Unbelievable! (Initiatories)</item>
+    </string-array>
+    <string name="achievement_details_complete_initiatories">Complete %d Initiatories</string>
+
+    <string-array name="achievement_endowments_names">
+        <item>Excellent! (Endowments)</item>
+        <item>Wonderful! (Endowments)</item>
+        <item>Incredible! (Endowments)</item>
+        <item>Extraordinary! (Endowments)</item>
+        <item>Amazing! (Endowments)</item>
+        <item>Astounding! (Endowments)</item>
+        <item>Phenomenal! (Endowments)</item>
+        <item>Unbelievable! (Endowments)</item>
+        <item>Miraculous! (Endowments)</item>
+        <item>Celestial! (Endowments)</item>
+    </string-array>
+    <string name="achievement_details_complete_endowments">Complete %d Endowments</string>
+
+    <string-array name="achievement_sealings_names">
+        <item>Excellent! (Sealings)</item>
+        <item>Wonderful! (Sealings)</item>
+        <item>Incredible! (Sealings)</item>
+        <item>Extraordinary! (Sealings)</item>
+        <item>Astounding! (Sealings)</item>
+        <item>Unbelievable! (Sealings)</item>
+    </string-array>
+    <string name="achievement_details_complete_sealings">Complete %d Sealings</string>
+
+    <string-array name="achievement_worker_names">
+        <item>Excellent! (Ordinance Worker)</item>
+        <item>Wonderful! (Ordinance Worker)</item>
+        <item>Incredible! (Ordinance Worker)</item>
+        <item>Extraordinary! (Ordinance Worker)</item>
+        <item>Astounding! (Ordinance Worker)</item>
+        <item>Unbelievable! (Ordinance Worker)</item>
+    </string-array>
+    <string name="achievement_details_work_hours">Work %d hours in the temple</string>
+
+    <string-array name="achievement_temple_names">
+        <item>Temple Admirer</item>
+        <item>Temple Lover</item>
+        <item>Temple Devotee</item>
+        <item>Temple Enthusiast</item>
+        <item>Temple Fanatic</item>
+        <item>Temple Zealot</item>
+        <item>Temple Visionary</item>
+        <item>Temple Addict</item>
+        <item>Temple Aficionado</item>
+        <item>Temple Buff</item>
+        <item>Temple Legend</item>
+        <item>Temple Extremist</item>
+    </string-array>
+    <string name="achievement_details_visit_temples">Visit %d different temples</string>
+
+    <string-array name="achievement_history_names">
+        <item>History Admirer</item>
+        <item>History Lover</item>
+        <item>History Devotee</item>
+        <item>History Enthusiast</item>
+        <item>History Zealot</item>
+        <item>History Aficionado</item>
+        <item>History Buff</item>
+        <item>History Legend</item>
+    </string-array>
+    <string name="achievement_details_visit_historic">Visit %d different historic sites</string>
+
+    <string name="achievement_temple_consistent_title">Temple Consistent - %d</string>
+    <string name="achievement_temple_consistent_details">Ordinances completed each month</string>
+
+    <string name="whats_new_title_1_7">What\'s New in 1.7</string>
+    <string name="whats_new_achievement_system">New Achievement system – Track your temple visit milestones and earn badges for your progress.</string>
+    <string name="whats_new_visit_picture_fallback">Display temple place picture on visits when no visit picture exists – Visits without a photo now automatically show the temple\'s place picture.</string>
+
 </resources>

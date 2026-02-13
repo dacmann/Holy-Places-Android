@@ -67,6 +67,9 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val LAST_EXPORT_DATE_KEY = longPreferencesKey("last_export_date")
         val BACKUP_REMINDER_DISMISSED_KEY = booleanPreferencesKey("backup_reminder_dismissed")
 
+        // What's New dialog - last app version user has seen
+        val LAST_SEEN_APP_VERSION_KEY = intPreferencesKey("last_seen_app_version")
+
     }
 
     // --- Flows for New Settings ---
@@ -255,6 +258,19 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
             // though keeping them might be useful for debugging or history if ever needed.
             // preferences.remove(PreferencesKeys.INITIAL_SEED_DIALOG_TITLE)
             // preferences.remove(PreferencesKeys.INITIAL_SEED_DIALOG_MESSAGES)
+        }
+    }
+
+    // --- What's New dialog: last app version user has seen ---
+    val lastSeenAppVersionFlow: Flow<Int?> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.LAST_SEEN_APP_VERSION_KEY]
+        }
+
+    suspend fun saveLastSeenAppVersion(versionCode: Int) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.LAST_SEEN_APP_VERSION_KEY] = versionCode
         }
     }
 

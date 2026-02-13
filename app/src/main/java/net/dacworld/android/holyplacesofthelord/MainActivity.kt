@@ -157,7 +157,8 @@ class MainActivity : AppCompatActivity() {
                 R.id.recordVisitFragment,      // Assuming this is your Record Visit screen ID
                 R.id.options_fragment_destination, // If Options should also hide bottom nav
                 R.id.exportImportFragment,     // If Export/Import should also hide bottom nav
-                R.id.imageViewerFragment       // Add this line to hide bottom nav for image viewer
+                R.id.imageViewerFragment,      // Add this line to hide bottom nav for image viewer
+                R.id.achievements_fragment_destination  // Hide for Achievements (modal)
                     -> View.GONE // Hide BottomNav on these screens
                 else -> View.VISIBLE     // Show BottomNav on all other (top-level tab) screens
             }

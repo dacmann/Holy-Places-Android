@@ -3,6 +3,7 @@ package net.dacworld.android.holyplacesofthelord.ui.summary
 
 import android.graphics.Typeface
 import android.os.Bundle
+import androidx.navigation.fragment.findNavController
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -62,6 +63,10 @@ class SummaryFragment : Fragment() {
         }
         binding.layoutQuoteModule.setOnClickListener {
             summaryViewModel.selectRandomQuote() // Change quote on click
+        }
+
+        binding.tapForAchievements.setOnClickListener {
+            findNavController().navigate(R.id.action_summary_to_achievements)
         }
 
         // Holy Places Section

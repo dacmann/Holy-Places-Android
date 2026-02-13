@@ -2,12 +2,13 @@ package net.dacworld.android.holyplacesofthelord.ui.home
 
 import android.app.AlertDialog
 import android.os.Bundle
+import androidx.core.content.ContextCompat
+import androidx.navigation.fragment.findNavController
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels // For shared ViewModel
 import androidx.fragment.app.viewModels
@@ -36,7 +37,7 @@ class HomeFragment : Fragment() {
     // Correct way to initialize HomeViewModel with its factory
     private val homeViewModel: HomeViewModel by viewModels {
         val application = requireActivity().application as MyApplication
-        HomeViewModelFactory(application.userPreferencesManager, application.visitDao) // Ensure this matches your MyApplication properties
+        HomeViewModelFactory(application.userPreferencesManager, application.visitDao, application.achievementRepository)
     }
 
     // Access the shared DataViewModel
@@ -47,6 +48,9 @@ class HomeFragment : Fragment() {
 
     // Flag to manage if the initial seed dialog is currently being shown by this fragment
     private var isInitialSeedDialogShowing = false
+
+    // Flag to manage if the What's New dialog is currently being shown by this fragment
+    private var isWhatsNewDialogShowing = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -85,16 +89,39 @@ class HomeFragment : Fragment() {
                 }
             }
         }
+        // Observer for the What's New (app version) Dialog
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                dataViewModel.whatsNewUpdateDetails.collectLatest { details: UpdateDetails? ->
+                    details?.let {
+                        if (!isWhatsNewDialogShowing && isAdded) {
+                            isWhatsNewDialogShowing = true
+                            showWhatsNewDialog(
+                                details = it,
+                                onDismiss = {
+                                    dataViewModel.whatsNewDialogShown()
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
         // --- START: ADDED CODE FOR INFO AND SETTINGS ICONS ---
         binding.infoIcon.setOnClickListener {
             InfoBottomSheetFragment().show(childFragmentManager, InfoBottomSheetFragment.TAG)
         }
 
-        binding.settingsIcon.setOnClickListener {   11
+        binding.settingsIcon.setOnClickListener {
             SettingsBottomSheetFragment().show(childFragmentManager, SettingsBottomSheetFragment.TAG)
+        }
+
+        binding.achievementButtonContainer.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_achievements)
         }
         // --- END: ADDED CODE FOR INFO AND SETTINGS ICONS ---
         setupGoalProgressObservers()
+        setupAchievementButton()
     }
 
     // In HomeFragment.kt
@@ -244,6 +271,26 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun setupAchievementButton() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                homeViewModel.completedAchievements.collectLatest { completed ->
+                    if (completed.isNotEmpty()) {
+                        binding.achievementButtonContainer.visibility = View.VISIBLE
+                        val latest = completed.first()
+                        val iconResId = resources.getIdentifier(latest.iconName.lowercase(), "drawable", requireContext().packageName)
+                        val resId = if (iconResId != 0) iconResId else resources.getIdentifier("ach12mt", "drawable", requireContext().packageName)
+                        if (resId != 0) {
+                            binding.achievementButton.setImageResource(resId)
+                        }
+                    } else {
+                        binding.achievementButtonContainer.visibility = View.GONE
+                    }
+                }
+            }
+        }
+    }
+
     private fun showInitialSeedDialog(details: UpdateDetails, onDismiss: () -> Unit) {
         // Double check context and fragment's state before showing a dialog
         if (!isAdded || context == null) {
@@ -296,9 +343,45 @@ class HomeFragment : Fragment() {
         Log.d("HomeFragment", "Showing initial seed dialog: ${details.updateTitle}")
     }
 
+    private fun showWhatsNewDialog(details: UpdateDetails, onDismiss: () -> Unit) {
+        if (!isAdded || context == null) {
+            Log.w("HomeFragment", "Dialog not shown for What's New, fragment not attached or context null.")
+            onDismiss()
+            isWhatsNewDialogShowing = false
+            return
+        }
+
+        val formattedMessage = details.messages.joinToString(separator = "\n\n")
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(details.updateTitle)
+            .setMessage(formattedMessage)
+            .setCancelable(false)
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+
+        dialog.setOnShowListener {
+            val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            positiveButton?.setTextColor(ContextCompat.getColor(requireContext(), R.color.BaptismBlue))
+        }
+
+        dialog.setButton(AlertDialog.BUTTON_POSITIVE, getString(android.R.string.ok)) { d, _ ->
+            d.dismiss()
+            onDismiss()
+        }
+
+        dialog.setOnDismissListener {
+            isWhatsNewDialogShowing = false
+            Log.d("HomeFragment", "What's New dialog dismissed.")
+        }
+
+        dialog.show()
+        Log.d("HomeFragment", "Showing What's New dialog: ${details.updateTitle}")
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
         isInitialSeedDialogShowing = false // Reset flag to be safe
+        isWhatsNewDialogShowing = false
     }
 }

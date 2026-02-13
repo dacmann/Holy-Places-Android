@@ -2,4 +2,8 @@
     <!-- Default screen margins, per the Android Design guidelines. -->
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <!-- Achievement row heights -->
+    <dimen name="achievement_row_completed_height">88dp</dimen>
+    <dimen name="achievement_row_incomplete_height">78dp</dimen>
 </resources>

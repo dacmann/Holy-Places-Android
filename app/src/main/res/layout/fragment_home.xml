@@ -203,6 +203,34 @@
 
     </LinearLayout>
     <!-- Goal Progress Section END -->
+
+    <!-- Achievement Button (lower left) -->
+    <FrameLayout
+        android:id="@+id/achievementButtonContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/achievement_button_background"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/bottom_inset_spacer"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent="0.2"
+        tools:visibility="visible">
+
+        <ImageView
+            android:id="@+id/achievementButton"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/tap_for_achievements"
+            android:padding="8dp"
+            android:scaleType="centerInside"
+            tools:src="@drawable/ach25b" />
+    </FrameLayout>
+
     <!-- SPACER VIEW -->
     <View
         android:id="@+id/bottom_inset_spacer"

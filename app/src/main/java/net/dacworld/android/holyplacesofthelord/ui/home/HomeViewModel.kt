@@ -11,8 +11,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import net.dacworld.android.holyplacesofthelord.data.AchievementRepository
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
-import net.dacworld.android.holyplacesofthelord.dao.VisitDao // Assuming VisitDao is in this package
+import net.dacworld.android.holyplacesofthelord.dao.VisitDao
+import net.dacworld.android.holyplacesofthelord.model.Achievement
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -28,11 +30,14 @@ data class GoalDisplayItem(
 
 class HomeViewModel(
     private val userPreferencesManager: UserPreferencesManager,
-    private val visitDao: VisitDao // Use your actual DAO class name
+    private val visitDao: VisitDao,
+    private val achievementRepository: AchievementRepository
 ) : ViewModel() {
 
     private val _text = MutableStateFlow("This is home Fragment (from HomeViewModel)") // Changed to StateFlow
     val text: StateFlow<String> = _text.asStateFlow()
+
+    val completedAchievements: StateFlow<List<Achievement>> = achievementRepository.completedAchievements
 
     // --- Goal Progress ---
     private val _goalProgressTitle = MutableStateFlow<String?>(null)

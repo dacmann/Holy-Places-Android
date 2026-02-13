@@ -10,7 +10,11 @@
         android:id="@+id/home_fragment_destination"
         android:name="net.dacworld.android.holyplacesofthelord.ui.home.HomeFragment"
         android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_achievements"
+            app:destination="@id/achievements_fragment_destination" />
+    </fragment>
 
     <!-- PlacesFragment: Linked to the second item in your BottomNavigationView -->
     <fragment
@@ -175,7 +179,17 @@
         android:id="@+id/summary_fragment_destination"
         android:name="net.dacworld.android.holyplacesofthelord.ui.summary.SummaryFragment"
         android:label="@string/title_summary_tab"
-        tools:layout="@layout/fragment_summary" />
+        tools:layout="@layout/fragment_summary">
+        <action
+            android:id="@+id/action_summary_to_achievements"
+            app:destination="@id/achievements_fragment_destination" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/achievements_fragment_destination"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.achievements.AchievementsFragment"
+        android:label="@string/title_achievements"
+        tools:layout="@layout/fragment_achievements" />
 
     <fragment
         android:id="@+id/map_fragment_destination"

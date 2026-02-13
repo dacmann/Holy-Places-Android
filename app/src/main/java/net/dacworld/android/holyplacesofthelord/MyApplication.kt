@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase // Your AppDatabase
+import net.dacworld.android.holyplacesofthelord.data.AchievementRepository
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager // Your DataStore manager
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
@@ -26,6 +27,10 @@ class MyApplication : Application() {
     internal val visitDao: VisitDao by lazy { database.visitDao() }
     internal val userPreferencesManager: UserPreferencesManager by lazy {
         UserPreferencesManager.getInstance(this)
+    }
+
+    internal val achievementRepository: AchievementRepository by lazy {
+        AchievementRepository(applicationContext, visitDao, userPreferencesManager, ProcessLifecycleOwner.get().lifecycleScope)
     }
 
     override fun onCreate() {
