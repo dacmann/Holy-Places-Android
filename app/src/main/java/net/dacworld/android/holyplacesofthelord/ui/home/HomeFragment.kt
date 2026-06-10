@@ -22,28 +22,37 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import net.dacworld.android.holyplacesofthelord.MyApplication // For ViewModelFactory
+import net.dacworld.android.holyplacesofthelord.MyApplication
 import net.dacworld.android.holyplacesofthelord.R
-import net.dacworld.android.holyplacesofthelord.data.DataViewModel // ViewModel
-import net.dacworld.android.holyplacesofthelord.data.DataViewModelFactory // ViewModelFactory
-import net.dacworld.android.holyplacesofthelord.data.UpdateDetails // Data class for dialog
+import net.dacworld.android.holyplacesofthelord.data.DataViewModel
+import net.dacworld.android.holyplacesofthelord.data.DataViewModelFactory
+import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentHomeBinding
+import net.dacworld.android.holyplacesofthelord.model.Profile
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileIconAdapter
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileIcons
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModel
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModelFactory
+import android.widget.PopupMenu
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    // Correct way to initialize HomeViewModel with its factory
     private val homeViewModel: HomeViewModel by viewModels {
         val application = requireActivity().application as MyApplication
-        HomeViewModelFactory(application.userPreferencesManager, application.visitDao, application.achievementRepository)
+        HomeViewModelFactory(application.userPreferencesManager, application.visitDao, application.achievementRepository, application.profileRepository)
     }
 
-    // Access the shared DataViewModel
     private val dataViewModel: DataViewModel by activityViewModels {
         val application = requireActivity().application as MyApplication
-        DataViewModelFactory(application,application.templeDao, application.visitDao,application.userPreferencesManager)
+        DataViewModelFactory(application, application.templeDao, application.visitDao, application.userPreferencesManager)
+    }
+
+    private val profileViewModel: ProfileViewModel by viewModels {
+        val application = requireActivity().application as MyApplication
+        ProfileViewModelFactory(application.profileRepository)
     }
 
     // Flag to manage if the initial seed dialog is currently being shown by this fragment
@@ -122,6 +131,7 @@ class HomeFragment : Fragment() {
         // --- END: ADDED CODE FOR INFO AND SETTINGS ICONS ---
         setupGoalProgressObservers()
         setupAchievementButton()
+        setupProfileSwitcher()
     }
 
     // In HomeFragment.kt
@@ -268,6 +278,55 @@ class HomeFragment : Fragment() {
                     }
                 }
             }
+        }
+    }
+
+    private fun setupProfileSwitcher() {
+        var currentProfiles: List<Profile> = emptyList()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    kotlinx.coroutines.flow.combine(
+                        profileViewModel.profilesEnabled,
+                        profileViewModel.activeProfile,
+                        profileViewModel.profiles
+                    ) { enabled, activeProfile, profiles -> Triple(enabled, activeProfile, profiles) }
+                        .collectLatest { (enabled, activeProfile, profiles) ->
+                            currentProfiles = profiles
+                            if (enabled && activeProfile != null) {
+                                binding.profileSwitcherButton.visibility = View.VISIBLE
+                                binding.profileSwitcherButton.text = activeProfile.name
+                                val iconRes = ProfileIcons.drawableResId(activeProfile.iconName)
+                                binding.profileSwitcherButton.setIconResource(iconRes)
+                            } else {
+                                binding.profileSwitcherButton.visibility = View.GONE
+                            }
+                        }
+                }
+            }
+        }
+
+        binding.profileSwitcherButton.setOnClickListener { anchor ->
+            val profiles = currentProfiles
+            val activeId = profileViewModel.activeProfileId.value
+            if (profiles.isEmpty()) return@setOnClickListener
+
+            val popup = PopupMenu(requireContext(), anchor)
+            profiles.forEachIndexed { index, profile ->
+                val item = popup.menu.add(0, index, index, profile.name)
+                if (profile.profileId == activeId) item.isChecked = true
+            }
+            popup.menu.add(0, profiles.size, profiles.size, getString(R.string.manage_profiles))
+            popup.setOnMenuItemClickListener { menuItem ->
+                if (menuItem.itemId < profiles.size) {
+                    profileViewModel.setActiveProfile(profiles[menuItem.itemId].profileId)
+                } else {
+                    findNavController().navigate(R.id.action_home_to_profileManagement)
+                }
+                true
+            }
+            popup.show()
         }
     }
 

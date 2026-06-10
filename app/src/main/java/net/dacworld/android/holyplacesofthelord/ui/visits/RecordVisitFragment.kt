@@ -1,5 +1,6 @@
 package net.dacworld.android.holyplacesofthelord.ui.visits
 
+import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Rect
@@ -27,6 +28,7 @@ import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs // Import for Safe Args
 import coil.load // Import Coil for image loading
+import com.google.android.material.chip.Chip
 import com.google.android.material.datepicker.MaterialDatePicker
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
@@ -47,6 +49,10 @@ class RecordVisitFragment : Fragment() {
     private var _binding: FragmentRecordVisitBinding? = null
     private val binding get() = _binding!!
 
+    // Prevents chip click handlers from firing while the observer syncs checked visuals.
+    private var isUpdatingChipState = false
+
+
     // Using Safe Args to retrieve navigation arguments
     private val navArgs: RecordVisitFragmentArgs by navArgs()
 
@@ -63,6 +69,8 @@ class RecordVisitFragment : Fragment() {
         val userPrefsManager = UserPreferencesManager.getInstance(requireContext().applicationContext)
 
 
+        val profileRepository = (application as? net.dacworld.android.holyplacesofthelord.MyApplication)
+            ?.profileRepository
         RecordVisitViewModelFactory(
             application,
             visitDao,
@@ -70,7 +78,8 @@ class RecordVisitFragment : Fragment() {
             placeIdArg,
             placeNameArg,
             placeTypeArg,
-            userPrefsManager
+            userPrefsManager,
+            profileRepository
         )
     }
 
@@ -392,7 +401,108 @@ class RecordVisitFragment : Fragment() {
             }
         })
 
-        // isOrdinanceWorker observation can be added here if you implement that feature in ViewModel/Prefs
+        // Multi-profile chip selector
+        viewModel.showProfileChips.observe(viewLifecycleOwner) { show ->
+            val visibility = if (show) View.VISIBLE else View.GONE
+            binding.labelRecordForProfiles.visibility = visibility
+            binding.profileChipsScroll.visibility = visibility
+            if (show) {
+                maybeBuildProfileChips()
+            }
+        }
+
+        viewModel.availableProfiles.observe(viewLifecycleOwner) {
+            maybeBuildProfileChips()
+        }
+
+        viewModel.selectedProfileIds.observe(viewLifecycleOwner) { selectedIds ->
+            syncProfileChipSelection(selectedIds)
+        }
+    }
+
+    private fun maybeBuildProfileChips() {
+        if (viewModel.showProfileChips.value != true) return
+        val profiles = viewModel.availableProfiles.value ?: return
+        if (profiles.size < 2) return
+        buildProfileChips(profiles)
+    }
+
+    private fun syncProfileChipSelection(selectedIds: Set<String>) {
+        isUpdatingChipState = true
+        val container = binding.profileChipsContainer
+        for (i in 0 until container.childCount) {
+            val chip = container.getChildAt(i) as? Chip ?: continue
+            val profileId = chip.tag as? String ?: continue
+            applyProfileChipStyle(chip, profileId in selectedIds)
+        }
+        isUpdatingChipState = false
+    }
+
+    private fun applyProfileChipStyle(chip: Chip, selected: Boolean) {
+        val context = requireContext()
+        chip.isChecked = selected
+        if (selected) {
+            chip.chipBackgroundColor = ColorStateList.valueOf(
+                ContextCompat.getColor(context, R.color.brand_primary)
+            )
+            chip.setTextColor(ContextCompat.getColor(context, R.color.white))
+            chip.chipIconTint = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
+            chip.chipStrokeWidth = 0f
+            chip.setCheckedIconVisible(true)
+        } else {
+            chip.chipBackgroundColor = ColorStateList.valueOf(
+                ContextCompat.getColor(context, R.color.app_colorSurface)
+            )
+            chip.setTextColor(ContextCompat.getColor(context, R.color.alt_grey_text))
+            chip.chipIconTint = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.alt_grey_text))
+            chip.chipStrokeWidth = resources.getDimension(R.dimen.profile_chip_stroke_width)
+            chip.chipStrokeColor = ColorStateList.valueOf(
+                ContextCompat.getColor(context, R.color.search_view_stroke_color)
+            )
+            chip.setCheckedIconVisible(false)
+        }
+    }
+
+    private fun buildProfileChips(profiles: List<net.dacworld.android.holyplacesofthelord.model.Profile>) {
+        val selectedIds = viewModel.selectedProfileIds.value ?: emptySet()
+        val container = binding.profileChipsContainer
+        container.removeAllViews()
+
+        profiles.forEach { profile ->
+            val chip = Chip(requireContext()).apply {
+                text = profile.name
+                tag = profile.profileId
+                isCheckable = true
+                val iconRes = net.dacworld.android.holyplacesofthelord.ui.profile.ProfileIcons
+                    .drawableResId(profile.iconName)
+                setChipIconResource(iconRes)
+                chipIconSize = resources.getDimension(R.dimen.profile_chip_icon_size)
+                setOnCheckedChangeListener { button, isChecked ->
+                    if (isUpdatingChipState) return@setOnCheckedChangeListener
+                    val profileId = button.tag as? String ?: return@setOnCheckedChangeListener
+                    val currentlySelected = viewModel.selectedProfileIds.value ?: emptySet()
+                    when {
+                        isChecked && profileId !in currentlySelected ->
+                            viewModel.toggleProfileSelection(profileId)
+                        !isChecked && profileId in currentlySelected -> {
+                            if (!viewModel.toggleProfileSelection(profileId)) {
+                                isUpdatingChipState = true
+                                button.isChecked = true
+                                isUpdatingChipState = false
+                            }
+                        }
+                    }
+                }
+            }
+            applyProfileChipStyle(chip, profile.profileId in selectedIds)
+            val layoutParams = ViewGroup.MarginLayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                marginEnd = resources.getDimensionPixelSize(R.dimen.profile_chip_spacing)
+            }
+            container.addView(chip, layoutParams)
+        }
     }
 
     private fun updateUi(state: VisitUiState) {

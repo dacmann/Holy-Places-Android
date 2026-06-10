@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -86,8 +87,11 @@ class DataViewModel(
     val currentPlaceVisitedScope: StateFlow<PlaceVisitedScope> = _currentPlaceVisitedScope.asStateFlow() // Expose to Fragment
 
     val visitedTemplePlaceIdsFlow: StateFlow<Set<String>> =
-        visitDao.getVisitedTemplePlaceIds() // This now returns Flow<List<String>>
-            .map { list -> list.toSet() }    // <<< Convert List to Set here
+        userPreferencesManager.activeProfileIdFlow
+            .flatMapLatest { profileId ->
+                visitDao.getVisitedTemplePlaceIdsByProfile(profileId)
+            }
+            .map { list -> list.toSet() }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -145,12 +149,13 @@ class DataViewModel(
         val current = BuildConfig.VERSION_CODE
         // Show dialog when user hasn't seen this version yet: first install (lastSeen==0) or update (lastSeen < current)
         if (lastSeen != current) {
-            val title = application.getString(R.string.whats_new_title_1_7)
-            val msg1 = application.getString(R.string.whats_new_achievement_system)
-            val msg2 = application.getString(R.string.whats_new_visit_picture_fallback)
+            val title = application.getString(R.string.whats_new_title_1_8)
+            val msg1 = application.getString(R.string.whats_new_profiles)
+            val msg2 = application.getString(R.string.whats_new_profile_scoped_data)
+            val msg3 = application.getString(R.string.whats_new_record_copy_visits)
             _whatsNewUpdateDetails.value = UpdateDetails(
                 updateTitle = title,
-                messages = listOf(msg1, msg2)
+                messages = listOf(msg1, msg2, msg3)
             )
             Log.d("DataViewModel", "What's New dialog will show: lastSeen=$lastSeen, current=$current")
         }

@@ -233,6 +233,68 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
+    <!-- PROFILES Section -->
+    <TextView
+        android:id="@+id/profiles_section_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/profiles_section_title"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_enable_profiles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/enable_profiles"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/description_enable_profiles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/description_enable_profiles"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/manage_profiles_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:text="@string/manage_profiles"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:textColor="?attr/colorPrimary"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:layout_marginBottom="4dp"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/add_profile_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:text="@string/add_profile"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:textColor="?attr/colorPrimary"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:layout_marginBottom="16dp"
+        tools:visibility="visible" />
+
     <!-- Quote Section -->
     <TextView
         android:id="@+id/quote_text"

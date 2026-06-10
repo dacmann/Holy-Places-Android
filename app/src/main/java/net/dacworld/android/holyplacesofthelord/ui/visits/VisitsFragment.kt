@@ -10,7 +10,11 @@ import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.graphics.Canvas
@@ -30,6 +34,10 @@ import net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.data.VisitViewModel
 import android.util.Log
+import androidx.appcompat.view.ActionMode
+import net.dacworld.android.holyplacesofthelord.MyApplication
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModel
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModelFactory
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -48,9 +56,15 @@ class VisitsFragment : Fragment() {
     private var _binding: FragmentVisitsBinding? = null
     private val binding get() = _binding!!
 
-    // Using by viewModels() KTX extension
     private val visitViewModel: VisitViewModel by viewModels()
     private val sharedVisitsViewModel: SharedVisitsViewModel by activityViewModels()
+    private val profileViewModel: ProfileViewModel by viewModels {
+        val app = requireActivity().application as MyApplication
+        ProfileViewModelFactory(app.profileRepository)
+    }
+
+    private var actionMode: ActionMode? = null
+    private var canCopyToProfile = false
 
     private lateinit var visitListAdapter: VisitListAdapter
 
@@ -208,9 +222,17 @@ class VisitsFragment : Fragment() {
     // --- NEW: Method to set up swipe-to-delete ---
     private fun setupSwipeToDelete() {
         val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(
-            0, // No drag & drop
-            ItemTouchHelper.LEFT // Swipe left to delete
+            0,
+            ItemTouchHelper.LEFT
         ) {
+            override fun getMovementFlags(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ): Int {
+                if (visitListAdapter.isMultiSelectMode) return 0
+                return makeMovementFlags(0, ItemTouchHelper.LEFT)
+            }
+
             private val deleteIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_delete) // Your delete icon
             private val intrinsicWidth = deleteIcon?.intrinsicWidth ?: 0
             private val intrinsicHeight = deleteIcon?.intrinsicHeight ?: 0
@@ -319,9 +341,13 @@ class VisitsFragment : Fragment() {
         // Add menu items without overriding the host's default menu
         menuHost.addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                // Add menu items here
                 menuInflater.inflate(R.menu.menu_visits_toolbar, menu)
                 applyMenuTextAndColorsFromPlaceFilter(menu.findItem(R.id.action_filter_visits_submenu)?.subMenu)
+            }
+
+            override fun onPrepareMenu(menu: Menu) {
+                menu.findItem(R.id.action_select_visits)?.isVisible =
+                    canCopyToProfile && actionMode == null
             }
 
             // Map MenuItem IDs to the corresponding PlaceFilter enum constant
@@ -418,25 +444,30 @@ class VisitsFragment : Fragment() {
                         true
                     }
 
-                    R.id.action_filter_visits -> { // This is the one that will remain
-                        // Navigate to the fragment that will handle Export/Import
-                        // The Directions class name should reflect the destination fragment ID from nav_graph.xml
-                        findNavController().navigate(VisitsFragmentDirections.actionVisitsFragmentToExportImportFragment()) // Use the new action
+                    R.id.action_filter_visits -> {
+                        findNavController().navigate(VisitsFragmentDirections.actionVisitsFragmentToExportImportFragment())
                         true
                     }
 
-                    else -> false // Let other components handle the event
+                    R.id.action_select_visits -> {
+                        enterSelectMode()
+                        true
+                    }
+
+                    else -> false
                 }
             }
         }, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
     private fun setupRecyclerView() {
-        visitListAdapter = VisitListAdapter { visit ->
-            // Navigate to Visit Detail screen
-            val action = VisitsFragmentDirections.actionVisitsFragmentToVisitDetailFragment(visit.id)
-            findNavController().navigate(action)
-        }
+        visitListAdapter = VisitListAdapter(
+            onVisitClicked = { visit ->
+                val action = VisitsFragmentDirections.actionVisitsFragmentToVisitDetailFragment(visit.id)
+                findNavController().navigate(action)
+            },
+            onSelectionChanged = { actionMode?.invalidate() }
+        )
         binding.visitsRecyclerView.apply {
             adapter = visitListAdapter
             layoutManager = LinearLayoutManager(context)
@@ -488,6 +519,20 @@ class VisitsFragment : Fragment() {
     }
 
     private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    profileViewModel.profilesEnabled,
+                    profileViewModel.profiles
+                ) { enabled, profiles ->
+                    enabled && profiles.size >= 2
+                }.collect { canCopy ->
+                    canCopyToProfile = canCopy
+                    requireActivity().invalidateMenu()
+                }
+            }
+        }
+
         visitViewModel.allVisits.observe(viewLifecycleOwner) { visitDisplayItemsList ->
             visitListAdapter.submitList(visitDisplayItemsList) {
                 // --- ADD SCROLL TO TOP HERE ---
@@ -638,6 +683,74 @@ class VisitsFragment : Fragment() {
         }
     }
 
+    private fun enterSelectMode() {
+        if (actionMode != null) return
+        visitListAdapter.enterMultiSelectMode()
+        actionMode = (requireActivity() as? AppCompatActivity)?.startSupportActionMode(
+            object : ActionMode.Callback {
+                override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+                    mode.menuInflater.inflate(R.menu.menu_copy_to_profile_action, menu)
+                    requireActivity().invalidateMenu()
+                    return true
+                }
+
+                override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
+                    mode.title = getString(R.string.action_mode_selected, visitListAdapter.getSelectedCount())
+                    menu.findItem(R.id.action_copy_to_profile)?.isEnabled =
+                        visitListAdapter.getSelectedCount() > 0
+                    return true
+                }
+
+                override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+                    return when (item.itemId) {
+                        R.id.action_select_all -> {
+                            visitListAdapter.selectAllVisible()
+                            mode.invalidate()
+                            true
+                        }
+                        R.id.action_copy_to_profile -> {
+                            showProfilePickerForCopy()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+
+                override fun onDestroyActionMode(mode: ActionMode) {
+                    visitListAdapter.clearSelection()
+                    actionMode = null
+                    requireActivity().invalidateMenu()
+                }
+            }
+        )
+    }
+
+    private fun showProfilePickerForCopy() {
+        val profiles = profileViewModel.profiles.value
+        val activeId = profileViewModel.activeProfileId.value
+        val otherProfiles = profiles.filter { it.profileId != activeId }
+        if (otherProfiles.isEmpty()) {
+            Snackbar.make(binding.root, R.string.no_other_profiles, Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        val names = otherProfiles.map { it.name }.toTypedArray()
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.copy_to_profile_title)
+            .setItems(names) { _, which ->
+                val targetProfile = otherProfiles[which]
+                val selectedIds = visitListAdapter.getSelectedIds()
+                profileViewModel.copyVisits(selectedIds, targetProfile.profileId)
+                actionMode?.finish()
+                Snackbar.make(
+                    binding.root,
+                    getString(R.string.visits_copied_to_profile, selectedIds.size, targetProfile.name),
+                    Snackbar.LENGTH_SHORT
+                ).show()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun showBackupReminderDialog() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.backup_reminder_title)
@@ -657,8 +770,9 @@ class VisitsFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        actionMode?.finish()
         super.onDestroyView()
-        binding.visitsRecyclerView.adapter = null // Clear adapter to prevent memory leaks
+        binding.visitsRecyclerView.adapter = null
         _binding = null
     }
 

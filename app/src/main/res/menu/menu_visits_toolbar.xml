@@ -3,6 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_select_visits"
+        android:icon="@drawable/ic_select"
+        android:title="@string/cd_select_visits"
+        android:contentDescription="@string/cd_select_visits"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_sort_visits"
         android:title="@string/sort_by"
         android:icon="@drawable/ic_sort"

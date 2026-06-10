@@ -13,22 +13,25 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase // For getting DAO instance
+import net.dacworld.android.holyplacesofthelord.model.Profile
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 
 class RecordVisitViewModel(
-    private val application: Application, // For ContentResolver if converting Uri to ByteArray
+    private val application: Application,
     private val visitDao: VisitDao,
-    private val currentVisitId: Long?, // Null if creating a new visit
-    private val placeIdArg: String,    // The ID of the Temple/Place
-    private val placeNameArg: String,  // The name of the Temple/Place
-    private val placeTypeArg: String,   // The type of the Temple/Place (e.g., "T")
-    private val userPreferencesManager: UserPreferencesManager
+    private val currentVisitId: Long?,
+    private val placeIdArg: String,
+    private val placeNameArg: String,
+    private val placeTypeArg: String,
+    private val userPreferencesManager: UserPreferencesManager,
+    private val profileRepository: ProfileRepository? = null
 ) : AndroidViewModel(application) {
 
     private val _isEditing = currentVisitId != null && currentVisitId != 0L
@@ -43,13 +46,28 @@ class RecordVisitViewModel(
     val saveResultEvent: LiveData<Event<Boolean>> = _saveResultEvent
 
     // Example: LiveData for ordinance worker status (you'd load this from prefs/datastore)
-    private val _isOrdinanceWorker = MutableLiveData<Boolean>(true) // Default, adjust as needed
+    private val _isOrdinanceWorker = MutableLiveData<Boolean>(true)
     val isOrdinanceWorker: LiveData<Boolean> = _isOrdinanceWorker
+
+    // Multi-profile chip selector: only shown for new visits when >=2 profiles exist
+    private val _availableProfiles = MutableLiveData<List<Profile>>(emptyList())
+    val availableProfiles: LiveData<List<Profile>> = _availableProfiles
+
+    private val _selectedProfileIds = MutableLiveData<Set<String>>(emptySet())
+    val selectedProfileIds: LiveData<Set<String>> = _selectedProfileIds
+
+    private val _showProfileChips = MutableLiveData<Boolean>(false)
+    val showProfileChips: LiveData<Boolean> = _showProfileChips
+
+    private var profileSelectionInitialized = false
 
     private val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
 
     init {
         loadInitialData()
+        if (!_isEditing && profileRepository != null) {
+            observeProfilesForChips()
+        }
         // Observe the preference from UserPreferencesManager
         viewModelScope.launch {
             userPreferencesManager.enableHoursWorkedFlow.collect { isEnabled ->
@@ -303,11 +321,56 @@ class RecordVisitViewModel(
         _uiState.value = _uiState.value?.copy(visitType = newVisitType.ifBlank { null })
     }
 
+    private fun observeProfilesForChips() {
+        viewModelScope.launch {
+            val enabled = userPreferencesManager.profilesEnabledFlow.firstOrNull() ?: false
+            if (!enabled || profileRepository == null) {
+                _showProfileChips.postValue(false)
+                return@launch
+            }
+            val activeProfileId = userPreferencesManager.activeProfileIdFlow.firstOrNull()
+            profileRepository.profiles.collect { profiles ->
+                if (profiles.size >= 2) {
+                    if (!profileSelectionInitialized && activeProfileId != null) {
+                        _selectedProfileIds.value = setOf(activeProfileId)
+                        profileSelectionInitialized = true
+                    }
+                    _showProfileChips.value = true
+                    _availableProfiles.value = profiles
+                } else {
+                    _showProfileChips.value = false
+                }
+            }
+        }
+    }
+
+    /**
+     * Toggles a profile chip on/off. At least one profile must remain selected.
+     * @return true when the selection changed, false when the last chip cannot be deselected.
+     */
+    fun toggleProfileSelection(profileId: String): Boolean {
+        val current = _selectedProfileIds.value ?: emptySet()
+        val updated = if (profileId in current) {
+            val removed = current - profileId
+            if (removed.isEmpty()) current else removed
+        } else {
+            current + profileId
+        }
+        if (updated == current) return false
+        _selectedProfileIds.value = updated
+        return true
+    }
+
     fun saveVisit() {
         val currentUiState = _uiState.value ?: run {
             _saveResultEvent.value = Event(false) // Should not happen
             return
         }
+
+        // Snapshot selection before launching the coroutine so async postValue
+        // updates cannot race with the save.
+        val selectedIdsSnapshot = _selectedProfileIds.value ?: emptySet()
+        val showProfileChipsSnapshot = _showProfileChips.value == true
 
         // Basic validation (example)
         if (currentUiState.holyPlaceName.isBlank() || currentUiState.placeID.isBlank()) {
@@ -321,38 +384,64 @@ class RecordVisitViewModel(
 
         viewModelScope.launch {
             try {
-                // Determine if there's a picture to save
                 val pictureData = currentUiState.pictureByteArray
-                val pictureIsPresent = pictureData != null && pictureData.isNotEmpty() // <<< CHECK FOR PICTURE
+                val pictureIsPresent = pictureData != null && pictureData.isNotEmpty()
+                val baseComments = currentUiState.comments?.trim()?.ifBlank { null }
+                val dateYear = currentUiState.dateVisited?.let { yearFormat.format(it) }
 
-                val visitToSave = Visit(
-                    id = if (_isEditing) currentVisitId!! else 0L, // Use currentVisitId for updates, 0 for new
+                fun buildVisit(id: Long, profileId: String?, comments: String?) = Visit(
+                    id = id,
                     placeID = currentUiState.placeID,
-                    holyPlaceName = currentUiState.holyPlaceName.ifBlank { null }, // Ensure not just whitespace
-                    type = currentUiState.visitType, // The type of visit (e.g., "Ordinance Work")
-                    dateVisited = currentUiState.dateVisited, // This is already a Date object
-                    year = currentUiState.dateVisited?.let { yearFormat.format(it) },
+                    holyPlaceName = currentUiState.holyPlaceName.ifBlank { null },
+                    type = currentUiState.visitType,
+                    dateVisited = currentUiState.dateVisited,
+                    year = dateYear,
                     baptisms = currentUiState.baptisms,
                     confirmations = currentUiState.confirmations,
                     initiatories = currentUiState.initiatories,
                     endowments = currentUiState.endowments,
                     sealings = currentUiState.sealings,
                     shiftHrs = currentUiState.shiftHrs,
-                    comments = currentUiState.comments?.trim()?.ifBlank { null },
-                    picture = pictureData, // The ByteArray for the image
+                    comments = comments,
+                    picture = pictureData,
                     isFavorite = currentUiState.isFavorite,
-                    hasPicture = pictureIsPresent
+                    hasPicture = pictureIsPresent,
+                    profileId = profileId
                 )
 
                 if (_isEditing) {
-                    visitDao.updateVisit(visitToSave)
+                    val existingProfileId = visitDao.getVisitWithPictureById(currentVisitId!!)?.profileId
+                    visitDao.updateVisit(buildVisit(currentVisitId, existingProfileId, baseComments))
+                } else if (showProfileChipsSnapshot) {
+                    // Multi-profile mode: create one visit per selected profile
+                    val profiles = _availableProfiles.value ?: emptyList()
+                    val insertIds = selectedIdsSnapshot.ifEmpty {
+                        // Fallback: use active profile
+                        val fallback = userPreferencesManager.activeProfileIdFlow.firstOrNull()
+                        if (fallback != null) setOf(fallback) else emptySet()
+                    }
+                    val multiComments = if (insertIds.size > 1) {
+                        val names = profiles.filter { it.profileId in insertIds }.map { it.name }
+                        val suffix = "\n\nVisit Recorded for: ${names.joinToString(", ")}"
+                        (baseComments ?: "") + suffix
+                    } else baseComments
+
+                    for (profileId in insertIds) {
+                        visitDao.insertVisit(buildVisit(0L, profileId, multiComments))
+                    }
+                    if (insertIds.isEmpty()) {
+                        visitDao.insertVisit(buildVisit(0L, null, baseComments))
+                    }
                 } else {
-                    visitDao.insertVisit(visitToSave)
+                    // Single chip or profiles-disabled mode — stamp the active profile
+                    val profileId = userPreferencesManager.activeProfileIdFlow.firstOrNull()
+                    visitDao.insertVisit(buildVisit(0L, profileId, baseComments))
                 }
-                _saveResultEvent.value = Event(true) // Signal success
+
+                _saveResultEvent.value = Event(true)
             } catch (e: Exception) {
-                e.printStackTrace() // Log the exception
-                _saveResultEvent.value = Event(false) // Signal failure
+                e.printStackTrace()
+                _saveResultEvent.value = Event(false)
             }
         }
     }
@@ -463,12 +552,13 @@ enum class OrdinanceType {
  */
 class RecordVisitViewModelFactory(
     private val application: Application,
-    private val visitDao: VisitDao, // Pass the DAO
-    private val visitId: Long?,      // Use Long? to indicate optionality
+    private val visitDao: VisitDao,
+    private val visitId: Long?,
     private val placeId: String,
     private val placeName: String,
     private val placeType: String,
-    private val userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: UserPreferencesManager,
+    private val profileRepository: ProfileRepository? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RecordVisitViewModel::class.java)) {
@@ -480,7 +570,8 @@ class RecordVisitViewModelFactory(
                 placeId,
                 placeName,
                 placeType,
-                userPreferencesManager
+                userPreferencesManager,
+                profileRepository
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

@@ -26,6 +26,7 @@ object VisitContract {
     const val COLUMN_VISIT_TYPE = "visit_type" // To avoid conflict with Temple's 'type'
     const val COLUMN_YEAR = "year"
     const val COLUMN_HAS_PICTURE = "has_picture"
+    const val COLUMN_PROFILE_ID = "profile_id"
 }
 
 @Entity(
@@ -38,7 +39,10 @@ object VisitContract {
             onDelete = ForeignKey.CASCADE // Or SET_NULL, RESTRICT, etc. depending on desired behavior
         )
     ],
-    indices = [Index(value = [VisitContract.COLUMN_PLACE_ID])] // Index for faster lookups by placeID
+    indices = [
+        Index(value = [VisitContract.COLUMN_PLACE_ID]), // Index for faster lookups by placeID
+        Index(value = [VisitContract.COLUMN_PROFILE_ID]) // Index for profile-scoped queries
+    ]
 )
 // If you use Date type, you'll need a TypeConverter for it at the Database level
 // or registered here with @TypeConverters(YourDateConverters::class)
@@ -90,7 +94,15 @@ data class Visit(
     val year: String?,
 
     @ColumnInfo(name = VisitContract.COLUMN_HAS_PICTURE, defaultValue = "0")
-    val hasPicture: Boolean = false
+    val hasPicture: Boolean = false,
+
+    /**
+     * Optional foreign-key-like reference to [Profile.profileId]. When the local
+     * multi-profile feature is disabled, this is left null and ignored. Visits
+     * created while a profile is active are stamped with that profile's id.
+     */
+    @ColumnInfo(name = VisitContract.COLUMN_PROFILE_ID)
+    val profileId: String? = null
 
 ) {
     // Override equals and hashCode if you include ByteArray and need content equality
@@ -119,6 +131,7 @@ data class Visit(
         if (type != other.type) return false
         if (year != other.year) return false
         if (hasPicture != other.hasPicture) return false
+        if (profileId != other.profileId) return false
 
         return true
     }
@@ -140,6 +153,7 @@ data class Visit(
         result = 31 * result + (type?.hashCode() ?: 0)
         result = 31 * result + (year?.hashCode() ?: 0)
         result = 31 * result + hasPicture.hashCode()
+        result = 31 * result + (profileId?.hashCode() ?: 0)
         return result
     }
 }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
@@ -23,6 +24,7 @@ class AchievementRepository(
     private val context: Context,
     private val visitDao: VisitDao,
     private val userPreferencesManager: UserPreferencesManager,
+    private val profileRepository: ProfileRepository,
     private val scope: CoroutineScope
 ) {
     private val calculator = AchievementCalculator(context.resources, visitDao, userPreferencesManager)
@@ -38,11 +40,13 @@ class AchievementRepository(
 
     init {
         scope.launch {
-            combine(
-                visitDao.getAllVisits(),
-                userPreferencesManager.enableHoursWorkedFlow
-            ) { visits, isOrdinanceWorker ->
-                Pair(visits, isOrdinanceWorker)
+            profileRepository.scopedProfileId.flatMapLatest { profileId ->
+                combine(
+                    visitDao.getVisitsForAchievementCalcByProfile(profileId),
+                    userPreferencesManager.enableHoursWorkedFlow
+                ) { visits, isOrdinanceWorker ->
+                    Pair(visits, isOrdinanceWorker)
+                }
             }.collect { (visits, isOrdinanceWorker) ->
                 recalculate(visits, isOrdinanceWorker)
             }
@@ -54,7 +58,8 @@ class AchievementRepository(
      * Called when visits change (save, delete, import).
      */
     suspend fun recalculate() {
-        val visits = visitDao.getAllVisitsForAchievementCalc()
+        val profileId = profileRepository.scopedProfileId.first()
+        val visits = visitDao.getVisitsForAchievementCalcByProfileOnce(profileId)
         val isOrdinanceWorker = userPreferencesManager.enableHoursWorkedFlow.first()
         recalculate(visits, isOrdinanceWorker)
     }

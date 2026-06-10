@@ -8,7 +8,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
 import net.dacworld.android.holyplacesofthelord.model.Visit
@@ -37,18 +39,21 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         val database = AppDatabase.getDatabase(application)
-        visitDao = database.visitDao() // visitDao is initialized FIRST
+        visitDao = database.visitDao()
 
-        // NOW rawVisitsFromDB can be initialized, as visitDao is ready.
-        rawVisitsFromDB = visitDao.getVisitsForListAdapter().asLiveData()
+        // Always scope visits to the active profile, even when profile management UI is disabled.
+        rawVisitsFromDB = preferencesManager.activeProfileIdFlow
+            .flatMapLatest { profileId ->
+                visitDao.getVisitsForListAdapterByProfile(profileId)
+            }
+            .asLiveData()
 
         allVisits.addSource(rawVisitsFromDB) { visitsList ->
-            // Pass the currentSearchQuery to the transformation function
             allVisits.value = transformToDisplayListWithHeaders(
                 visitsList,
                 currentPlaceTypeFilter,
                 currentSortOrder,
-                currentSearchQuery // Pass current search query
+                currentSearchQuery
             )
         }
     }

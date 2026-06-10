@@ -15,8 +15,8 @@ android {
         applicationId = "net.dacworld.android.holyplacesofthelord"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.7"
+        versionCode = 13
+        versionName = "1.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

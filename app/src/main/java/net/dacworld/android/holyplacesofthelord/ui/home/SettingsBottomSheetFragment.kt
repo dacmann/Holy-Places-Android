@@ -1,4 +1,4 @@
-package net.dacworld.android.holyplacesofthelord.ui.home // Or your preferred package
+package net.dacworld.android.holyplacesofthelord.ui.home
 
 import android.app.Dialog
 import android.os.Bundle
@@ -6,22 +6,28 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.View.OnFocusChangeListener
 import android.widget.FrameLayout
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import net.dacworld.android.holyplacesofthelord.R // Assuming your R file
-import net.dacworld.android.holyplacesofthelord.databinding.LayoutSettingsBottomSheetBinding
 import androidx.core.widget.doOnTextChanged
-import androidx.fragment.app.viewModels // For viewModels delegate
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.launch
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import net.dacworld.android.holyplacesofthelord.MyApplication
+import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.data.SettingsViewModel
 import net.dacworld.android.holyplacesofthelord.data.SettingsViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
-import android.view.View.OnFocusChangeListener
+import net.dacworld.android.holyplacesofthelord.databinding.LayoutSettingsBottomSheetBinding
+import net.dacworld.android.holyplacesofthelord.model.ProfileContract
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModel
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModelFactory
 
 class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
 
@@ -30,8 +36,12 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
 
     private val settingsViewModel: SettingsViewModel by viewModels {
-        // Pass the application context to the factory
         SettingsViewModelFactory(requireContext().applicationContext)
+    }
+
+    private val profileViewModel: ProfileViewModel by viewModels {
+        val app = requireActivity().application as MyApplication
+        ProfileViewModelFactory(app.profileRepository)
     }
 
     override fun onCreateView(
@@ -50,7 +60,9 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
         }
 
         observeSettings()
+        observeProfileSettings()
         setupListeners()
+        setupProfileListeners()
     }
 
     private fun observeSettings() {
@@ -119,6 +131,53 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
             }
         }
     }
+    private fun observeProfileSettings() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    profileViewModel.profilesEnabled.collect { enabled ->
+                        if (binding.switchEnableProfiles.isChecked != enabled) {
+                            binding.switchEnableProfiles.isChecked = enabled
+                        }
+                        val visibility = if (enabled) View.VISIBLE else View.GONE
+                        binding.manageProfilesRow.visibility = visibility
+                        binding.addProfileRow.visibility = visibility
+                    }
+                }
+            }
+        }
+    }
+
+    private fun setupProfileListeners() {
+        binding.switchEnableProfiles.setOnCheckedChangeListener { _, isChecked ->
+            profileViewModel.toggleProfilesEnabled(isChecked)
+            val visibility = if (isChecked) View.VISIBLE else View.GONE
+            binding.manageProfilesRow.visibility = visibility
+            binding.addProfileRow.visibility = visibility
+        }
+
+        binding.manageProfilesRow.setOnClickListener {
+            dismiss()
+            requireParentFragment().findNavController()
+                .navigate(R.id.action_home_to_profileManagement)
+        }
+
+        binding.addProfileRow.setOnClickListener {
+            val currentCount = profileViewModel.profiles.value.size
+            if (currentCount >= ProfileContract.MAX_PROFILES) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.profile_limit_title)
+                    .setMessage(getString(R.string.profile_limit_message, ProfileContract.MAX_PROFILES))
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            } else {
+                dismiss()
+                requireParentFragment().findNavController()
+                    .navigate(R.id.action_home_to_profileEditor)
+            }
+        }
+    }
+
     private fun setupListeners() {
         // Helper function to set up focus listener for selecting text
         val selectAllOnFocusChange = OnFocusChangeListener { view, hasFocus ->

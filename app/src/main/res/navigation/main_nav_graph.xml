@@ -14,6 +14,12 @@
         <action
             android:id="@+id/action_home_to_achievements"
             app:destination="@id/achievements_fragment_destination" />
+        <action
+            android:id="@+id/action_home_to_profileManagement"
+            app:destination="@id/profileManagementFragment" />
+        <action
+            android:id="@+id/action_home_to_profileEditor"
+            app:destination="@id/profileEditorFragment" />
     </fragment>
 
     <!-- PlacesFragment: Linked to the second item in your BottomNavigationView -->
@@ -222,6 +228,36 @@
             android:name="image_data_base64"
             app:argType="string"
             android:defaultValue="" />
+    </fragment>
+
+    <!-- Profile feature -->
+    <fragment
+        android:id="@+id/profileManagementFragment"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.profile.ProfileManagementFragment"
+        android:label="@string/title_manage_profiles"
+        tools:layout="@layout/fragment_profile_management">
+        <action
+            android:id="@+id/action_profileManagementFragment_to_profileEditorFragment"
+            app:destination="@id/profileEditorFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/profileEditorFragment"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.profile.ProfileEditorFragment"
+        android:label="@string/title_new_profile"
+        tools:layout="@layout/fragment_profile_editor">
+        <argument
+            android:name="profileId"
+            app:argType="string"
+            android:defaultValue="" />
+        <argument
+            android:name="profileName"
+            app:argType="string"
+            android:defaultValue="" />
+        <argument
+            android:name="profileIconName"
+            app:argType="string"
+            android:defaultValue="person.fill" />
     </fragment>
 
 </navigation>

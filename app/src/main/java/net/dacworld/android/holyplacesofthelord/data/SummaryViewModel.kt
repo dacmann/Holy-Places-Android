@@ -10,6 +10,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -60,6 +63,8 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
     private val visitDao: VisitDao = AppDatabase.getDatabase(application).visitDao()
     private val templeDao: TempleDao = AppDatabase.getDatabase(application).templeDao()
     private val preferencesManager: UserPreferencesManager = UserPreferencesManager.getInstance(application)
+    private val profileRepository: ProfileRepository? =
+        (application as? net.dacworld.android.holyplacesofthelord.MyApplication)?.profileRepository
 
     private val _quote = MutableLiveData<String>()
     val quote: LiveData<String> = _quote
@@ -124,10 +129,24 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
     init {
         Log.d("SummaryVM", "ViewModel initialized.")
         val systemYear = Calendar.getInstance().get(Calendar.YEAR)
-        internalLeftColumnYear = systemYear // Set initial state: Left column is current year
-        internalRightColumnYear = systemYear - 1 // Set initial state: Right column is year before current
+        internalLeftColumnYear = systemYear
+        internalRightColumnYear = systemYear - 1
         loadQuotes()
         loadSummaryData()
+        observeProfileChanges()
+    }
+
+    private fun observeProfileChanges() {
+        profileRepository ?: return
+        viewModelScope.launch {
+            profileRepository.scopedProfileId
+                .distinctUntilChanged()
+                .drop(1) // skip the initial emission; init already called loadSummaryData()
+                .collect {
+                    Log.d("SummaryVM", "Active profile changed — reloading summary data")
+                    loadSummaryData()
+                }
+        }
     }
 
     private fun loadQuotes() {
@@ -161,7 +180,8 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             // --- START MODIFICATION 1: Fetch and Validate Visits ---
             val allVisitsFromDb: List<Visit>
             try {
-                allVisitsFromDb = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExport() }
+                val activeProfileId = profileRepository?.scopedProfileId?.first()
+                allVisitsFromDb = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExportByProfile(activeProfileId) }
             } catch (e: Exception) {
                 Log.e("SummaryVM_CrashPrevent", "Critical error fetching visits from DB. Aborting summary load.", e)
                 // Optionally, post an error state to UI if you have one
@@ -298,12 +318,12 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
         loadStatsForCurrentlyDisplayedYears()
     }
 
-    // NEW function to load stats for the two columns
     private fun loadStatsForCurrentlyDisplayedYears() {
         viewModelScope.launch {
             val allVisitsFromDbForYearStats: List<Visit>
             try {
-                allVisitsFromDbForYearStats = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExport() }
+                val activeProfileId = profileRepository?.scopedProfileId?.first()
+                allVisitsFromDbForYearStats = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExportByProfile(activeProfileId) }
             } catch (e: Exception) {
                 Log.e("SummaryVM_CrashPrevent", "Error fetching visits for year stats. Aborting.", e)
                 _templeVisitCurrentYearStats.postValue(calculateYearStatsForTemples(emptyList(), internalLeftColumnYear))

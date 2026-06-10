@@ -64,6 +64,29 @@ interface VisitDao {
             "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
     fun getVisitsForListAdapter(): Flow<List<Visit>>
 
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR}, " +
+            "${VisitContract.COLUMN_HAS_PICTURE} " +
+            "FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId " +
+            "       OR ${VisitContract.COLUMN_PROFILE_ID} IS NULL) " +
+            "ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
+    fun getVisitsForListAdapterByProfile(profileId: String?): Flow<List<Visit>>
+
     @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_ID} = :visitId")
     fun getVisitById(visitId: Long): Flow<Visit?>
 
@@ -87,7 +110,18 @@ interface VisitDao {
     suspend fun getVisitCount(): Int
 
     @Query("SELECT DISTINCT ${VisitContract.COLUMN_PLACE_ID} FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_PLACE_ID} IS NOT NULL AND ${VisitContract.COLUMN_PLACE_ID} != ''")
-    fun getVisitedTemplePlaceIds(): Flow<List<String>> // <<< CHANGE HERE from Flow<Set<String>>
+    fun getVisitedTemplePlaceIds(): Flow<List<String>>
+
+    /**
+     * Distinct place IDs with at least one visit, optionally scoped to a profile.
+     * When [profileId] is null, all visits are included.
+     */
+    @Query(
+        "SELECT DISTINCT ${VisitContract.COLUMN_PLACE_ID} FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE ${VisitContract.COLUMN_PLACE_ID} IS NOT NULL AND ${VisitContract.COLUMN_PLACE_ID} != '' " +
+            "AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)"
+    )
+    fun getVisitedTemplePlaceIdsByProfile(profileId: String?): Flow<List<String>>
 
     // --- Update Operations ---
 
@@ -132,6 +166,54 @@ interface VisitDao {
             "${VisitContract.COLUMN_HAS_PICTURE} " +
             "FROM ${VisitContract.TABLE_NAME} ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
     suspend fun getAllVisitsForAchievementCalc(): List<Visit>
+
+    /**
+     * Visits for achievement calculation, optionally scoped to a profile.
+     * When [profileId] is null (profiles disabled), all visits are included.
+     */
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR}, " +
+            "${VisitContract.COLUMN_HAS_PICTURE} " +
+            "FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId) " +
+            "ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
+    fun getVisitsForAchievementCalcByProfile(profileId: String?): Flow<List<Visit>>
+
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR}, " +
+            "${VisitContract.COLUMN_HAS_PICTURE} " +
+            "FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId) " +
+            "ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
+    suspend fun getVisitsForAchievementCalcByProfileOnce(profileId: String?): List<Visit>
 
     /**
      * Fetches all visits sorted by date, intended for export operations.
@@ -205,7 +287,7 @@ interface VisitDao {
     /**
      * Gets the total number of temple visits for a specific year.
      * If excludeNoOrdinances is true, only counts visits where at least one ordinance was performed.
-     * Assumes 'T' in the 'visit_type' (Visit.type) column indicates a Temple visit.
+     * When profileId is non-null, only visits belonging to that profile are counted.
      */
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("""
@@ -217,37 +299,44 @@ interface VisitDao {
           ${VisitContract.COLUMN_INITIATORIES} > 0 OR 
           ${VisitContract.COLUMN_ENDOWMENTS} > 0 OR 
           ${VisitContract.COLUMN_SEALINGS} > 0))
+    AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)
 """)
-    fun getTempleVisitsCountForYear(year: String, excludeNoOrdinances: Boolean): Flow<Int>
+    fun getTempleVisitsCountForYear(year: String, excludeNoOrdinances: Boolean, profileId: String? = null): Flow<Int>
 
-    /**
-     * Gets the total sum of baptisms for a specific year.
-     * Baptisms are stored as Short?, SUM will handle nulls as 0 in aggregation if other values exist.
-     */
-    @Query("SELECT SUM(${VisitContract.COLUMN_BAPTISMS}) FROM visits WHERE year = :year")
-    fun getTotalBaptismsForYear(year: String): Flow<Int?> // SUM can return null if no rows match
+    @Query("SELECT SUM(${VisitContract.COLUMN_BAPTISMS}) FROM visits WHERE year = :year AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)")
+    fun getTotalBaptismsForYear(year: String, profileId: String? = null): Flow<Int?>
 
-    /**
-     * Gets the total sum of confirmations for a specific year.
-     */
-    @Query("SELECT SUM(${VisitContract.COLUMN_CONFIRMATIONS}) FROM visits WHERE year = :year")
-    fun getTotalConfirmationsForYear(year: String): Flow<Int?>
+    @Query("SELECT SUM(${VisitContract.COLUMN_CONFIRMATIONS}) FROM visits WHERE year = :year AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)")
+    fun getTotalConfirmationsForYear(year: String, profileId: String? = null): Flow<Int?>
 
-    /**
-     * Gets the total sum of initiatories for a specific year.
-     */
-    @Query("SELECT SUM(${VisitContract.COLUMN_INITIATORIES}) FROM visits WHERE year = :year")
-    fun getTotalInitiatoriesForYear(year: String): Flow<Int?>
+    @Query("SELECT SUM(${VisitContract.COLUMN_INITIATORIES}) FROM visits WHERE year = :year AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)")
+    fun getTotalInitiatoriesForYear(year: String, profileId: String? = null): Flow<Int?>
 
-    /**
-     * Gets the total sum of endowments for a specific year.
-     */
-    @Query("SELECT SUM(${VisitContract.COLUMN_ENDOWMENTS}) FROM visits WHERE year = :year")
-    fun getTotalEndowmentsForYear(year: String): Flow<Int?>
+    @Query("SELECT SUM(${VisitContract.COLUMN_ENDOWMENTS}) FROM visits WHERE year = :year AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)")
+    fun getTotalEndowmentsForYear(year: String, profileId: String? = null): Flow<Int?>
 
-    /**
-     * Gets the total sum of sealings for a specific year.
-     */
-    @Query("SELECT SUM(${VisitContract.COLUMN_SEALINGS}) FROM visits WHERE year = :year")
-    fun getTotalSealingsForYear(year: String): Flow<Int?>
+    @Query("SELECT SUM(${VisitContract.COLUMN_SEALINGS}) FROM visits WHERE year = :year AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)")
+    fun getTotalSealingsForYear(year: String, profileId: String? = null): Flow<Int?>
+
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR}, " +
+            "${VisitContract.COLUMN_HAS_PICTURE} " +
+            "FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId) " +
+            "ORDER BY ${VisitContract.COLUMN_DATE_VISITED} ASC")
+    suspend fun getAllVisitsListForExportByProfile(profileId: String?): List<Visit>
 }

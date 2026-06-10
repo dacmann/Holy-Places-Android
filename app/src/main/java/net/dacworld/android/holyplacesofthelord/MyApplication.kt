@@ -10,27 +10,39 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.dacworld.android.holyplacesofthelord.database.AppDatabase // Your AppDatabase
-import net.dacworld.android.holyplacesofthelord.data.AchievementRepository
-import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager // Your DataStore manager
+import net.dacworld.android.holyplacesofthelord.dao.ProfileDao
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
-import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser // Your XML Parser utility
+import net.dacworld.android.holyplacesofthelord.data.AchievementRepository
+import net.dacworld.android.holyplacesofthelord.data.ProfileRepository
+import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
+import net.dacworld.android.holyplacesofthelord.database.AppDatabase
+import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser
 import java.io.InputStream
 
 class MyApplication : Application() {
 
     private val database: AppDatabase by lazy { AppDatabase.getDatabase(this) }
 
-    // Make these accessible to the Factory, 'internal' is fine if factory is in same module.
     internal val templeDao: TempleDao by lazy { database.templeDao() }
     internal val visitDao: VisitDao by lazy { database.visitDao() }
+    internal val profileDao: ProfileDao by lazy { database.profileDao() }
     internal val userPreferencesManager: UserPreferencesManager by lazy {
         UserPreferencesManager.getInstance(this)
     }
 
+    internal val profileRepository: ProfileRepository by lazy {
+        ProfileRepository(profileDao, visitDao, userPreferencesManager)
+    }
+
     internal val achievementRepository: AchievementRepository by lazy {
-        AchievementRepository(applicationContext, visitDao, userPreferencesManager, ProcessLifecycleOwner.get().lifecycleScope)
+        AchievementRepository(
+            applicationContext,
+            visitDao,
+            userPreferencesManager,
+            profileRepository,
+            ProcessLifecycleOwner.get().lifecycleScope
+        )
     }
 
     override fun onCreate() {
@@ -40,6 +52,11 @@ class MyApplication : Application() {
         )
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         ProcessLifecycleOwner.get().lifecycleScope.launch {
+            // Mirror iOS AppDelegate migrateToProfiles(): on every launch, if profiles are
+            // enabled ensure a default "Me" profile exists and all unassigned visits are
+            // assigned to it.  This is safe to run repeatedly — it no-ops when already done.
+            migrateToProfilesIfEnabled()
+
             val isDataSeeded = userPreferencesManager.isInitialDataSeededFlow.first()
             if (!isDataSeeded) {
                 Log.i("MyApplication", "First launch: Seeding database from local XML.")
@@ -74,6 +91,26 @@ class MyApplication : Application() {
 
             // IMPORTANT: Let the default handler do its job too (like showing "App has stopped")
             defaultUEH?.uncaughtException(thread, exception)
+        }
+    }
+
+    /**
+     * Mirrors iOS AppDelegate `migrateToProfiles()`.
+     *
+     * When profiles are enabled:
+     *  - Creates the default "Me" profile if none exists yet.
+     *  - Assigns all existing visits whose profile_id is NULL to the default profile.
+     *  - Ensures an activeProfileId is always persisted in DataStore.
+     *
+     * Safe to call on every launch — all operations are idempotent.
+     */
+    private suspend fun migrateToProfilesIfEnabled() = withContext(Dispatchers.IO) {
+        try {
+            // Always ensure a default profile and active id exist, even when the UI feature is off.
+            profileRepository.createDefaultProfileIfNeeded()
+            Log.i("MyApplication", "Profile migration check complete")
+        } catch (e: Exception) {
+            Log.e("MyApplication", "Error during profile migration", e)
         }
     }
 

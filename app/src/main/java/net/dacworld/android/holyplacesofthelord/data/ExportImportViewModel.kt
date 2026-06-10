@@ -15,6 +15,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.R
@@ -53,6 +54,8 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
     private val visitDao = AppDatabase.getDatabase(application).visitDao()
     private val templeDao = AppDatabase.getDatabase(application).templeDao()
     private val preferencesManager = UserPreferencesManager.getInstance(application)
+    private val profileRepository =
+        (application as? net.dacworld.android.holyplacesofthelord.MyApplication)?.profileRepository
 
     private val _operationStatus = MutableLiveData<OperationStatus>(OperationStatus.Idle)
     val operationStatus: LiveData<OperationStatus> = _operationStatus
@@ -68,13 +71,22 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
     private var _isExporting = false
     val isExporting: Boolean get() = _isExporting
 
+    /** Returns a sanitised profile name suitable for embedding in a filename, or null if disabled. */
+    suspend fun getActiveProfileNameForFilename(): String? {
+        val enabled = profileRepository?.profilesEnabled?.first() ?: false
+        if (!enabled) return null
+        return profileRepository?.activeProfile?.first()?.name
+            ?.replace(Regex("[^A-Za-z0-9_-]"), "_")
+    }
+
     // --- EXPORT ---
     fun exportVisitsToXml(uri: Uri) {
         _isExporting = true
         _operationStatus.value = OperationStatus.InProgress
         viewModelScope.launch {
             try {
-                val visits = visitDao.getAllVisitsListForExport()
+                val activeProfileId = profileRepository?.scopedProfileId?.first()
+                val visits = visitDao.getAllVisitsListForExportByProfile(activeProfileId)
                 if (visits.isEmpty()) {
                     _operationStatus.postValue(OperationStatus.Success(getApplication<Application>().getString(R.string.export_no_visits)))
                     return@launch
@@ -143,7 +155,8 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
     fun calculateEstimatedFileSize(callback: (Long) -> Unit) {
         viewModelScope.launch {
             try {
-                val visits = visitDao.getAllVisitsListForExport()
+                val activeProfileId = profileRepository?.scopedProfileId?.first()
+                val visits = visitDao.getAllVisitsListForExportByProfile(activeProfileId)
                 var estimatedSize: Long = 1000 // Base XML structure
                 var photoCount = 0
                 
@@ -208,9 +221,12 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
             var correctedTempleNameCount = 0
 
             try {
+                val importProfileId = profileRepository?.scopedProfileId?.first()
+
                 // Create a processor class to hold counters and process visits like iOS
                 val processor = VisitProcessor(
-                    visitDao, templeDao, getApplication<Application>()
+                    visitDao, templeDao, getApplication<Application>(),
+                    importProfileId = importProfileId
                 )
                 
                 // Use streaming approach like iOS - process visits one at a time
@@ -326,7 +342,8 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
 private class VisitProcessor(
     private val visitDao: net.dacworld.android.holyplacesofthelord.dao.VisitDao,
     private val templeDao: net.dacworld.android.holyplacesofthelord.dao.TempleDao,
-    private val application: Application
+    private val application: Application,
+    private val importProfileId: String? = null
 ) {
     var successfullyImportedCount = 0
     var updatedExistingCount = 0
@@ -494,7 +511,7 @@ private class VisitProcessor(
                     val visitToImport = Visit(
                         id = 0, // Room will auto-generate
                         placeID = definitivePlaceId,
-                        holyPlaceName = dto.holyPlaceName, // Store the name as it came from XML too
+                        holyPlaceName = dto.holyPlaceName,
                         dateVisited = dateVisitedFromXml,
                         comments = dto.comments,
                         type = dto.type,
@@ -507,9 +524,8 @@ private class VisitProcessor(
                         isFavorite = dto.isFavorite ?: false,
                         picture = pictureData,
                         hasPicture = hasPicture,
-                        // Derive year from dateVisited if needed by your Visit model, or ensure it's nullable
-                        // For Visit.kt, 'year' is nullable String. We can set it or leave it null.
-                        year = SimpleDateFormat("yyyy", Locale.getDefault()).format(dateVisitedFromXml)
+                        year = SimpleDateFormat("yyyy", Locale.getDefault()).format(dateVisitedFromXml),
+                        profileId = importProfileId
                     )
 
         // 5. Insert or update in DB immediately like iOS

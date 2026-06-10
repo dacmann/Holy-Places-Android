@@ -129,6 +129,7 @@
     <string name="info_faq_button">FAQ</string>
     <string name="info_logo_explanation">The Holy Places logo contains The Morning Star from the stained glass windows of the Nauvoo Temple. See below article.</string>
     <string name="info_article_link_title">Restoring the pentagram to its proper place</string>
+    <string name="info_disclaimer">Holy Places of the Lord is an independent, unofficial app created by Derek S. Cordon. It is not affiliated with, sponsored by, or endorsed by The Church of Jesus Christ of Latter-day Saints.</string>
     <string name="version_info_format"><![CDATA[Version %1$s | Data %2$s]]></string>
     <string name="status_unknown">Unknown</string>
     <string name="description_hours_worked">Enabling this option will allow you to enter the number of hours you worked on a given day when recording a temple visit.</string>
@@ -206,6 +207,7 @@
     <string name="tap_for_achievements">Tap for Achievements</string>
     <string name="no_achievements_yet">No Achievements Yet</string>
     <string name="title_achievements">Achievements</string>
+    <string name="title_achievements_for_profile">%1$s\'s Achievements</string>
     <string name="achievements_completed">Completed</string>
     <string name="achievements_not_completed">Not Completed</string>
     <string name="achievement_at">at %1$s</string>
@@ -301,5 +303,42 @@
     <string name="whats_new_title_1_7">What\'s New in 1.7</string>
     <string name="whats_new_achievement_system">New Achievement system – Track your temple visit milestones and earn badges for your progress.</string>
     <string name="whats_new_visit_picture_fallback">Display temple place picture on visits when no visit picture exists – Visits without a photo now automatically show the temple\'s place picture.</string>
+    <string name="whats_new_title_1_8">What\'s New in 1.8</string>
+    <string name="whats_new_profiles">Profiles – Enable Profiles in Settings to track temple visits separately for family members. Switch profiles from the Home screen.</string>
+    <string name="whats_new_profile_scoped_data">Profile-specific progress – Goals, achievements, and Places/Map visited filters now reflect the active profile.</string>
+    <string name="whats_new_record_copy_visits">Flexible visit recording – Record a visit for one or more profiles, or copy existing visits to another profile.</string>
+
+    <!-- Profile Feature -->
+    <string name="profiles_section_title">Profiles</string>
+    <string name="enable_profiles">Enable Profiles</string>
+    <string name="description_enable_profiles">Track temple visits separately for family members or individuals.</string>
+    <string name="add_profile">Add Profile</string>
+    <string name="manage_profiles">Manage Profiles</string>
+    <string name="title_manage_profiles">Manage Profiles</string>
+    <string name="title_new_profile">New Profile</string>
+    <string name="title_edit_profile">Edit Profile</string>
+    <string name="label_profile_name">Name</string>
+    <string name="hint_profile_name">Profile name</string>
+    <string name="label_profile_icon">Icon</string>
+    <string name="action_save_profile">Save</string>
+    <string name="cd_profile_icon">Profile icon</string>
+    <string name="cd_profile_icon_option">Profile icon option</string>
+    <string name="cd_active_profile">Active profile indicator</string>
+    <string name="cd_profile_switcher">Switch active profile</string>
+    <string name="cd_add_profile">Add new profile</string>
+    <string name="no_profiles_yet">No profiles yet</string>
+    <string name="profile_limit_title">Profile Limit Reached</string>
+    <string name="profile_limit_message">You can have at most %d profiles.</string>
+    <string name="profile_limit_message_short">Profile limit reached.</string>
+    <string name="delete_profile_title">Delete \"%s\"?</string>
+    <string name="delete_profile_message">Deleting \"%s\" will also permanently delete all %d associated visits. This cannot be undone.</string>
+    <string name="error_profile_name_required">Please enter a name.</string>
+    <string name="copy_to_profile_title">Copy to Profile</string>
+    <string name="cd_select_visits">Select visits</string>
+    <string name="action_select_all">Select All</string>
+    <string name="action_mode_selected">%d selected</string>
+    <string name="no_other_profiles">No other profiles to copy to.</string>
+    <string name="visits_copied_to_profile">%1$d visit(s) copied to %2$s.</string>
+    <string name="label_record_for_profiles">Record for:</string>
 
 </resources>

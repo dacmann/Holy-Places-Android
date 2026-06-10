@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
@@ -42,7 +43,8 @@ enum class TempleFilterType(val typeKey: String?) {
 
 class MapViewModel(
     private val templeDao: TempleDao,
-    private val visitDao: VisitDao
+    private val visitDao: VisitDao,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     private val _mapPlaces = MutableLiveData<List<MapPlace>>()
@@ -75,8 +77,12 @@ class MapViewModel(
     }
 
     init {
-        Log.d(TAG, "MapViewModel instance created.") // Log: ViewModel initialization
-        loadAndFilterPlaces()
+        Log.d(TAG, "MapViewModel instance created.")
+        viewModelScope.launch {
+            userPreferencesManager.activeProfileIdFlow.collectLatest {
+                loadAndFilterPlaces()
+            }
+        }
     }
 
     fun setFilter(filterType: TempleFilterType) {
@@ -108,10 +114,9 @@ class MapViewModel(
                 }
                 Log.d(TAG, "Processing ${templesToProcess.size} temples after applying filter '${currentFilter.name}'.")
 
-                // Fetch visits (assuming this logic remains the same)
-                val visits = visitDao.getAllVisits().first() // Using .first() if it's a Flow
-                val visitedTempleIds = visits.map { it.placeID }.toSet()
-                Log.d(TAG, "Fetched ${visits.size} visits.")
+                val profileId = userPreferencesManager.activeProfileIdFlow.first()
+                val visitedTempleIds = visitDao.getVisitedTemplePlaceIdsByProfile(profileId).first().toSet()
+                Log.d(TAG, "Fetched ${visitedTempleIds.size} visited place IDs for profile $profileId.")
 
                 val resultingMapPlaces = templesToProcess.mapNotNull { temple ->
                     if (temple.latitude == null || temple.longitude == null) {

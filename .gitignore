@@ -1,54 +1,66 @@
-    # Built application files
-    *.apk
-    *.aab
-    *.ap_
+# Built application files
+*.apk
+*.aab
+*.ap_
 
-    # Files for the ART/Dalvik VM
-    *.dex
+# Files for the ART/Dalvik VM
+*.dex
 
-    # Java class files
-    *.class
+# Java class files
+*.class
 
-    # Generated files
-    bin/
-    gen/
-    out/
+# Generated files
+bin/
+gen/
+out/
+build/
+app/build/
 
-    # Gradle files
-    .gradle/
-    build/
+# Gradle files
+.gradle/
+local.properties
+gradle.xml
 
-    # Local configuration files (sdk path, etc)
-    local.properties
+# Log files
+*.log
 
-    # Log files
-    *.log
+# Android Studio Navigation editor files
+.navigation/
 
-    # Android Studio Navigation editor files
-    .navigation/
+# Android Studio captures folder
+captures/
 
-    # Android Studio captures folder
-    captures/
+# IntelliJ
+*.iml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/misc.xml
+.idea/libraries/
+.idea/modules.xml
+.idea/runConfigurations/
+.idea/caches/
+.idea/shelf/
+.idea/assetWizardSettings.xml
+.idea/navEditor.xml
+.idea/studiobot.xml
 
-    # IntelliJ
-    *.iml
-    .idea/workspace.xml
-    .idea/tasks.xml
-    .idea/gradle.xml
-    .idea/misc.xml
-    .idea/libraries/
-    .idea/modules.xml
-    .idea/runConfigurations/
+# Keystore files
+*.jks
+*.keystore
 
-    # Keystore files
-    *.jks
-    *.keystore
+# External native build folder created in .idea
+.cxx/
 
-    # External native build folder created in .idea
-    .cxx/
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-    # Google Services (move if needed)
-    google-services.json # If you don't want to commit this (e.g., for open source)
-
-    # Secrets (add your own)
-    secrets.properties
+# Secrets
+secrets.properties
+keystore.properties

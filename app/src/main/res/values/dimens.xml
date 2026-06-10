@@ -6,4 +6,8 @@
     <!-- Achievement row heights -->
     <dimen name="achievement_row_completed_height">88dp</dimen>
     <dimen name="achievement_row_incomplete_height">78dp</dimen>
+
+    <dimen name="profile_chip_spacing">8dp</dimen>
+    <dimen name="profile_chip_icon_size">18dp</dimen>
+    <dimen name="profile_chip_stroke_width">1dp</dimen>
 </resources>

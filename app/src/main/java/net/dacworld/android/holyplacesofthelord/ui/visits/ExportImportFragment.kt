@@ -19,7 +19,9 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
+import kotlinx.coroutines.launch
 import androidx.navigation.fragment.findNavController
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentExportImportBinding
@@ -169,8 +171,15 @@ class ExportImportFragment : Fragment() {
         binding.buttonExportXml.setOnClickListener {
             val simpleDateFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
             val dateString = simpleDateFormat.format(Date())
-            val suggestedName = getString(R.string.default_export_filename_template, dateString)
-            createDocumentLauncher.launch(suggestedName)
+            lifecycleScope.launch {
+                val profileName = viewModel.getActiveProfileNameForFilename()
+                val suggestedName = if (profileName != null) {
+                    "HolyPlaces_${profileName}_Visits-$dateString.xml"
+                } else {
+                    getString(R.string.default_export_filename_template, dateString)
+                }
+                createDocumentLauncher.launch(suggestedName)
+            }
         }
 
         binding.buttonImportXml.setOnClickListener {

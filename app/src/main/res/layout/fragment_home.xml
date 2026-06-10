@@ -73,6 +73,26 @@
         app:layout_constraintEnd_toEndOf="parent"
     />
 
+    <!-- Profile Switcher Button (visible only when profiles feature is enabled) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/profile_switcher_button"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:layout_marginStart="4dp"
+        android:textColor="@android:color/white"
+        android:fontFamily="@font/baskerville_font_family"
+        android:textSize="14sp"
+        android:visibility="gone"
+        android:contentDescription="@string/cd_profile_switcher"
+        app:iconTint="@android:color/white"
+        app:rippleColor="#40ffffff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/scriptureReference"
+        tools:text="Derek"
+        tools:visibility="visible" />
+
     <!-- Info Icon -->
     <ImageView
         android:id="@+id/info_icon"
@@ -85,8 +105,9 @@
         android:padding="16dp"
         android:contentDescription="@string/cd_info_icon"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scriptureReference"
-        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@id/profile_switcher_button"
+        android:layout_marginTop="4dp"
+        app:layout_goneMarginTop="24dp"
         android:layout_marginStart="10dp"/>
 
     <!-- Settings Icon -->

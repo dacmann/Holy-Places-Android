@@ -12,9 +12,11 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.data.AchievementRepository
+import net.dacworld.android.holyplacesofthelord.data.ProfileRepository
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.model.Achievement
+import net.dacworld.android.holyplacesofthelord.model.Profile
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,7 +33,8 @@ data class GoalDisplayItem(
 class HomeViewModel(
     private val userPreferencesManager: UserPreferencesManager,
     private val visitDao: VisitDao,
-    private val achievementRepository: AchievementRepository
+    private val achievementRepository: AchievementRepository,
+    private val profileRepository: ProfileRepository? = null
 ) : ViewModel() {
 
     private val _text = MutableStateFlow("This is home Fragment (from HomeViewModel)") // Changed to StateFlow
@@ -54,29 +57,71 @@ class HomeViewModel(
         return SimpleDateFormat("yyyy", Locale.getDefault()).format(Date())
     }
 
-    fun loadGoalProgress() { // Keep it public if you might want to refresh manually
+    fun loadGoalProgress() {
         viewModelScope.launch {
             val currentYear = getCurrentYearString()
-            _goalProgressTitle.value = "$currentYear Goal Progress"
 
-            val visitsTargetFlow = userPreferencesManager.templeVisitsGoalFlow
-            val baptConfTargetFlow = userPreferencesManager.baptismsGoalFlow
-            val initiatoriesTargetFlow = userPreferencesManager.initiatoriesGoalFlow
-            val endowmentsTargetFlow = userPreferencesManager.endowmentsGoalFlow
-            val sealingsTargetFlow = userPreferencesManager.sealingsGoalFlow
-            val excludeNoOrdinancesFlow = userPreferencesManager.excludeVisitsNoOrdinancesFlow
+            // Determine if profiles are enabled and get the active profile/profileId
+            val profilesEnabledFlow = profileRepository?.profilesEnabled
+                ?: kotlinx.coroutines.flow.flowOf(false)
+            val activeProfileFlow = profileRepository?.activeProfile
+                ?: kotlinx.coroutines.flow.flowOf(null)
+            val activeProfileIdFlow = profileRepository?.activeProfileId
+                ?: kotlinx.coroutines.flow.flowOf(null)
 
-            val currentVisitsFlow = excludeNoOrdinancesFlow.flatMapLatest { exclude ->
-                visitDao.getTempleVisitsCountForYear(currentYear, exclude)
+            // Goal targets always come from the active profile when one exists
+            val visitsTargetFlow = combine(activeProfileFlow, userPreferencesManager.templeVisitsGoalFlow) { profile, legacy ->
+                profile?.annualVisitGoal ?: legacy
             }
-            val currentBaptismsFlow = visitDao.getTotalBaptismsForYear(currentYear).map { it ?: 0 }
-            val currentConfirmationsFlow = visitDao.getTotalConfirmationsForYear(currentYear).map { it ?: 0 }
-            val currentInitiatoriesFlow = visitDao.getTotalInitiatoriesForYear(currentYear).map { it ?: 0 }
-            val currentEndowmentsFlow = visitDao.getTotalEndowmentsForYear(currentYear).map { it ?: 0 }
-            val currentSealingsFlow = visitDao.getTotalSealingsForYear(currentYear).map { it ?: 0 }
+            val baptConfTargetFlow = combine(activeProfileFlow, userPreferencesManager.baptismsGoalFlow) { profile, legacy ->
+                profile?.annualBaptismGoal ?: legacy
+            }
+            val initiatoriesTargetFlow = combine(activeProfileFlow, userPreferencesManager.initiatoriesGoalFlow) { profile, legacy ->
+                profile?.annualInitiatoryGoal ?: legacy
+            }
+            val endowmentsTargetFlow = combine(activeProfileFlow, userPreferencesManager.endowmentsGoalFlow) { profile, legacy ->
+                profile?.annualEndowmentGoal ?: legacy
+            }
+            val sealingsTargetFlow = combine(activeProfileFlow, userPreferencesManager.sealingsGoalFlow) { profile, legacy ->
+                profile?.annualSealingGoal ?: legacy
+            }
 
-            val currentBaptConfFlow = currentBaptismsFlow.combine(currentConfirmationsFlow) { baptisms, confirmations ->
-                baptisms + confirmations
+            val excludeNoOrdinancesFlow = combine(activeProfileFlow, userPreferencesManager.excludeVisitsNoOrdinancesFlow) { profile, legacy ->
+                profile?.excludeNonOrdinanceVisits ?: legacy
+            }
+
+            // Always scope visit counts to the active profile
+            val scopedProfileIdFlow = activeProfileIdFlow
+
+            val currentVisitsFlow = combine(excludeNoOrdinancesFlow, scopedProfileIdFlow) { exclude, profileId ->
+                Pair(exclude, profileId)
+            }.flatMapLatest { (exclude, profileId) ->
+                visitDao.getTempleVisitsCountForYear(currentYear, exclude, profileId)
+            }
+            val currentBaptismsFlow = scopedProfileIdFlow.flatMapLatest { pid ->
+                visitDao.getTotalBaptismsForYear(currentYear, pid).map { it ?: 0 }
+            }
+            val currentConfirmationsFlow = scopedProfileIdFlow.flatMapLatest { pid ->
+                visitDao.getTotalConfirmationsForYear(currentYear, pid).map { it ?: 0 }
+            }
+            val currentInitiatoriesFlow = scopedProfileIdFlow.flatMapLatest { pid ->
+                visitDao.getTotalInitiatoriesForYear(currentYear, pid).map { it ?: 0 }
+            }
+            val currentEndowmentsFlow = scopedProfileIdFlow.flatMapLatest { pid ->
+                visitDao.getTotalEndowmentsForYear(currentYear, pid).map { it ?: 0 }
+            }
+            val currentSealingsFlow = scopedProfileIdFlow.flatMapLatest { pid ->
+                visitDao.getTotalSealingsForYear(currentYear, pid).map { it ?: 0 }
+            }
+
+            val currentBaptConfFlow = currentBaptismsFlow.combine(currentConfirmationsFlow) { b, c -> b + c }
+
+            // Reactive goal title: "<Name>'s Year Goals" when profiles on, else "Year Goal Progress"
+            launch {
+                combine(profilesEnabledFlow, activeProfileFlow) { enabled, profile ->
+                    if (enabled && profile != null) "${profile.name}'s $currentYear Goals"
+                    else "$currentYear Goal Progress"
+                }.collectLatest { title -> _goalProgressTitle.value = title }
             }
 
             combine(

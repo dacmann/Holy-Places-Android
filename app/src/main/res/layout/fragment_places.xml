@@ -98,7 +98,7 @@
 
         <Button
             android:id="@+id/button_scope_all_places"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.App.VisitScopeToggleButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -108,7 +108,7 @@
 
         <Button
             android:id="@+id/button_scope_visited_places"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.App.VisitScopeToggleButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -118,7 +118,7 @@
 
         <Button
             android:id="@+id/button_scope_not_visited_places"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.App.VisitScopeToggleButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"

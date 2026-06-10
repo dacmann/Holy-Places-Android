@@ -70,6 +70,10 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         // What's New dialog - last app version user has seen
         val LAST_SEEN_APP_VERSION_KEY = intPreferencesKey("last_seen_app_version")
 
+        // --- Profile feature keys ---
+        val ACTIVE_PROFILE_ID_KEY = stringPreferencesKey("active_profile_id")
+        val PROFILES_ENABLED_KEY = booleanPreferencesKey("profiles_enabled")
+
     }
 
     // --- Flows for New Settings ---
@@ -399,6 +403,36 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
     suspend fun clearAllPreferences() {
         dataStoreInstance.edit { preferences -> // Use the constructor param
             preferences.clear()
+        }
+    }
+
+    // --- Profile Feature ---
+
+    val activeProfileIdFlow: Flow<String?> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.ACTIVE_PROFILE_ID_KEY]
+        }
+
+    suspend fun saveActiveProfileId(profileId: String?) {
+        dataStoreInstance.edit { preferences ->
+            if (profileId != null) {
+                preferences[PreferencesKeys.ACTIVE_PROFILE_ID_KEY] = profileId
+            } else {
+                preferences.remove(PreferencesKeys.ACTIVE_PROFILE_ID_KEY)
+            }
+        }
+    }
+
+    val profilesEnabledFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.PROFILES_ENABLED_KEY] ?: false
+        }
+
+    suspend fun saveProfilesEnabled(enabled: Boolean) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.PROFILES_ENABLED_KEY] = enabled
         }
     }
 

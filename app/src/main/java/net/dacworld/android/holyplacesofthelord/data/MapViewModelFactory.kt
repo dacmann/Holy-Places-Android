@@ -12,7 +12,11 @@ class MapViewModelFactory(private val application: Application) : ViewModelProvi
         if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
             val database = AppDatabase.getDatabase(application) // Get your database instance
             @Suppress("UNCHECKED_CAST")
-            return MapViewModel(database.templeDao(), database.visitDao()) as T
+            return MapViewModel(
+                database.templeDao(),
+                database.visitDao(),
+                UserPreferencesManager.getInstance(application)
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class for MapViewModelFactory (DAO version)")
     }

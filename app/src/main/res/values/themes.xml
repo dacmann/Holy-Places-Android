@@ -207,4 +207,9 @@
         <item name="rippleColor">@color/BaptismBlue</item> <!-- Adjust alpha for ripple -->
         <!-- backgroundTint is often not needed for M3 text buttons as they are transparent by default -->
     </style>
+
+    <style name="Widget.App.VisitScopeToggleButton" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="backgroundTint">@color/visit_scope_toggle_background_tint</item>
+        <item name="strokeColor">@color/search_view_stroke_color</item>
+    </style>
 </resources>

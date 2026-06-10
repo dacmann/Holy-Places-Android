@@ -22,6 +22,8 @@ import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.MyApplication
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentAchievementsBinding
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModel
+import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModelFactory
 
 class AchievementsFragment : Fragment() {
 
@@ -31,6 +33,11 @@ class AchievementsFragment : Fragment() {
     private val viewModel: AchievementViewModel by viewModels {
         val app = requireActivity().application as MyApplication
         AchievementViewModelFactory(app.achievementRepository)
+    }
+
+    private val profileViewModel: ProfileViewModel by viewModels {
+        val app = requireActivity().application as MyApplication
+        ProfileViewModelFactory(app.profileRepository)
     }
 
     private lateinit var adapter: AchievementAdapter
@@ -108,6 +115,18 @@ class AchievementsFragment : Fragment() {
         // Set initial tab
         viewModel.setTab(AchievementViewModel.AchievementTab.COMPLETED)
         binding.achievementTabs.getTabAt(0)?.select()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                profileViewModel.activeProfile.collectLatest { profile ->
+                    binding.toolbar.title = if (profile != null) {
+                        getString(R.string.title_achievements_for_profile, profile.name)
+                    } else {
+                        getString(R.string.title_achievements)
+                    }
+                }
+            }
+        }
 
         setupWindowInsets()
     }

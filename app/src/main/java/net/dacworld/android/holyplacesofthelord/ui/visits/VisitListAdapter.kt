@@ -2,19 +2,15 @@
 package net.dacworld.android.holyplacesofthelord.ui.visits
 
 import android.content.Context
-import android.text.format.DateUtils // Keep this if used by VisitRowItem binding
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import net.dacworld.android.holyplacesofthelord.R
-import net.dacworld.android.holyplacesofthelord.model.Visit // Keep for VisitRowItem
-// --- 1. IMPORT VisitDisplayListItem and its members ---
+import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.data.VisitDisplayListItem
-// --- 2. IMPORT the binding for the header ---
 import net.dacworld.android.holyplacesofthelord.databinding.ItemSectionHeaderBinding
 import net.dacworld.android.holyplacesofthelord.databinding.ListItemVisitBinding
 import java.text.SimpleDateFormat
@@ -22,30 +18,65 @@ import java.util.Locale
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 
 
-// --- 3. MODIFY ListAdapter generic types ---
 class VisitListAdapter(
-    private val onVisitClicked: (Visit) -> Unit // Click listener might only apply to VisitRowItems
-    // If you need clicks on headers, you'd add another lambda or differentiate
+    private val onVisitClicked: (Visit) -> Unit,
+    private val onSelectionChanged: (() -> Unit)? = null
 ) : ListAdapter<VisitDisplayListItem, RecyclerView.ViewHolder>(VisitDiffCallback()) {
 
-    // --- 4. DEFINE View Type Constants ---
+    private val _selectedIds = mutableSetOf<Long>()
+    var isMultiSelectMode: Boolean = false
+        private set
+
+    fun enterMultiSelectMode() {
+        isMultiSelectMode = true
+        notifyDataSetChanged()
+    }
+
+    fun toggleSelection(visitId: Long) {
+        if (_selectedIds.contains(visitId)) _selectedIds.remove(visitId)
+        else _selectedIds.add(visitId)
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke()
+    }
+
+    fun clearSelection() {
+        isMultiSelectMode = false
+        _selectedIds.clear()
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke()
+    }
+
+    fun getVisibleVisitIds(): List<Long> =
+        currentList.filterIsInstance<VisitDisplayListItem.VisitRowItem>().map { it.visit.id }
+
+    fun selectAllVisible() {
+        val visibleIds = getVisibleVisitIds()
+        if (visibleIds.isEmpty()) return
+        val allSelected = visibleIds.all { _selectedIds.contains(it) }
+        if (allSelected) {
+            visibleIds.forEach { _selectedIds.remove(it) }
+        } else {
+            _selectedIds.addAll(visibleIds)
+        }
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke()
+    }
+
+    fun getSelectedIds(): List<Long> = _selectedIds.toList()
+    fun getSelectedCount(): Int = _selectedIds.size
+
     companion object {
         private const val VIEW_TYPE_HEADER = 0
         private const val VIEW_TYPE_VISIT_ROW = 1
     }
 
-    // --- 5. IMPLEMENT getItemViewType ---
     override fun getItemViewType(position: Int): Int {
         return when (getItem(position)) {
             is VisitDisplayListItem.HeaderItem -> VIEW_TYPE_HEADER
             is VisitDisplayListItem.VisitRowItem -> VIEW_TYPE_VISIT_ROW
-            // It's good practice to handle null if your list can somehow contain nulls,
-            // though ListAdapter with DiffUtil usually prevents this if data is clean.
-            // else -> throw IllegalArgumentException("Unknown item type at position $position")
         }
     }
 
-    // --- 6. UPDATE onCreateViewHolder ---
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
@@ -55,14 +86,12 @@ class VisitListAdapter(
             }
             VIEW_TYPE_VISIT_ROW -> {
                 val binding = ListItemVisitBinding.inflate(inflater, parent, false)
-                // Pass context to VisitViewHolder if it still needs it
                 VisitViewHolder(binding, parent.context, onVisitClicked)
             }
             else -> throw IllegalArgumentException("Invalid view type")
         }
     }
 
-    // --- 7. UPDATE onBindViewHolder ---
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = getItem(position)
         when (holder) {
@@ -73,14 +102,19 @@ class VisitListAdapter(
             }
             is VisitViewHolder -> {
                 if (item is VisitDisplayListItem.VisitRowItem) {
-                    holder.bind(item.visit) // Pass the actual Visit object
-                    // The setOnClickListener was here, ensure it's handled in VisitViewHolder if it still needs to be per-item
+                    val visit = item.visit
+                    val isSelected = _selectedIds.contains(visit.id)
+                    holder.bind(visit, isSelected, isMultiSelectMode,
+                        onClickAction = {
+                            if (isMultiSelectMode) toggleSelection(visit.id)
+                            else onVisitClicked(visit)
+                        }
+                    )
                 }
             }
         }
     }
 
-    // --- 8. CREATE HeaderViewHolder (mirroring PlaceDisplayAdapter) ---
     class HeaderViewHolder(
         private val binding: ItemSectionHeaderBinding
     ) : RecyclerView.ViewHolder(binding.root) {
@@ -89,18 +123,20 @@ class VisitListAdapter(
         }
     }
 
-    // --- VisitViewHolder (now takes onVisitClicked) ---
-    // Make sure VisitViewHolder is adapted to take 'onVisitClicked' if the click logic is complex
-    // or remains inside it.
     class VisitViewHolder(
         private val binding: ListItemVisitBinding,
         private val context: Context,
-        private val onVisitClicked: (Visit) -> Unit // Added for click handling
+        private val onVisitClicked: (Visit) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         private val dateFormatter = SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.getDefault())
 
-        fun bind(visit: Visit) { // Takes a Visit object directly
+        fun bind(
+            visit: Visit,
+            isSelected: Boolean = false,
+            isMultiSelectMode: Boolean = false,
+            onClickAction: () -> Unit = {}
+        ) {
             binding.visitItemPlaceName.text = visit.holyPlaceName ?: context.getString(R.string.unknown)
 
             val dateString = visit.dateVisited?.let {
@@ -140,27 +176,21 @@ class VisitListAdapter(
             val typeColor = ColorUtils.getTextColorForTempleType(context, visit.type)
             binding.visitItemPlaceName.setTextColor(typeColor)
 
-            Log.d("VisitListAdapter", "Applied color for type '${visit.type}': $typeColor to '${visit.holyPlaceName}'")
+            itemView.isActivated = isSelected
+            itemView.alpha = if (isMultiSelectMode && !isSelected) 0.5f else 1.0f
 
-            // --- Moved click listener setup into bind to have access to the specific 'visit' item ---
-            itemView.setOnClickListener {
-                onVisitClicked(visit)
-            }
+            itemView.setOnClickListener { onClickAction() }
+            itemView.setOnLongClickListener(null)
         }
     }
 }
 
-// --- 9. UPDATE VisitDiffCallback ---
 class VisitDiffCallback : DiffUtil.ItemCallback<VisitDisplayListItem>() {
     override fun areItemsTheSame(oldItem: VisitDisplayListItem, newItem: VisitDisplayListItem): Boolean {
-        // Use the stableId we defined in VisitDisplayListItem
         return oldItem.stableId == newItem.stableId
     }
 
     override fun areContentsTheSame(oldItem: VisitDisplayListItem, newItem: VisitDisplayListItem): Boolean {
-        // For data classes, '==' checks structural equality.
-        // This is fine if HeaderItem and VisitRowItem's contents changing means they are "different".
         return oldItem == newItem
     }
 }
-
