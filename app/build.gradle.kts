@@ -15,8 +15,8 @@ android {
         applicationId = "net.dacworld.android.holyplacesofthelord"
         minSdk = 24
         targetSdk = 36
-        versionCode = 13
-        versionName = "1.8"
+        versionCode = 15
+        versionName = "1.8.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,6 +41,10 @@ android {
         viewBinding = true
         buildConfig = true
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {

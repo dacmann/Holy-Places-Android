@@ -307,6 +307,8 @@
     <string name="whats_new_profiles">Profiles – Enable Profiles in Settings to track temple visits separately for family members. Switch profiles from the Home screen.</string>
     <string name="whats_new_profile_scoped_data">Profile-specific progress – Goals, achievements, and Places/Map visited filters now reflect the active profile.</string>
     <string name="whats_new_record_copy_visits">Flexible visit recording – Record a visit for one or more profiles, or copy existing visits to another profile.</string>
+    <string name="whats_new_title_1_8_2">What\'s New in 1.8.2</string>
+    <string name="whats_new_migration_fix">Fixes a startup crash when updating from version 1.7.</string>
 
     <!-- Profile Feature -->
     <string name="profiles_section_title">Profiles</string>

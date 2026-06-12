@@ -111,40 +111,38 @@ class ProfileRepository(
 
     /**
      * Enables or disables the profile feature.
-     * When enabling for the first time, a default "Me" profile is created and all
-     * existing visits are assigned to it — mirroring iOS AppDelegate first-launch logic.
+     * When enabling, ensures profile state is fully repaired (default profile, visit assignment, active id).
      */
     suspend fun setProfilesEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         preferencesManager.saveProfilesEnabled(enabled)
-        // Keep the default profile and active id even when the UI feature is disabled.
-        createDefaultProfileIfNeeded()
-        if (enabled) {
-            // Migrate any visits that were recorded without a profile (e.g. before profiles
-            // were enabled, or before saveVisit stamped the active profileId).
-            val defaultProfile = profileDao.getDefault()
-            if (defaultProfile != null) {
-                val migrated = profileDao.assignUnassignedVisitsToProfile(defaultProfile.profileId)
-                if (migrated > 0) {
-                    Log.i(TAG, "Migrated $migrated unassigned visits to default profile on enable")
-                }
-            }
+        repairProfileState()
+    }
+
+    /**
+     * Ensures profile tables, default profile, visit assignments, and active profile id
+     * are consistent. Safe to call on every launch — all steps are idempotent.
+     * Called synchronously from [net.dacworld.android.holyplacesofthelord.MyApplication]
+     * before the UI opens the database for queries.
+     */
+    suspend fun repairProfileState() = withContext(Dispatchers.IO) {
+        val defaultProfile = ensureDefaultProfile()
+        val migrated = profileDao.assignUnassignedVisitsToProfile(defaultProfile.profileId)
+        if (migrated > 0) {
+            Log.i(TAG, "Assigned $migrated unassigned visits to default profile")
         }
+        repairActiveProfileId(defaultProfile.profileId)
     }
 
     /**
      * Creates the default "Me" profile on first enable if one doesn't already exist.
-     * Assigns all unassigned visits to it and sets it as the active profile.
+     * Prefer [repairProfileState] at startup; this remains for callers that only need creation.
      */
     suspend fun createDefaultProfileIfNeeded() = withContext(Dispatchers.IO) {
-        val existing = profileDao.getDefault()
-        if (existing != null) {
-            // Ensure active profile is always set when feature is enabled
-            val currentActive = preferencesManager.activeProfileIdFlow.first()
-            if (currentActive == null) {
-                setActiveProfile(existing.profileId)
-            }
-            return@withContext
-        }
+        repairProfileState()
+    }
+
+    private suspend fun ensureDefaultProfile(): Profile {
+        profileDao.getDefault()?.let { return it }
 
         val defaultProfile = Profile(
             profileId = UUID.randomUUID().toString(),
@@ -154,9 +152,21 @@ class ProfileRepository(
             createdDate = Date()
         )
         profileDao.insert(defaultProfile)
-        val migrated = profileDao.assignUnassignedVisitsToProfile(defaultProfile.profileId)
-        setActiveProfile(defaultProfile.profileId)
-        Log.i(TAG, "Created default profile and migrated $migrated existing visits")
+        Log.i(TAG, "Created default profile '${defaultProfile.name}' (${defaultProfile.profileId})")
+        return defaultProfile
+    }
+
+    private suspend fun repairActiveProfileId(defaultProfileId: String) {
+        val currentActive = preferencesManager.activeProfileIdFlow.first()
+        when {
+            currentActive == null -> {
+                setActiveProfile(defaultProfileId)
+            }
+            profileDao.getById(currentActive) == null -> {
+                Log.w(TAG, "Active profile id $currentActive not found — resetting to default")
+                setActiveProfile(defaultProfileId)
+            }
+        }
     }
 
     // ── Copy visits ───────────────────────────────────────────────────────────

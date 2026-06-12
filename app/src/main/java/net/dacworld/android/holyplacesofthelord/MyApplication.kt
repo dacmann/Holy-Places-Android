@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.dao.ProfileDao
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
@@ -51,18 +52,19 @@ class MyApplication : Application() {
             AppGlobalExceptionHandler(this, Thread.getDefaultUncaughtExceptionHandler())
         )
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-        ProcessLifecycleOwner.get().lifecycleScope.launch {
-            // Mirror iOS AppDelegate migrateToProfiles(): on every launch, if profiles are
-            // enabled ensure a default "Me" profile exists and all unassigned visits are
-            // assigned to it.  This is safe to run repeatedly — it no-ops when already done.
-            migrateToProfilesIfEnabled()
 
+        // Open DB (runs migration) and repair profile state before any UI queries the database.
+        runBlocking(Dispatchers.IO) {
+            database.openHelper.writableDatabase
+            profileRepository.repairProfileState()
+        }
+
+        ProcessLifecycleOwner.get().lifecycleScope.launch {
             val isDataSeeded = userPreferencesManager.isInitialDataSeededFlow.first()
             if (!isDataSeeded) {
                 Log.i("MyApplication", "First launch: Seeding database from local XML.")
-                val success = seedDatabaseFromLocalXml() // Capture success
-                userPreferencesManager.setInitialDataSeeded(true)
-                if (success) { // Only set seeded flag and dialog details if seeding was successful
+                val success = seedDatabaseFromLocalXml()
+                if (success) {
                     userPreferencesManager.setInitialDataSeeded(true)
                     Log.i("MyApplication", "Initial data seeding process complete and main seeded flag set.")
                 } else {
@@ -94,25 +96,6 @@ class MyApplication : Application() {
         }
     }
 
-    /**
-     * Mirrors iOS AppDelegate `migrateToProfiles()`.
-     *
-     * When profiles are enabled:
-     *  - Creates the default "Me" profile if none exists yet.
-     *  - Assigns all existing visits whose profile_id is NULL to the default profile.
-     *  - Ensures an activeProfileId is always persisted in DataStore.
-     *
-     * Safe to call on every launch — all operations are idempotent.
-     */
-    private suspend fun migrateToProfilesIfEnabled() = withContext(Dispatchers.IO) {
-        try {
-            // Always ensure a default profile and active id exist, even when the UI feature is off.
-            profileRepository.createDefaultProfileIfNeeded()
-            Log.i("MyApplication", "Profile migration check complete")
-        } catch (e: Exception) {
-            Log.e("MyApplication", "Error during profile migration", e)
-        }
-    }
 
     // Modify to return Boolean indicating success
     private suspend fun seedDatabaseFromLocalXml(): Boolean = withContext(Dispatchers.IO) {

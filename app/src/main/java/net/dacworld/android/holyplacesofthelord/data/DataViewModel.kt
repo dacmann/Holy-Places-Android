@@ -149,13 +149,27 @@ class DataViewModel(
         val current = BuildConfig.VERSION_CODE
         // Show dialog when user hasn't seen this version yet: first install (lastSeen==0) or update (lastSeen < current)
         if (lastSeen != current) {
-            val title = application.getString(R.string.whats_new_title_1_8)
-            val msg1 = application.getString(R.string.whats_new_profiles)
-            val msg2 = application.getString(R.string.whats_new_profile_scoped_data)
-            val msg3 = application.getString(R.string.whats_new_record_copy_visits)
+            val title: String
+            val messages: List<String>
+            if (current >= 15 && lastSeen < 15) {
+                title = application.getString(R.string.whats_new_title_1_8_2)
+                messages = listOf(
+                    application.getString(R.string.whats_new_profiles),
+                    application.getString(R.string.whats_new_profile_scoped_data),
+                    application.getString(R.string.whats_new_record_copy_visits),
+                    application.getString(R.string.whats_new_migration_fix)
+                )
+            } else {
+                title = application.getString(R.string.whats_new_title_1_8)
+                messages = listOf(
+                    application.getString(R.string.whats_new_profiles),
+                    application.getString(R.string.whats_new_profile_scoped_data),
+                    application.getString(R.string.whats_new_record_copy_visits)
+                )
+            }
             _whatsNewUpdateDetails.value = UpdateDetails(
                 updateTitle = title,
-                messages = listOf(msg1, msg2, msg3)
+                messages = messages
             )
             Log.d("DataViewModel", "What's New dialog will show: lastSeen=$lastSeen, current=$current")
         }
