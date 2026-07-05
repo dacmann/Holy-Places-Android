@@ -474,11 +474,43 @@
                 android:visibility="gone"
                 tools:srcCompat="@tools:sample/backgrounds/scenic"
                 tools:visibility="visible"
-                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintBottom_toTopOf="@+id/rotate_buttons_container"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/layout_hours_worked"
                 app:layout_goneMarginTop="24dp"
                 app:layout_constraintVertical_bias="1.0" />
+
+            <!-- Rotate buttons — visible only when a photo is present -->
+            <LinearLayout
+                android:id="@+id/rotate_buttons_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="@id/image_view_visit_picture"
+                app:layout_constraintTop_toBottomOf="@id/image_view_visit_picture"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp">
+
+                <ImageButton
+                    android:id="@+id/button_rotate_ccw"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_rotate_ccw"
+                    app:srcCompat="@drawable/ic_rotate_left" />
+
+                <ImageButton
+                    android:id="@+id/button_rotate_cw"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/cd_rotate_cw"
+                    app:srcCompat="@drawable/ic_rotate_right" />
+
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_add_remove_picture"

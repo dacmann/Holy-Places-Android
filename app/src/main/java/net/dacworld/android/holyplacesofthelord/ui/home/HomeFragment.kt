@@ -125,6 +125,10 @@ class HomeFragment : Fragment() {
             SettingsBottomSheetFragment().show(childFragmentManager, SettingsBottomSheetFragment.TAG)
         }
 
+        binding.shareButton.setOnClickListener {
+            ShareBottomSheetFragment().show(childFragmentManager, ShareBottomSheetFragment.TAG)
+        }
+
         binding.achievementButtonContainer.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_achievements)
         }

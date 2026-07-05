@@ -225,6 +225,21 @@
     </LinearLayout>
     <!-- Goal Progress Section END -->
 
+    <!-- Share Button (lower right) -->
+    <ImageView
+        android:id="@+id/share_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_share_app"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="16dp"
+        android:contentDescription="@string/cd_share_app"
+        app:layout_constraintBottom_toTopOf="@id/bottom_inset_spacer"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp" />
+
     <!-- Achievement Button (lower left) -->
     <FrameLayout
         android:id="@+id/achievementButtonContainer"

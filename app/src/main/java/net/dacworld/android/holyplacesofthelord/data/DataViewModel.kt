@@ -163,7 +163,9 @@ class DataViewModel(
                 title = application.getString(R.string.whats_new_title_1_9)
                 messages = listOf(
                     application.getString(R.string.whats_new_map_timeline),
-                    application.getString(R.string.whats_new_historical_names)
+                    application.getString(R.string.whats_new_historical_names),
+                    application.getString(R.string.whats_new_share_sheet),
+                    application.getString(R.string.whats_new_photo_rotation)
                 )
             } else if (current >= 15 && lastSeen < 15) {
                 title = application.getString(R.string.whats_new_title_1_8_2)

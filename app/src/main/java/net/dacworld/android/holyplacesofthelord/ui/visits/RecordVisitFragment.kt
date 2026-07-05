@@ -226,6 +226,9 @@ class RecordVisitFragment : Fragment() {
             }
         }
 
+        binding.buttonRotateCcw.setOnClickListener { viewModel.rotateImage(clockwise = false) }
+        binding.buttonRotateCw.setOnClickListener  { viewModel.rotateImage(clockwise = true) }
+
         binding.editTextComments.addTextChangedListener(object : SimpleTextWatcher() {
             override fun afterTextChanged(s: Editable?) {
                 viewModel.onCommentsChanged(s.toString())
@@ -558,24 +561,19 @@ class RecordVisitFragment : Fragment() {
             binding.groupOrdinanceWorker.visibility = View.GONE // Use YOUR variable name
         }
         // Image display logic using Coil
-        when {
-            state.pictureByteArray != null && state.pictureByteArray.isNotEmpty() -> {
-                // Load the processed image from ByteArray using Coil
-                binding.imageViewVisitPicture.load(state.pictureByteArray) {
-//                    crossfade(true)
-//                    placeholder(R.drawable.ic_menu_gallery) // Placeholder image
-//                    error(R.drawable.ic_menu_camera)       // Error image
-                }
-                binding.imageViewVisitPicture.visibility = View.VISIBLE
-                binding.buttonAddRemovePicture.text = getString(R.string.button_remove_picture)
-                binding.buttonAddRemovePicture.setIconResource(R.drawable.ic_delete)
-            }
-            else -> { // No image selected, or it was cleared, or processing failed and nulled it
-                binding.imageViewVisitPicture.setImageDrawable(null) // Clear
-                binding.imageViewVisitPicture.visibility = View.GONE
-                binding.buttonAddRemovePicture.text = getString(R.string.button_add_picture)
-                binding.buttonAddRemovePicture.setIconResource(R.drawable.ic_add_a_photo)
-            }
+        val hasPhoto = state.pictureByteArray != null && state.pictureByteArray.isNotEmpty()
+        if (hasPhoto) {
+            binding.imageViewVisitPicture.load(state.pictureByteArray)
+            binding.imageViewVisitPicture.visibility = View.VISIBLE
+            binding.rotateButtonsContainer.visibility = View.VISIBLE
+            binding.buttonAddRemovePicture.text = getString(R.string.button_remove_picture)
+            binding.buttonAddRemovePicture.setIconResource(R.drawable.ic_delete)
+        } else {
+            binding.imageViewVisitPicture.setImageDrawable(null)
+            binding.imageViewVisitPicture.visibility = View.GONE
+            binding.rotateButtonsContainer.visibility = View.GONE
+            binding.buttonAddRemovePicture.text = getString(R.string.button_add_picture)
+            binding.buttonAddRemovePicture.setIconResource(R.drawable.ic_add_a_photo)
         }
     }
 

@@ -44,6 +44,9 @@
     <color name="t2_announced_temples">#FFC296</color>
     <color name="t2_under_construction">#5B78B2</color>
 
+    <!-- PDF viewer background -->
+    <color name="pdf_viewer_background">#E0E0E0</color>
+
     <!-- Achievement type colors -->
     <color name="achievement_baptisms">@color/BaptismBlue</color>
     <color name="achievement_initiatories">@color/Initiatories</color>

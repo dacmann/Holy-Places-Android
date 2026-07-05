@@ -20,6 +20,7 @@ navigationUiKtx = "2.9.7"
 ksp = "2.3.2"
 photoview = "2.3.0"
 reviewKtx = "2.0.2"
+zxing = "3.5.3"
 room = "2.8.4"
 locationServices = "21.3.0"
 dataStorePref = "1.2.0"
@@ -52,6 +53,7 @@ google-play-services-location = { group = "com.google.android.gms", name = "play
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStorePref" }
 photoview = { module = "com.github.chrisbanes:PhotoView", version.ref = "photoview" }
 review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "reviewKtx" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

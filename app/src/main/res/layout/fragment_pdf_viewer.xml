@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/pdf_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:title="@string/share_promo_pdf" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/pdf_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/pdf_viewer_background"
+            android:clipToPadding="false"
+            android:padding="8dp" />
+
+        <ProgressBar
+            android:id="@+id/pdf_loading_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="visible" />
+
+    </FrameLayout>
+
+</LinearLayout>

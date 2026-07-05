@@ -241,9 +241,28 @@ class RecordVisitViewModel(
     private suspend fun resizeAndCompressImage(contentResolver: ContentResolver, imageUri: Uri): ByteArray? {
         return withContext(Dispatchers.IO) {
             try {
-                // More robust loading with inSampleSize to prevent OOM on very large images
+                // --- Step 1: Read EXIF orientation before decoding the full bitmap ---
+                val rotationDegrees: Float = try {
+                    contentResolver.openInputStream(imageUri)?.use { exifStream ->
+                        val exif = android.media.ExifInterface(exifStream)
+                        when (exif.getAttributeInt(
+                            android.media.ExifInterface.TAG_ORIENTATION,
+                            android.media.ExifInterface.ORIENTATION_NORMAL
+                        )) {
+                            android.media.ExifInterface.ORIENTATION_ROTATE_90  -> 90f
+                            android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                            android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                            else -> 0f
+                        }
+                    } ?: 0f
+                } catch (e: Exception) {
+                    Log.w("RecordVisitVM", "Could not read EXIF orientation, assuming 0°", e)
+                    0f
+                }
+
+                // --- Step 2: Decode with inSampleSize to prevent OOM ---
                 val options = BitmapFactory.Options()
-                options.inJustDecodeBounds = true // First, check dimensions without loading into memory
+                options.inJustDecodeBounds = true
                 var inputStream = contentResolver.openInputStream(imageUri)
                 BitmapFactory.decodeStream(inputStream, null, options)
                 inputStream?.close()
@@ -253,24 +272,32 @@ class RecordVisitViewModel(
                     return@withContext null
                 }
 
-                val maxDimension = 1024 // Target max width or height in pixels
+                val maxDimension = 1024
 
                 options.inSampleSize = calculateInSampleSize(options, maxDimension, maxDimension)
-                options.inJustDecodeBounds = false // Now load the subsampled image into memory
+                options.inJustDecodeBounds = false
 
                 inputStream = contentResolver.openInputStream(imageUri)
                 var bitmap = BitmapFactory.decodeStream(inputStream, null, options)
                 inputStream?.close()
 
-                if (bitmap == null) { // Check if decoding failed even with inSampleSize
+                if (bitmap == null) {
                     Log.e("RecordVisitVM", "BitmapFactory failed to decode stream after subsampling. URI: $imageUri")
                     return@withContext null
                 }
 
-                // --- Further Resize if needed after inSampleSize (more precise scaling) ---
+                // --- Step 3: Apply EXIF rotation so the image is always upright ---
+                if (rotationDegrees != 0f) {
+                    val matrix = android.graphics.Matrix().apply { postRotate(rotationDegrees) }
+                    val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                    if (rotated != bitmap) bitmap.recycle()
+                    bitmap = rotated
+                }
+
+                // --- Step 4: Scale to maxDimension if still too large (post-rotation dimensions) ---
+                var finalBitmap = bitmap
                 val currentWidth = bitmap.width
                 val currentHeight = bitmap.height
-                var finalBitmap = bitmap
 
                 if (currentWidth > maxDimension || currentHeight > maxDimension) {
                     val ratio: Float = if (currentWidth > currentHeight) {
@@ -280,26 +307,19 @@ class RecordVisitViewModel(
                     }
                     val newWidth = (currentWidth * ratio).toInt()
                     val newHeight = (currentHeight * ratio).toInt()
-                    if (newWidth > 0 && newHeight > 0) { // Ensure valid dimensions
+                    if (newWidth > 0 && newHeight > 0) {
                         finalBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
-                        if (finalBitmap != bitmap) { // Only recycle if a new bitmap was created
-                            bitmap.recycle() // Recycle the intermediate bitmap if scaled
-                        }
+                        if (finalBitmap != bitmap) bitmap.recycle()
                     } else {
-                        Log.w("RecordVisitVM","Calculated new dimensions are zero or negative. Using bitmap from inSampleSize.")
+                        Log.w("RecordVisitVM", "Calculated new dimensions are zero or negative. Using bitmap from inSampleSize.")
                     }
                 }
 
-
-                // --- Compress Logic ---
+                // --- Step 5: Compress to JPEG ---
                 ByteArrayOutputStream().use { outputStream ->
-                    // Adjust quality (0-100). JPEG is lossy.
-                    val success = finalBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream) // 80% quality JPEG
-                    if (finalBitmap != bitmap && !finalBitmap.isRecycled) { // If a new bitmap was created and not yet recycled
-                        finalBitmap.recycle()
-                    } else if (finalBitmap == bitmap && !bitmap.isRecycled) { // If original bitmap was used and not yet recycled
-                        bitmap.recycle() // Recycle the original if it wasn't scaled further or if scaling failed
-                    }
+                    val success = finalBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+                    if (finalBitmap != bitmap && !finalBitmap.isRecycled) finalBitmap.recycle()
+                    else if (finalBitmap == bitmap && !bitmap.isRecycled) bitmap.recycle()
 
                     if (!success) {
                         Log.e("RecordVisitVM", "Bitmap compression failed for URI: $imageUri")
@@ -313,9 +333,39 @@ class RecordVisitViewModel(
             } catch (oom: OutOfMemoryError) {
                 Log.e("RecordVisitVM", "OutOfMemoryError processing image URI: $imageUri", oom)
                 null
-            } catch (e: Exception) { // Catch any other unexpected errors during processing
+            } catch (e: Exception) {
                 Log.e("RecordVisitVM", "Unexpected error processing image URI: $imageUri", e)
                 null
+            }
+        }
+    }
+
+    /** Rotates the current visit photo 90° clockwise or counter-clockwise. */
+    fun rotateImage(clockwise: Boolean) {
+        val current = _uiState.value ?: return
+        val bytes = current.pictureByteArray?.takeIf { it.isNotEmpty() } ?: return
+
+        viewModelScope.launch {
+            val rotated = withContext(Dispatchers.Default) {
+                try {
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        ?: return@withContext null
+                    val degrees = if (clockwise) 90f else -90f
+                    val matrix = android.graphics.Matrix().apply { postRotate(degrees) }
+                    val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                    bitmap.recycle()
+                    ByteArrayOutputStream().use { out ->
+                        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                        rotatedBitmap.recycle()
+                        out.toByteArray()
+                    }
+                } catch (e: Exception) {
+                    Log.e("RecordVisitVM", "Failed to rotate image", e)
+                    null
+                }
+            }
+            if (rotated != null) {
+                _uiState.value = current.copy(pictureByteArray = rotated)
             }
         }
     }

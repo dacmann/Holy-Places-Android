@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="24dp">
+
+    <!-- drag handle -->
+    <View
+        android:layout_width="32dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/share_drag_handle_bg" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:text="@string/share_sheet_title"
+        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+    <!-- Send Link — Google Play -->
+    <LinearLayout
+        android:id="@+id/row_send_link_android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_share_link"
+            android:contentDescription="@null"
+            app:tint="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_send_link_android"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_send_link_android_subtitle"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Send Link — App Store -->
+    <LinearLayout
+        android:id="@+id/row_send_link_ios"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_share_link"
+            android:contentDescription="@null"
+            app:tint="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_send_link_ios"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_send_link_ios_subtitle"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:background="?attr/colorOutlineVariant" />
+
+    <!-- QR Code — Google Play -->
+    <LinearLayout
+        android:id="@+id/row_qr_android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_qr_code"
+            android:contentDescription="@null"
+            app:tint="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_qr_android"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_qr_android_subtitle"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- QR Code — App Store -->
+    <LinearLayout
+        android:id="@+id/row_qr_ios"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_qr_code"
+            android:contentDescription="@null"
+            app:tint="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_qr_ios"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_qr_ios_subtitle"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:background="?attr/colorOutlineVariant" />
+
+    <!-- Promotional PDF -->
+    <LinearLayout
+        android:id="@+id/row_promo_pdf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_pdf"
+            android:contentDescription="@null"
+            app:tint="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_promo_pdf"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share_promo_pdf_subtitle"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

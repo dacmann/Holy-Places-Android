@@ -80,6 +80,9 @@ dependencies {
     // Google Play In-App Review
     implementation(libs.review.ktx)
 
+    // QR code generation
+    implementation(libs.zxing.core)
+
     // ... other dependencies
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
