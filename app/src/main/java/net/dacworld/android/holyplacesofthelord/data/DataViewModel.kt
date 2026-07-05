@@ -27,11 +27,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.BuildConfig
+import net.dacworld.android.holyplacesofthelord.MyApplication
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.model.Temple
+import net.dacworld.android.holyplacesofthelord.dao.NameChangeDao
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
+import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.model.PlaceSort // <<< From OptionModels.kt
@@ -52,6 +55,11 @@ class DataViewModel(
     private val visitDao: VisitDao,
     private val userPreferencesManager: UserPreferencesManager
 ) : AndroidViewModel(application) {
+
+    // Obtained from the application to avoid changing the factory signature everywhere.
+    private val nameChangeDao: NameChangeDao by lazy {
+        (application as MyApplication).nameChangeDao
+    }
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -151,7 +159,13 @@ class DataViewModel(
         if (lastSeen != current) {
             val title: String
             val messages: List<String>
-            if (current >= 15 && lastSeen < 15) {
+            if (current >= 16 && lastSeen < 16) {
+                title = application.getString(R.string.whats_new_title_1_9)
+                messages = listOf(
+                    application.getString(R.string.whats_new_map_timeline),
+                    application.getString(R.string.whats_new_historical_names)
+                )
+            } else if (current >= 15 && lastSeen < 15) {
                 title = application.getString(R.string.whats_new_title_1_8_2)
                 messages = listOf(
                     application.getString(R.string.whats_new_profiles),
@@ -380,16 +394,21 @@ class DataViewModel(
                 val existingDbTempleMeta = existingDbTemplesMap[xmlTemple.id]
 
                 if (existingDbTempleMeta != null) { // Temple EXISTS in DB
-                    // +++ START: Visit Name Update - Check and Prepare +++
+                    // +++ START: Visit Name Update - Check and Prepare (date-aware) +++
                     if (existingDbTempleMeta.name != xmlTemple.name) {
                         Log.i("DataViewModel", "Temple name change DETECTED for ID ${xmlTemple.id}: From '${existingDbTempleMeta.name}' to '${xmlTemple.name}'")
                         val affectedVisits = visitDao.getVisitsListForTempleId(xmlTemple.id)
                         if (affectedVisits.isNotEmpty()) {
-                            Log.d("DataViewModel", "Found ${affectedVisits.size} visits for temple ID ${xmlTemple.id} to update name.")
-                            affectedVisits.forEach { visit ->
-                                val updatedVisit = visit.copy(holyPlaceName = xmlTemple.name)
-                                visitsToUpdate.add(updatedVisit)
-                            }
+                            // Visits dated before an <oldName changeDate> keep (or revert to)
+                            // the historical name; visits on/after get the new name.
+                            val updates = HistoricalNamesHelper.reconcileVisitNames(
+                                visits = affectedVisits,
+                                currentName = xmlTemple.name,
+                                nameChanges = xmlTemple.nameChanges,
+                                additionalKnownNames = setOf(existingDbTempleMeta.name)
+                            )
+                            Log.d("DataViewModel", "Found ${affectedVisits.size} visits for temple ID ${xmlTemple.id}; ${updates.size} need a name update.")
+                            visitsToUpdate.addAll(updates)
                         }
                     }
                     // +++ END: Visit Name Update - Check and Prepare +++
@@ -439,6 +458,17 @@ class DataViewModel(
             }
             // +++ END: Visit Name Update - Execution +++
 
+            // +++ START: Historical Names - persist and reconcile +++
+            // Persist <oldName> history (no-op per temple when unchanged)
+            HistoricalNamesHelper.persistNameChanges(nameChangeDao, parsedData.temples)
+            // Repair pass: visits whose stored name doesn't match the name in use
+            // on their visit date (covers temples whose current name didn't change)
+            val reconciled = HistoricalNamesHelper.reconcileAllVisitNames(templeDao, visitDao, nameChangeDao)
+            if (reconciled > 0) {
+                Log.i("DataViewModel", "Reconciled $reconciled visit name(s) against name-change history.")
+            }
+            // +++ END: Historical Names - persist and reconcile +++
+
             // --- Picture Update Pass ---
             if (pictureUpdateTasks.isNotEmpty()) {
                 Log.d("DataViewModel", "Starting picture update pass for ${pictureUpdateTasks.size} temples.")
@@ -459,6 +489,9 @@ class DataViewModel(
             } else {
                 Log.d("DataViewModel", "No picture updates needed based on URL changes or new temples.")
             }
+
+            // Download any historical (oldImage) pictures not yet cached
+            HistoricalNamesHelper.downloadMissingOldImages(getApplication(), nameChangeDao)
 
             // --- Delete Orphans ---
             val currentDbTempleIds = templeDao.getAllTempleIds().toSet()

@@ -23,6 +23,7 @@ import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
 import net.dacworld.android.holyplacesofthelord.model.Visit // Your Visit model from context
 // No need to import Temple model here if we only use TempleDao for counts
+import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 import org.xmlpull.v1.XmlPullParser
 import java.io.InputStream
 import java.util.Calendar
@@ -62,6 +63,7 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
 
     private val visitDao: VisitDao = AppDatabase.getDatabase(application).visitDao()
     private val templeDao: TempleDao = AppDatabase.getDatabase(application).templeDao()
+    private val nameChangeDao = AppDatabase.getDatabase(application).nameChangeDao()
     private val preferencesManager: UserPreferencesManager = UserPreferencesManager.getInstance(application)
     private val profileRepository: ProfileRepository? =
         (application as? net.dacworld.android.holyplacesofthelord.MyApplication)?.profileRepository
@@ -181,7 +183,13 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             val allVisitsFromDb: List<Visit>
             try {
                 val activeProfileId = profileRepository?.scopedProfileId?.first()
-                allVisitsFromDb = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExportByProfile(activeProfileId) }
+                allVisitsFromDb = withContext(Dispatchers.IO) {
+                    val visits = visitDao.getAllVisitsListForExportByProfile(activeProfileId)
+                    // Historical Names: normalize old names to the canonical current
+                    // name so renamed temples are not double-counted in stats.
+                    val canonicalMap = HistoricalNamesHelper.buildCanonicalNameMap(templeDao, nameChangeDao)
+                    HistoricalNamesHelper.normalizeVisitNames(visits, canonicalMap)
+                }
             } catch (e: Exception) {
                 Log.e("SummaryVM_CrashPrevent", "Critical error fetching visits from DB. Aborting summary load.", e)
                 // Optionally, post an error state to UI if you have one
@@ -323,7 +331,11 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             val allVisitsFromDbForYearStats: List<Visit>
             try {
                 val activeProfileId = profileRepository?.scopedProfileId?.first()
-                allVisitsFromDbForYearStats = withContext(Dispatchers.IO) { visitDao.getAllVisitsListForExportByProfile(activeProfileId) }
+                allVisitsFromDbForYearStats = withContext(Dispatchers.IO) {
+                    val visits = visitDao.getAllVisitsListForExportByProfile(activeProfileId)
+                    val canonicalMap = HistoricalNamesHelper.buildCanonicalNameMap(templeDao, nameChangeDao)
+                    HistoricalNamesHelper.normalizeVisitNames(visits, canonicalMap)
+                }
             } catch (e: Exception) {
                 Log.e("SummaryVM_CrashPrevent", "Error fetching visits for year stats. Aborting.", e)
                 _templeVisitCurrentYearStats.postValue(calculateYearStatsForTemples(emptyList(), internalLeftColumnYear))

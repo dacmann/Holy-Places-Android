@@ -15,6 +15,7 @@ class MapViewModelFactory(private val application: Application) : ViewModelProvi
             return MapViewModel(
                 database.templeDao(),
                 database.visitDao(),
+                database.nameChangeDao(),
                 UserPreferencesManager.getInstance(application)
             ) as T
         }

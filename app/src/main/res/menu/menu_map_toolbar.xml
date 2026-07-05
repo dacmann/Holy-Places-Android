@@ -3,6 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_map_timeline"
+        android:icon="@drawable/ic_timeline"
+        android:title="@string/map_timeline_title"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_filter_visits_submenu"
         android:icon="@drawable/ic_filter"
         android:title="@string/action_filter_options"

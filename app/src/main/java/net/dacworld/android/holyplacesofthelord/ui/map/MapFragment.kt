@@ -132,6 +132,8 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
         observeViewModel()
         setupVisitScopeToggleButtons()
         ensureVisitedDataLoaded() 
+        setupTimelineControls()
+        observeTimelineState()
 
         val menuHost: MenuHost = requireActivity()
         menuHost.addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
@@ -205,11 +207,97 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
         }
     }
 
+    // ===================== Map Timeline =====================
+
+    /** Toolbar title/color to restore when leaving timeline mode. */
+    private var preTimelineTitle: CharSequence? = null
+
+    private fun setupTimelineControls() {
+        binding.timelinePlayPauseButton.setOnClickListener {
+            if (mapViewModel.isTimelinePlaying.value == true) {
+                mapViewModel.pauseTimeline()
+            } else {
+                mapViewModel.playTimeline()
+            }
+        }
+        binding.timelinePrevYearButton.setOnClickListener {
+            mapViewModel.pauseTimeline()
+            mapViewModel.previousTimelineYear()
+        }
+        binding.timelineNextYearButton.setOnClickListener {
+            mapViewModel.pauseTimeline()
+            mapViewModel.nextTimelineYear()
+        }
+        binding.timelineSlider.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                mapViewModel.pauseTimeline()
+                mapViewModel.setTimelineYear(value.toInt())
+            }
+        }
+        binding.timelineSlider.setLabelFormatter { value -> value.toInt().toString() }
+    }
+
+    private fun observeTimelineState() {
+        mapViewModel.isTimelineActive.observe(viewLifecycleOwner) { active ->
+            binding.timelineOverlay.visibility = if (active) View.VISIBLE else View.GONE
+            binding.mapVisitScopeToggleGroup.visibility = if (active) View.GONE else View.VISIBLE
+            hideInfoWindow()
+            if (active) {
+                preTimelineTitle = binding.toolbarMap.title
+                updateToolbarTitleAndColor(getString(R.string.map_timeline_title), "T")
+            } else if (preTimelineTitle != null) {
+                binding.toolbarMap.title = preTimelineTitle
+                preTimelineTitle = null
+            }
+        }
+        mapViewModel.timelineYearRange.observe(viewLifecycleOwner) { (min, max) ->
+            binding.timelineSlider.valueFrom = min.toFloat()
+            binding.timelineSlider.valueTo = max.toFloat()
+        }
+        mapViewModel.timelineYear.observe(viewLifecycleOwner) { year ->
+            binding.timelineYearLabel.text = year.toString()
+            val clamped = year.toFloat().coerceIn(binding.timelineSlider.valueFrom, binding.timelineSlider.valueTo)
+            if (binding.timelineSlider.value != clamped) {
+                binding.timelineSlider.value = clamped
+            }
+        }
+        mapViewModel.timelineVisibleCount.observe(viewLifecycleOwner) { count ->
+            binding.timelineCountLabel.text = if (count == 1) {
+                getString(R.string.map_timeline_temple_count_one)
+            } else {
+                getString(R.string.map_timeline_temple_count, count)
+            }
+        }
+        mapViewModel.isTimelinePlaying.observe(viewLifecycleOwner) { playing ->
+            binding.timelinePlayPauseButton.setImageResource(
+                if (playing) R.drawable.ic_timeline_pause else R.drawable.ic_timeline_play
+            )
+            binding.timelinePlayPauseButton.contentDescription = getString(
+                if (playing) R.string.map_timeline_pause else R.string.map_timeline_play
+            )
+        }
+    }
+
+    // ===================== End Map Timeline =====================
+
     // Add this method to refresh map markers based on current scope
     private fun refreshMapMarkers() {
         // Get the current places from mapViewModel
         val currentPlaces = mapViewModel.mapPlaces.value ?: return
-        
+        applyScopeAndLoad(currentPlaces)
+    }
+
+    /** Applies the visited-scope filter (skipped in timeline mode) and loads pins. */
+    private fun applyScopeAndLoad(currentPlaces: List<MapPlace>) {
+        // Timeline mode bypasses the visited-scope filter — pins are already
+        // the year-filtered dedication set from the ViewModel.
+        if (mapViewModel.isTimelineActive.value == true) {
+            if (mapStyle?.isFullyLoaded == true) {
+                loadPlacesIntoSource(currentPlaces)
+            }
+            return
+        }
+
         // Get the current scope and visited IDs
         val currentScope = dataViewModel.currentPlaceVisitedScope.value
         val visitedIds = dataViewModel.visitedTemplePlaceIdsFlow.value
@@ -291,6 +379,14 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
         val filterToSet: TempleFilterType // Enum for MapViewModel
 
         when (menuItem.itemId) {
+            R.id.action_map_timeline -> {
+                if (mapViewModel.isTimelineActive.value == true) {
+                    mapViewModel.stopTimeline()
+                } else {
+                    mapViewModel.startTimeline()
+                }
+                return true
+            }
             R.id.action_filter_visits_submenu -> {
                 // Parent item for the submenu, system handles opening it.
                 return true // Indicate the event was handled by the system opening the submenu.
@@ -344,6 +440,12 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
                 return false // Indicate not handled by this logic.
             }
         }
+
+        // Selecting a filter leaves timeline mode (mirrors iOS behavior)
+        if (mapViewModel.isTimelineActive.value == true) {
+            mapViewModel.stopTimeline()
+        }
+        preTimelineTitle = null
 
         // Update toolbar title and color based on selection
         updateToolbarTitleAndColor(titleText, placeTypeKeyForColor)

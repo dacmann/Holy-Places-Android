@@ -14,7 +14,7 @@ class VisitDetailViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(VisitDetailViewModel::class.java)) {
             val database = AppDatabase.getDatabase(application)
-            return VisitDetailViewModel(database.visitDao(), database.templeDao(), visitId) as T
+            return VisitDetailViewModel(database.visitDao(), database.templeDao(), database.nameChangeDao(), visitId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: " + modelClass.name)
     }

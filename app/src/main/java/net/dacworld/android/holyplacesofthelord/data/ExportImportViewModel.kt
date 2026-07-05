@@ -22,6 +22,8 @@ import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.model.Visit
+import net.dacworld.android.holyplacesofthelord.model.effectiveName
+import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 import net.dacworld.android.holyplacesofthelord.util.XmlHelper // We will create this helper next
 import java.io.FileDescriptor
 import java.io.FileInputStream
@@ -53,6 +55,7 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
 
     private val visitDao = AppDatabase.getDatabase(application).visitDao()
     private val templeDao = AppDatabase.getDatabase(application).templeDao()
+    private val nameChangeDao = AppDatabase.getDatabase(application).nameChangeDao()
     private val preferencesManager = UserPreferencesManager.getInstance(application)
     private val profileRepository =
         (application as? net.dacworld.android.holyplacesofthelord.MyApplication)?.profileRepository
@@ -225,7 +228,7 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
 
                 // Create a processor class to hold counters and process visits like iOS
                 val processor = VisitProcessor(
-                    visitDao, templeDao, getApplication<Application>(),
+                    visitDao, templeDao, nameChangeDao, getApplication<Application>(),
                     importProfileId = importProfileId
                 )
                 
@@ -342,6 +345,7 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
 private class VisitProcessor(
     private val visitDao: net.dacworld.android.holyplacesofthelord.dao.VisitDao,
     private val templeDao: net.dacworld.android.holyplacesofthelord.dao.TempleDao,
+    private val nameChangeDao: net.dacworld.android.holyplacesofthelord.dao.NameChangeDao,
     private val application: Application,
     private val importProfileId: String? = null
 ) {
@@ -396,7 +400,18 @@ private class VisitProcessor(
                 return
                         }
 
-                        currentTempleData = templeDao.getTempleByNameForSync(nameFromXml)
+                        // Try the current name first, then fall back to historical names
+                        var templeByName = templeDao.getTempleByNameForSync(nameFromXml)
+                        if (templeByName == null) {
+                            val historicalMatch = nameChangeDao.getByOldName(nameFromXml)
+                            if (historicalMatch != null) {
+                                templeByName = templeDao.getTempleByIdForSync(historicalMatch.templeId)
+                                if (templeByName != null) {
+                                    Log.i("ImportVM", "Resolved XML name '$nameFromXml' via historical name to '${templeByName.name}' (ID ${templeByName.id}).")
+                                }
+                            }
+                        }
+                        currentTempleData = templeByName
 
                         if (currentTempleData == null) {
                             Log.w("ImportVM", "Skipping visit (fallback mode). Temple not found in DB by XML name: '$nameFromXml'. Date: ${dto.dateVisitedString}")
@@ -413,6 +428,18 @@ private class VisitProcessor(
                         }
                     }
 
+        // Historical Names: the visit should carry the name that was in use on its date
+        val templeNameChanges = nameChangeDao.getNameChangesForTemple(definitivePlaceId)
+        val visitLocalDate = HistoricalNamesHelper.toLocalDate(dateVisitedFromXml)
+        val nameForVisit = if (visitLocalDate != null) {
+            templeNameChanges.effectiveName(currentCorrectTempleName, visitLocalDate)
+        } else {
+            currentCorrectTempleName
+        }
+        if (nameForVisit != currentCorrectTempleName) {
+            Log.d("ImportVM", "Using historical name '$nameForVisit' (current: '$currentCorrectTempleName') for visit dated ${dto.dateVisitedString}.")
+        }
+
         // --- START: DUPLICATE CHECK (now handled in XML parser for photo optimization) ---
                     val calendar = Calendar.getInstance().apply {
                         time = dateVisitedFromXml // Use the date parsed from XML
@@ -426,7 +453,8 @@ private class VisitProcessor(
                     calendar.add(Calendar.DAY_OF_MONTH, 1) // Moves to start of the next day
                     val endOfDayMillis = calendar.timeInMillis // This is the exclusive upper bound for the query
 
-                    val nameForDuplicateCheck = currentCorrectTempleName
+                    // Stored visits carry the date-effective name, so check against that
+                    val nameForDuplicateCheck = nameForVisit
 
                     if (nameForDuplicateCheck.isBlank()){
                         Log.w("ImportVM_DUPE_CHECK", "Skipping duplicate check as nameForDuplicateCheck is null or blank for date ${SimpleDateFormat("yyyy-MM-dd", Locale.US).format(dateVisitedFromXml)}")
@@ -511,7 +539,7 @@ private class VisitProcessor(
                     val visitToImport = Visit(
                         id = 0, // Room will auto-generate
                         placeID = definitivePlaceId,
-                        holyPlaceName = dto.holyPlaceName,
+                        holyPlaceName = nameForVisit,
                         dateVisited = dateVisitedFromXml,
                         comments = dto.comments,
                         type = dto.type,

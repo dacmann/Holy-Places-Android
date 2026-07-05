@@ -83,6 +83,9 @@ class VisitDetailFragment : Fragment() {
     // Store current temple for place image fallback and tap handler
     private var currentTemple: Temple? = null
 
+    // Historical Names: rename that applies to this visit's date (for old-image fallback)
+    private var historicalNameChange: net.dacworld.android.holyplacesofthelord.model.TempleNameChange? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enterTransition = MaterialFadeThrough()
@@ -134,6 +137,14 @@ class VisitDetailFragment : Fragment() {
                 viewModel.temple.collect { temple ->
                     currentTemple = temple
                     viewModel.visit.value?.let { visit -> populateUi(visit, temple) }
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.historicalNameChange.collect { change ->
+                    historicalNameChange = change
+                    viewModel.visit.value?.let { visit -> populateUi(visit, currentTemple) }
                 }
             }
         }
@@ -208,6 +219,7 @@ class VisitDetailFragment : Fragment() {
                         val temple = currentTemple
                         val pictureData = when {
                             visit?.picture != null && visit.picture.isNotEmpty() -> visit.picture
+                            historicalNameChange?.oldImageData != null -> historicalNameChange?.oldImageData
                             temple?.pictureData != null -> temple.pictureData
                             else -> null
                         }
@@ -509,11 +521,26 @@ class VisitDetailFragment : Fragment() {
                 detailVisitComments.visibility = View.GONE
             }
 
-            // Picture: visit photo first, then place image as fallback
+            // Picture: visit photo first, then historical place image (when the
+            // visit predates a rename with an oldImage), then current place image
+            val historicalImageData = historicalNameChange?.oldImageData
+            val historicalImageUrl = historicalNameChange?.oldImageUrl
             when {
                 visit.picture != null && visit.picture.isNotEmpty() -> {
                     detailVisitPicture.visibility = View.VISIBLE
                     detailVisitPicture.load(visit.picture) {
+                        crossfade(true)
+                    }
+                }
+                historicalImageData != null -> {
+                    detailVisitPicture.visibility = View.VISIBLE
+                    detailVisitPicture.load(historicalImageData) {
+                        crossfade(true)
+                    }
+                }
+                !historicalImageUrl.isNullOrBlank() -> {
+                    detailVisitPicture.visibility = View.VISIBLE
+                    detailVisitPicture.load(historicalImageUrl) {
                         crossfade(true)
                     }
                 }

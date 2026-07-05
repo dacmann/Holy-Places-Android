@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import net.dacworld.android.holyplacesofthelord.dao.NameChangeDao
 import net.dacworld.android.holyplacesofthelord.dao.ProfileDao
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
@@ -18,6 +19,7 @@ import net.dacworld.android.holyplacesofthelord.data.AchievementRepository
 import net.dacworld.android.holyplacesofthelord.data.ProfileRepository
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
+import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser
 import java.io.InputStream
 
@@ -28,6 +30,7 @@ class MyApplication : Application() {
     internal val templeDao: TempleDao by lazy { database.templeDao() }
     internal val visitDao: VisitDao by lazy { database.visitDao() }
     internal val profileDao: ProfileDao by lazy { database.profileDao() }
+    internal val nameChangeDao: NameChangeDao by lazy { database.nameChangeDao() }
     internal val userPreferencesManager: UserPreferencesManager by lazy {
         UserPreferencesManager.getInstance(this)
     }
@@ -72,6 +75,14 @@ class MyApplication : Application() {
                 }
             } else {
                 Log.i("MyApplication", "Not first launch: Database already seeded or flag set.")
+                // One-time backfill for the Historical Names feature (schema v4):
+                // existing installs never re-parse the XML unless the server version
+                // changes, so populate name changes / dedication dates from the
+                // bundled XML and repair visit names once after upgrading.
+                val backfillDone = userPreferencesManager.historicalDataBackfillDoneFlow.first()
+                if (!backfillDone) {
+                    runHistoricalDataBackfill()
+                }
             }
             
             // Initialize default comments text from string resource if not already set
@@ -97,6 +108,44 @@ class MyApplication : Application() {
     }
 
 
+    /**
+     * One-time upgrade backfill (schema v4 / Historical Names): re-parses the
+     * bundled XML to populate temple_name_changes and temples.dedicated_date for
+     * existing installs, then repairs visit names that were bulk-renamed by the
+     * old (date-unaware) sync logic. Historical images download on the next sync.
+     */
+    private suspend fun runHistoricalDataBackfill() = withContext(Dispatchers.IO) {
+        try {
+            Log.i("MyApplication", "Running one-time historical data backfill.")
+            val holyPlacesData = assets.open("initial_holy_places.xml").use { input ->
+                HolyPlacesXmlParser.parse(input)
+            }
+            if (holyPlacesData.temples.isEmpty()) {
+                Log.w("MyApplication", "Backfill aborted: bundled XML yielded no temples.")
+                return@withContext
+            }
+            val existingIds = templeDao.getAllTempleIds().toSet()
+            var dedicatedCount = 0
+            for (temple in holyPlacesData.temples) {
+                if (temple.id !in existingIds) continue
+                nameChangeDao.replaceForTemple(temple.id, temple.nameChanges)
+                if (temple.dedicatedDate != null) {
+                    templeDao.updateDedicatedDate(temple.id, temple.dedicatedDate)
+                    dedicatedCount++
+                }
+            }
+            val repaired = HistoricalNamesHelper.reconcileAllVisitNames(templeDao, visitDao, nameChangeDao)
+            userPreferencesManager.setHistoricalDataBackfillDone(true)
+            Log.i(
+                "MyApplication",
+                "Historical backfill complete: $dedicatedCount dedication dates, $repaired visit name(s) repaired."
+            )
+        } catch (e: Exception) {
+            // Flag intentionally not set so the backfill retries on next launch.
+            Log.e("MyApplication", "Historical data backfill failed.", e)
+        }
+    }
+
     // Modify to return Boolean indicating success
     private suspend fun seedDatabaseFromLocalXml(): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -109,6 +158,11 @@ class MyApplication : Application() {
                     "MyApplication",
                     "Successfully seeded ${holyPlacesData.temples.size} temples from local XML."
                 )
+
+                // Persist historical names (fresh install: nothing to reconcile/backfill)
+                HistoricalNamesHelper.persistNameChanges(nameChangeDao, holyPlacesData.temples)
+                userPreferencesManager.setHistoricalDataBackfillDone(true)
+                Log.i("MyApplication", "Persisted name changes for seeded temples.")
 
                 holyPlacesData.version?.let {
                     userPreferencesManager.saveXmlVersion(it)

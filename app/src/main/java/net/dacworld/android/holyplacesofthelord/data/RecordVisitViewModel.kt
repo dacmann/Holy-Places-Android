@@ -14,7 +14,10 @@ import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase // For getting DAO instance
 import net.dacworld.android.holyplacesofthelord.model.Profile
+import net.dacworld.android.holyplacesofthelord.model.TempleNameChange
 import net.dacworld.android.holyplacesofthelord.model.Visit
+import net.dacworld.android.holyplacesofthelord.model.effectiveName
+import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -63,6 +66,11 @@ class RecordVisitViewModel(
 
     private val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
 
+    // Historical Names: current temple name + rename history so the visit name
+    // tracks the date (visits before a rename keep the historical name).
+    private var currentTempleName: String? = null
+    private var templeNameChanges: List<TempleNameChange> = emptyList()
+
     init {
         loadInitialData()
         if (!_isEditing && profileRepository != null) {
@@ -87,6 +95,7 @@ class RecordVisitViewModel(
             if (_isEditing && currentVisitId != null) {
                 val visit = visitDao.getVisitById(currentVisitId).firstOrNull()
                 if (visit != null) {
+                    loadNameChangeHistory(visit.placeID)
                     _uiState.postValue(
                         VisitUiState.fromVisitEntity(visit).copy(
                             isHoursWorkedEntryEnabled = initialHoursPreference
@@ -104,6 +113,7 @@ class RecordVisitViewModel(
                     )
                 }
             } else {
+                loadNameChangeHistory(placeIdArg)
                 _uiState.postValue(
                     createNewVisitState(
                         placeIdArg,
@@ -114,6 +124,17 @@ class RecordVisitViewModel(
                     )
                 )
             }
+        }
+    }
+
+    /** Loads the current temple name and its rename history (no-op if unavailable). */
+    private suspend fun loadNameChangeHistory(placeId: String) {
+        try {
+            val db = AppDatabase.getDatabase(getApplication())
+            currentTempleName = db.templeDao().getTempleByIdForSync(placeId)?.name
+            templeNameChanges = db.nameChangeDao().getNameChangesForTemple(placeId)
+        } catch (e: Exception) {
+            Log.w("RecordVisitVM", "Could not load name-change history for place $placeId", e)
         }
     }
 
@@ -143,7 +164,13 @@ class RecordVisitViewModel(
     // --- UI Event Handlers ---
 
     fun onDateChanged(newDate: Date) {
-        _uiState.value = _uiState.value?.copy(dateVisited = newDate)
+        val current = _uiState.value ?: return
+        // Historical Names: the visit carries the name in use on the visit date
+        val baseName = currentTempleName ?: current.holyPlaceName
+        val effective = HistoricalNamesHelper.toLocalDate(newDate)
+            ?.let { templeNameChanges.effectiveName(baseName, it) }
+            ?: baseName
+        _uiState.value = current.copy(dateVisited = newDate, holyPlaceName = effective)
     }
 
     fun onOrdinanceCountChanged(type: OrdinanceType, countString: String) {

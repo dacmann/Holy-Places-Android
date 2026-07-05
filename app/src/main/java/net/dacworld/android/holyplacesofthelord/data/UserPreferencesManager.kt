@@ -74,6 +74,9 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val ACTIVE_PROFILE_ID_KEY = stringPreferencesKey("active_profile_id")
         val PROFILES_ENABLED_KEY = booleanPreferencesKey("profiles_enabled")
 
+        // Historical Names (v4): one-time backfill of name changes, dedication dates,
+        // and visit-name repair after upgrading to the schema that supports them.
+        val HISTORICAL_DATA_BACKFILL_DONE_KEY = booleanPreferencesKey("historical_data_backfill_done")
     }
 
     // --- Flows for New Settings ---
@@ -433,6 +436,20 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
     suspend fun saveProfilesEnabled(enabled: Boolean) {
         dataStoreInstance.edit { preferences ->
             preferences[PreferencesKeys.PROFILES_ENABLED_KEY] = enabled
+        }
+    }
+
+    // --- Historical Names one-time backfill (v4) ---
+
+    val historicalDataBackfillDoneFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.HISTORICAL_DATA_BACKFILL_DONE_KEY] ?: false
+        }
+
+    suspend fun setHistoricalDataBackfillDone(done: Boolean) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.HISTORICAL_DATA_BACKFILL_DONE_KEY] = done
         }
     }
 

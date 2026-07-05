@@ -22,7 +22,7 @@ interface TempleDao {
      * The `picture_url` IS selected.
      */
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
-    @Query("SELECT temple_id, name, address, snippet, city_state, country, phone, latitude, longitude, \"order\", announced_date, site_url, type, info_url, sq_ft, fh_code, picture_url, (picture_data IS NOT NULL) as hasLocalPictureData FROM temples ORDER BY name ASC")
+    @Query("SELECT temple_id, name, address, snippet, city_state, country, phone, latitude, longitude, \"order\", announced_date, dedicated_date, site_url, type, info_url, sq_ft, fh_code, picture_url, (picture_data IS NOT NULL) as hasLocalPictureData FROM temples ORDER BY name ASC")
     suspend fun getAllTemplesForSyncOrList(): List<Temple> // pictureData will be null
 
     /**
@@ -90,6 +90,13 @@ interface TempleDao {
     suspend fun updatePicture(id: String, pictureUrl: String?, pictureData: ByteArray?)
 
     /**
+     * Targeted update of the dedication date (ISO local date string via Converters).
+     * Used by the one-time v4 backfill so other metadata is left untouched.
+     */
+    @Query("UPDATE temples SET dedicated_date = :dedicatedDate WHERE temple_id = :id")
+    suspend fun updateDedicatedDate(id: String, dedicatedDate: java.time.LocalDate?)
+
+    /**
      * Fetches all temple IDs. Used for identifying orphans.
      */
     @Query("SELECT temple_id FROM temples")
@@ -108,24 +115,24 @@ interface TempleDao {
     suspend fun insertAllTemples(temples: List<Temple>)
 
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
-    @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, type, sq_ft, fh_code FROM temples ORDER BY name ASC")
+    @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, dedicated_date, type, sq_ft, fh_code FROM temples ORDER BY name ASC")
     fun getAllTemples(): Flow<List<Temple>> // Flow for reactive updates
 
     // New method to get a simple list for comparison
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
-    @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, type, sq_ft, fh_code FROM temples ORDER BY name ASC")
+    @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, dedicated_date, type, sq_ft, fh_code FROM temples ORDER BY name ASC")
     suspend fun getAllTemplesList(): List<Temple>
 
     @Query("SELECT * FROM temples WHERE temple_id = :id")
     suspend fun getTempleById(id: String): Temple?
 
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
-    @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, type, sq_ft, fh_code FROM ${TempleContract.TABLE_NAME} WHERE name LIKE :searchQuery || '%' ORDER BY name ASC")
+    @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, dedicated_date, type, sq_ft, fh_code FROM ${TempleContract.TABLE_NAME} WHERE name LIKE :searchQuery || '%' ORDER BY name ASC")
     fun searchTemplesByName(searchQuery: String): Flow<List<Temple>>
 
     // Example: Query to get temples by country
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
-    @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, type, sq_ft, fh_code FROM ${TempleContract.TABLE_NAME} WHERE country = :countryName ORDER BY name ASC")
+    @Query("SELECT temple_id, name, snippet, city_state, country, picture_url, latitude, longitude, \"order\", announced_date, dedicated_date, type, sq_ft, fh_code FROM ${TempleContract.TABLE_NAME} WHERE country = :countryName ORDER BY name ASC")
     fun getTemplesByCountry(countryName: String): Flow<List<Temple>>
 
     // If you need a version that doesn't use Flow (e.g., for one-shot operations in a background thread)

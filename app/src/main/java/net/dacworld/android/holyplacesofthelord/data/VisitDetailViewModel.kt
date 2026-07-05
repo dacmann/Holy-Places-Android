@@ -9,14 +9,19 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import net.dacworld.android.holyplacesofthelord.dao.NameChangeDao
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.model.Temple
+import net.dacworld.android.holyplacesofthelord.model.TempleNameChange
 import net.dacworld.android.holyplacesofthelord.model.Visit
+import net.dacworld.android.holyplacesofthelord.model.applicableNameChange
+import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 
 class VisitDetailViewModel(
     visitDao: VisitDao,
     templeDao: TempleDao,
+    private val nameChangeDao: NameChangeDao,
     visitId: Long
 ) : ViewModel() {
 
@@ -45,6 +50,29 @@ class VisitDetailViewModel(
         .flatMapLatest { v ->
             flow {
                 emit(if (v != null) templeDao.getTempleWithPictureById(v.placeID) else null)
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    /**
+     * Historical Names: when this visit predates a place rename that carries an
+     * old image, expose that name change so the UI can show the photo (and name)
+     * from when the user was there.
+     */
+    val historicalNameChange: StateFlow<TempleNameChange?> = visit
+        .flatMapLatest { v ->
+            flow {
+                val visitDate = HistoricalNamesHelper.toLocalDate(v?.dateVisited)
+                if (v == null || visitDate == null) {
+                    emit(null)
+                } else {
+                    val changes = nameChangeDao.getNameChangesForTemple(v.placeID)
+                    emit(changes.applicableNameChange(visitDate))
+                }
             }
         }
         .stateIn(

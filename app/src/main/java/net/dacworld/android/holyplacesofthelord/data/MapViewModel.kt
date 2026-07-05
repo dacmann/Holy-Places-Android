@@ -5,13 +5,20 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import net.dacworld.android.holyplacesofthelord.dao.NameChangeDao
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.model.Temple
+import net.dacworld.android.holyplacesofthelord.model.TempleNameChange
+import net.dacworld.android.holyplacesofthelord.model.effectiveName
 import org.maplibre.android.camera.CameraPosition
+import java.time.LocalDate
 
 // MapPlace data class remains the same (as it was in your provided code)
 data class MapPlace(
@@ -41,9 +48,25 @@ enum class TempleFilterType(val typeKey: String?) {
     ANNOUNCED("A");
 }
 
+/** One dedication event shown on the Map Timeline. */
+private data class TimelineEntry(
+    val id: String,
+    val currentName: String,
+    val latitude: Double,
+    val longitude: Double,
+    val type: String,
+    val dedicatedDate: LocalDate,
+    val nameChanges: List<TempleNameChange> = emptyList(),
+    /** Fixed display name overriding effectiveName (used by injected pre-1877 pins). */
+    val fixedName: String? = null,
+    /** True for the injected original (1846) Nauvoo pin — hidden once the modern temple appears. */
+    val isOriginalNauvoo: Boolean = false
+)
+
 class MapViewModel(
     private val templeDao: TempleDao,
     private val visitDao: VisitDao,
+    private val nameChangeDao: NameChangeDao,
     private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
@@ -96,7 +119,209 @@ class MapViewModel(
         }
     }
 
+    // ===================== Map Timeline (iOS 5.6/5.7 parity) =====================
+
+    private val _isTimelineActive = MutableLiveData(false)
+    val isTimelineActive: LiveData<Boolean> = _isTimelineActive
+
+    private val _timelineYear = MutableLiveData<Int>()
+    val timelineYear: LiveData<Int> = _timelineYear
+
+    private val _timelineYearRange = MutableLiveData<Pair<Int, Int>>() // min to max
+    val timelineYearRange: LiveData<Pair<Int, Int>> = _timelineYearRange
+
+    private val _timelineVisibleCount = MutableLiveData(0)
+    val timelineVisibleCount: LiveData<Int> = _timelineVisibleCount
+
+    private val _isTimelinePlaying = MutableLiveData(false)
+    val isTimelinePlaying: LiveData<Boolean> = _isTimelinePlaying
+
+    private var timelineEntries: List<TimelineEntry> = emptyList()
+    private var sortedDedicationYears: List<Int> = emptyList()
+    private var playbackJob: Job? = null
+
+    /** Modern Nauvoo dedication year — original Nauvoo pin is hidden from then on. */
+    private var modernNauvooYear: Int? = null
+
+    fun startTimeline() {
+        if (_isTimelineActive.value == true) return
+        viewModelScope.launch {
+            try {
+                buildTimelineEntries()
+                if (timelineEntries.isEmpty()) {
+                    Log.w(TAG, "Timeline has no dedication data; not activating.")
+                    return@launch
+                }
+                val years = timelineEntries.map { it.dedicatedDate.year }.distinct().sorted()
+                sortedDedicationYears = years
+                _timelineYearRange.value = Pair(years.first(), years.last())
+                _isTimelineActive.value = true
+                // Start at the beginning of the timeline (Kirtland, 1836)
+                setTimelineYear(years.first(), force = true)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error starting timeline: ${e.message}", e)
+            }
+        }
+    }
+
+    fun stopTimeline() {
+        if (_isTimelineActive.value != true) return
+        pauseTimeline()
+        _isTimelineActive.value = false
+        timelineEntries = emptyList()
+        sortedDedicationYears = emptyList()
+        // Restore the regular filtered pins
+        loadAndFilterPlaces()
+    }
+
+    fun setTimelineYear(year: Int, force: Boolean = false) {
+        if (_isTimelineActive.value != true) return
+        val clamped = _timelineYearRange.value?.let { (min, max) -> year.coerceIn(min, max) } ?: year
+        if (!force && _timelineYear.value == clamped) return
+        _timelineYear.value = clamped
+        rebuildTimelinePins(clamped)
+    }
+
+    fun nextTimelineYear() {
+        val current = _timelineYear.value ?: return
+        sortedDedicationYears.firstOrNull { it > current }?.let { setTimelineYear(it) }
+    }
+
+    fun previousTimelineYear() {
+        val current = _timelineYear.value ?: return
+        sortedDedicationYears.lastOrNull { it < current }?.let { setTimelineYear(it) }
+    }
+
+    /**
+     * Animates the slider from its current position (restarting from the
+     * beginning when already at the end) to the last year over ~20 seconds.
+     */
+    fun playTimeline() {
+        if (_isTimelineActive.value != true || _isTimelinePlaying.value == true) return
+        val range = _timelineYearRange.value ?: return
+        val (minYear, maxYear) = range
+        val startYear = _timelineYear.value?.takeIf { it < maxYear } ?: minYear
+        _isTimelinePlaying.value = true
+        playbackJob = viewModelScope.launch {
+            val totalTicks = 400
+            val tickMs = 50L // 400 x 50ms = ~20 seconds
+            val span = (maxYear - minYear).coerceAtLeast(1)
+            val startFraction = (startYear - minYear).toFloat() / span
+            val startTick = (startFraction * totalTicks).toInt()
+            try {
+                for (tick in startTick..totalTicks) {
+                    if (!isActive) break
+                    val year = minYear + ((tick.toFloat() / totalTicks) * span).toInt()
+                    if (year != _timelineYear.value) {
+                        setTimelineYear(year)
+                    }
+                    delay(tickMs)
+                }
+            } finally {
+                _isTimelinePlaying.postValue(false)
+            }
+        }
+    }
+
+    fun pauseTimeline() {
+        playbackJob?.cancel()
+        playbackJob = null
+        _isTimelinePlaying.value = false
+    }
+
+    private suspend fun buildTimelineEntries() {
+        val allTemples = templeDao.getAllTemplesForSyncOrList()
+        val changesByTemple = nameChangeDao.getAllNameChanges().groupBy { it.templeId }
+        val entries = mutableListOf<TimelineEntry>()
+
+        // Active temples with a parsed dedication date
+        for (temple in allTemples) {
+            if (temple.type != "T") continue
+            val dedicated = temple.dedicatedDate ?: continue
+            entries.add(
+                TimelineEntry(
+                    id = temple.id,
+                    currentName = temple.name,
+                    latitude = temple.latitude,
+                    longitude = temple.longitude,
+                    type = temple.type,
+                    dedicatedDate = dedicated,
+                    nameChanges = changesByTemple[temple.id] ?: emptyList()
+                )
+            )
+        }
+
+        // Kirtland Temple (historical, type H) — dedicated 27 March 1836
+        allTemples.firstOrNull { it.type == "H" && it.name.contains("Kirtland Temple", ignoreCase = true) }
+            ?.let { kirtland ->
+                entries.add(
+                    TimelineEntry(
+                        id = kirtland.id,
+                        currentName = kirtland.name,
+                        latitude = kirtland.latitude,
+                        longitude = kirtland.longitude,
+                        type = "H",
+                        dedicatedDate = LocalDate.of(1836, 3, 27),
+                        fixedName = kirtland.name
+                    )
+                )
+            }
+
+        // Original Nauvoo Temple — dedicated 1 May 1846, at the modern temple's site
+        val modernNauvoo = allTemples.firstOrNull { it.type == "T" && it.name.contains("Nauvoo", ignoreCase = true) }
+        if (modernNauvoo != null) {
+            modernNauvooYear = modernNauvoo.dedicatedDate?.year
+            entries.add(
+                TimelineEntry(
+                    id = modernNauvoo.id,
+                    currentName = "Nauvoo Temple",
+                    latitude = modernNauvoo.latitude,
+                    longitude = modernNauvoo.longitude,
+                    type = "H",
+                    dedicatedDate = LocalDate.of(1846, 5, 1),
+                    fixedName = "Nauvoo Temple",
+                    isOriginalNauvoo = true
+                )
+            )
+        }
+
+        timelineEntries = entries
+        Log.d(TAG, "Timeline built with ${entries.size} dedication entries.")
+    }
+
+    private fun rebuildTimelinePins(cutoffYear: Int) {
+        // Names reflect what the place was called at the end of the slider year
+        val sliderDate = LocalDate.of(cutoffYear, 12, 31)
+        val modernNauvooVisible = modernNauvooYear?.let { cutoffYear >= it } ?: false
+
+        val visible = timelineEntries.filter { entry ->
+            if (entry.dedicatedDate.year > cutoffYear) return@filter false
+            // Hide the injected original Nauvoo pin once the modern temple appears
+            if (entry.isOriginalNauvoo && modernNauvooVisible) return@filter false
+            true
+        }
+
+        val pins = visible.map { entry ->
+            MapPlace(
+                id = entry.id,
+                name = entry.fixedName ?: entry.nameChanges.effectiveName(entry.currentName, sliderDate),
+                latitude = entry.latitude,
+                longitude = entry.longitude,
+                type = entry.type,
+                isVisited = false
+            )
+        }
+        _timelineVisibleCount.value = pins.size
+        _mapPlaces.value = pins
+    }
+
+    // ===================== End Map Timeline =====================
+
     private fun loadAndFilterPlaces() {
+        if (_isTimelineActive.value == true) {
+            Log.d(TAG, "loadAndFilterPlaces skipped: timeline is active.")
+            return
+        }
         val currentFilter = _currentFilterType.value ?: TempleFilterType.ALL // Get current filter, default to ALL
         Log.d(TAG, "loadAndFilterPlaces called. Current filter: ${currentFilter.name}")
 

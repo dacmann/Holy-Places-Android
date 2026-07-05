@@ -8,11 +8,15 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import net.dacworld.android.holyplacesofthelord.model.Converters
+import net.dacworld.android.holyplacesofthelord.model.NameChangeContract
 import net.dacworld.android.holyplacesofthelord.model.Profile
 import net.dacworld.android.holyplacesofthelord.model.ProfileContract
 import net.dacworld.android.holyplacesofthelord.model.Temple
+import net.dacworld.android.holyplacesofthelord.model.TempleContract
+import net.dacworld.android.holyplacesofthelord.model.TempleNameChange
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.model.VisitContract
+import net.dacworld.android.holyplacesofthelord.dao.NameChangeDao
 import net.dacworld.android.holyplacesofthelord.dao.ProfileDao
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
@@ -113,9 +117,47 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+/**
+ * v3 → v4: Historical Names + Map Timeline support.
+ *   - New table: temple_name_changes (historical names with change dates and old images)
+ *   - New nullable column on temples: dedicated_date (TEXT, ISO local date)
+ *
+ * Idempotent so a partially-applied migration (e.g. interrupted launch) can safely retry.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        if (!tableExists(db, NameChangeContract.TABLE_NAME)) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS ${NameChangeContract.TABLE_NAME} (
+                    ${NameChangeContract.COLUMN_ID}             INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    ${NameChangeContract.COLUMN_TEMPLE_ID}      TEXT    NOT NULL,
+                    ${NameChangeContract.COLUMN_OLD_NAME}       TEXT    NOT NULL,
+                    ${NameChangeContract.COLUMN_CHANGE_DATE}    TEXT,
+                    ${NameChangeContract.COLUMN_OLD_IMAGE_URL}  TEXT,
+                    ${NameChangeContract.COLUMN_OLD_IMAGE_DATA} BLOB,
+                    FOREIGN KEY(${NameChangeContract.COLUMN_TEMPLE_ID})
+                        REFERENCES ${TempleContract.TABLE_NAME}(${TempleContract.COLUMN_ID})
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+        }
+        if (!indexExists(db, "index_temple_name_changes_temple_id")) {
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_temple_name_changes_temple_id " +
+                    "ON ${NameChangeContract.TABLE_NAME} (${NameChangeContract.COLUMN_TEMPLE_ID})"
+            )
+        }
+        if (!columnExists(db, TempleContract.TABLE_NAME, "dedicated_date")) {
+            db.execSQL("ALTER TABLE ${TempleContract.TABLE_NAME} ADD COLUMN dedicated_date TEXT")
+        }
+    }
+}
+
 @Database(
-    entities = [Temple::class, Visit::class, Profile::class],
-    version = 3,
+    entities = [Temple::class, Visit::class, Profile::class, TempleNameChange::class],
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -124,6 +166,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun templeDao(): TempleDao
     abstract fun visitDao(): VisitDao
     abstract fun profileDao(): ProfileDao
+    abstract fun nameChangeDao(): NameChangeDao
 
     companion object {
         @Volatile
@@ -136,7 +179,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "holy_places_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

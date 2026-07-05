@@ -44,6 +44,9 @@ captures/
 .idea/assetWizardSettings.xml
 .idea/navEditor.xml
 .idea/studiobot.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/appInsightsSettings.xml
 
 # Keystore files
 *.jks

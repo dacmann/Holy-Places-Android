@@ -30,6 +30,9 @@ data class Temple(
     @ColumnInfo(name = "announced_date")
     var announcedDate: LocalDate? = null,
 
+    @ColumnInfo(name = "dedicated_date")
+    var dedicatedDate: LocalDate? = null,
+
     @ColumnInfo(name = "picture_url")
     var pictureUrl: String = "", // Changed to var, added default
     @ColumnInfo(name = "site_url")
@@ -53,8 +56,21 @@ data class Temple(
     var hasLocalPictureData: Boolean = false,
 
     @Ignore
-    var distance: Double? = null
+    var distance: Double? = null,
+
+    /**
+     * Historical names parsed from `<oldName>` XML elements. Carrier used during
+     * parsing/sync only — persisted separately in the temple_name_changes table.
+     */
+    @Ignore
+    var nameChanges: List<TempleNameChange> = emptyList()
 ) {
+    /**
+     * The name this place had on [onDate], using the parser-populated [nameChanges].
+     * Mirrors iOS `Temple.effectiveName(for:)`.
+     */
+    fun effectiveName(onDate: LocalDate): String = nameChanges.effectiveName(name, onDate)
+
     // The calculateDistance methods remain the same
 
     /**
@@ -138,6 +154,7 @@ data class Temple(
         if (longitude != other.longitude) return false
         if (order != other.order) return false
         if (announcedDate != other.announcedDate) return false
+        if (dedicatedDate != other.dedicatedDate) return false
         if (pictureUrl != other.pictureUrl) return false
         if (siteUrl != other.siteUrl) return false
         if (type != other.type) return false
@@ -163,6 +180,7 @@ data class Temple(
             longitude,
             order,
             announcedDate,
+            dedicatedDate,
             pictureUrl, // Keep pictureUrl
             siteUrl,
             type,

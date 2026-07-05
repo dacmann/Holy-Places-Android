@@ -12,8 +12,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
+import net.dacworld.android.holyplacesofthelord.database.AppDatabase
 import net.dacworld.android.holyplacesofthelord.model.Achievement
 import net.dacworld.android.holyplacesofthelord.util.AchievementCalculator
+import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 import java.util.Calendar
 
 /**
@@ -64,8 +66,13 @@ class AchievementRepository(
         recalculate(visits, isOrdinanceWorker)
     }
 
-    private fun recalculate(visits: List<net.dacworld.android.holyplacesofthelord.model.Visit>, isOrdinanceWorker: Boolean) {
-        val computed = calculator.calculate(visits, isOrdinanceWorker)
+    private suspend fun recalculate(visits: List<net.dacworld.android.holyplacesofthelord.model.Visit>, isOrdinanceWorker: Boolean) {
+        // Historical Names: normalize old names to the canonical current name so
+        // a renamed temple counts once toward unique-place achievements.
+        val db = AppDatabase.getDatabase(context)
+        val canonicalMap = HistoricalNamesHelper.buildCanonicalNameMap(db.templeDao(), db.nameChangeDao())
+        val normalizedVisits = HistoricalNamesHelper.normalizeVisitNames(visits, canonicalMap)
+        val computed = calculator.calculate(normalizedVisits, isOrdinanceWorker)
         _achievements.value = computed
         _completedAchievements.value = computed.filter { it.achieved != null }
         _incompleteAchievements.value = computed.filter { it.achieved == null }
