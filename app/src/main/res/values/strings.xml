@@ -312,7 +312,7 @@
     <string name="whats_new_title_1_9">What\'s New in 1.9</string>
     <string name="whats_new_map_timeline">Map Timeline – Tap Timeline on the Map tab to watch temples spread across the world year by year, from Kirtland (1836) to today, or tap Play for an animated journey.</string>
     <string name="whats_new_historical_names">Historical names and images for renamed places – older visits keep the name and photo from when you were there, and timeline pins show the name in use at the time.</string>
-    <string name="whats_new_share_sheet">Redesigned Share – tap the share icon on the Home tab to send an App Store or Google Play link, display a QR code for either store, or view, print, and share the promotional brochure.</string>
+    <string name="whats_new_share_sheet">New Share Sheet – tap the share icon on the Home tab to send an App Store or Google Play link, display a QR code for either store, or view, print, and share the promotional brochure.</string>
     <string name="whats_new_photo_rotation">Photo orientation fix – visit photos now import upright automatically, and rotate buttons let you correct any existing photo directly on the edit screen.</string>
 
     <!-- Map Timeline -->
