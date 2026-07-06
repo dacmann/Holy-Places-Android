@@ -343,21 +343,16 @@ class MapViewModel(
                 val visitedTempleIds = visitDao.getVisitedTemplePlaceIdsByProfile(profileId).first().toSet()
                 Log.d(TAG, "Fetched ${visitedTempleIds.size} visited place IDs for profile $profileId.")
 
-                val resultingMapPlaces = templesToProcess.mapNotNull { temple ->
-                    if (temple.latitude == null || temple.longitude == null) {
-                        Log.w(TAG, "Skipping temple (ID: ${temple.id}, Name: ${temple.name}) due to null coordinates.")
-                        null // Skip if coordinates are null
-                    } else {
-                        MapPlace(
-                            id = temple.id,
-                            name = temple.name, // temple.name is not nullable as per Temple.kt
-                            latitude = temple.latitude, // Not nullable
-                            longitude = temple.longitude, // Not nullable
-                            type = temple.type, // This comes directly from Temple.type
-                            isVisited = visitedTempleIds.contains(temple.id),
-                            address = temple.address
-                        )
-                    }
+                val resultingMapPlaces = templesToProcess.map { temple ->
+                    MapPlace(
+                        id = temple.id,
+                        name = temple.name,
+                        latitude = temple.latitude,
+                        longitude = temple.longitude,
+                        type = temple.type,
+                        isVisited = visitedTempleIds.contains(temple.id),
+                        address = temple.address
+                    )
                 }
                 Log.d(TAG, "Mapped to ${resultingMapPlaces.size} MapPlace objects.")
 

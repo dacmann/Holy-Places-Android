@@ -249,7 +249,7 @@ class VisitsFragment : Fragment() {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 // Use viewHolder.adapterPosition
-                val position = viewHolder.adapterPosition // CHANGED FROM bindingAdapterPosition
+                val position = viewHolder.bindingAdapterPosition
                 if (position == RecyclerView.NO_POSITION) {
                     return
                 }

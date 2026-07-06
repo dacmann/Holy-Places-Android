@@ -714,11 +714,6 @@ class PlacesFragment : Fragment() {
             PlaceSort.DEDICATION_DATE -> getString(R.string.sort_label_dedication_date)
             PlaceSort.SIZE -> getString(R.string.sort_label_size)
             PlaceSort.ANNOUNCED_DATE -> getString(R.string.sort_label_announced_date)
-            // Add other cases if your PlaceSort enum has more options
-            else -> {
-                Log.w("PlacesFragment", "Unknown sort order encountered: $sortOrder")
-                getString(R.string.sort_label_unknown) // Fallback for any unhandled or new sort orders
-            }
         }
     }
 

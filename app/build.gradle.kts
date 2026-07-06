@@ -5,6 +5,9 @@ plugins {
 }
 kotlin {
     jvmToolchain(17)
+    compilerOptions {
+        freeCompilerArgs.addAll("-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi")
+    }
 }
 android {
     namespace = "net.dacworld.android.holyplacesofthelord"

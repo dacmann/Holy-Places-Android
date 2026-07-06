@@ -162,12 +162,6 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
     private fun setupVisitScopeToggleButtons() {
         Log.d("MapFragment", "setupVisitScopeToggleButtons() called")
         val toggleGroup = binding.mapVisitScopeToggleGroup
-        Log.d("MapFragment", "toggleGroup found: $toggleGroup")
-    
-        if (toggleGroup == null) {
-            Log.e("MapFragment", "toggleGroup is null!")
-            return
-        }
 
         // Set initial checked state based on DataViewModel
         viewLifecycleOwner.lifecycleScope.launch {
@@ -576,14 +570,16 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
 
             // Initial data load if ViewModel already has data
             val currentPlaces = mapViewModel.mapPlaces.value
-            if (currentPlaces != null && currentPlaces.isNotEmpty()) {
-                Log.d(FRAGMENT_TAG, "Map ready, and places already available. Loading ${currentPlaces.size} features.")
-                loadPlacesIntoSource(currentPlaces)
-            } else if (currentPlaces != null && currentPlaces.isEmpty()) {
-                Log.d(FRAGMENT_TAG, "Map ready, ViewModel has empty list of places.")
-                clearAllPlacesFromSource()
-            } else {
-                Log.d(FRAGMENT_TAG, "Map ready, ViewModel places is null. Waiting for observer.")
+            when {
+                currentPlaces != null && currentPlaces.isNotEmpty() -> {
+                    Log.d(FRAGMENT_TAG, "Map ready, and places already available. Loading ${currentPlaces.size} features.")
+                    loadPlacesIntoSource(currentPlaces)
+                }
+                currentPlaces != null -> {
+                    Log.d(FRAGMENT_TAG, "Map ready, ViewModel has empty list of places.")
+                    clearAllPlacesFromSource()
+                }
+                else -> Log.d(FRAGMENT_TAG, "Map ready, ViewModel places is null. Waiting for observer.")
             }
         }
     }

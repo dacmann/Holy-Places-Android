@@ -126,12 +126,8 @@ class SharedOptionsViewModel(
                 // New flows ADDED here for VISITED SCOPE ONLY:
                 dataViewModel.currentPlaceVisitedScope, // #3
                 dataViewModel.visitedTemplePlaceIdsFlow    // #4
-            ) { params ->
-                // Destructure parameters based on the order above:
-                val (currentFilter, currentSort, deviceLocation) = params[0] as Triple<PlaceFilter, PlaceSort, Location?>
-                val allTemplesFromDataVM = params[1] as List<Temple>
-                val visitedScope = params[2] as PlaceVisitedScope      // <<< NEW
-                val visitedIds = params[3] as Set<String>              // <<< NEW
+            ) { stateTriple, allTemplesFromDataVM, visitedScope, visitedIds ->
+                val (currentFilter, currentSort, deviceLocation) = stateTriple
 
                 Log.d("SharedVM_Combine", "F=$currentFilter, S=$currentSort, Scope=$visitedScope, Temples=${allTemplesFromDataVM.size}")
 
@@ -322,9 +318,7 @@ private fun insertHeadersIntoSortedList(
             }
         }
         PlaceSort.DEDICATION_DATE -> {
-            // Your iOS code for "Eras" based on `templeOrder`
             // sortedTemples is already sorted by 'order' from applySort
-            if (sortedTemples.isEmpty()) return emptyList()
             var currentEra = ""
             var eraStartIndex = 0
 
@@ -370,9 +364,7 @@ private fun insertHeadersIntoSortedList(
             }
         }
         PlaceSort.SIZE -> {
-            // Your iOS code for size categories based on `templeSqFt`
             // sortedTemples is already sorted by sqFt (desc) from applySort
-            if (sortedTemples.isEmpty()) return emptyList()
             Log.d("SharedVM_Headers", "Size sort selected. Preparing items with size prefix in snippet.")
             var currentSizeCategory = ""
             var categoryStartIndex = 0
@@ -422,9 +414,7 @@ private fun insertHeadersIntoSortedList(
             }
         }
         PlaceSort.ANNOUNCED_DATE -> {
-            // Your iOS code for grouping by formatted announced date string
             // sortedTemples is already sorted by announcedDate (desc) from applySort
-            if (sortedTemples.isEmpty()) return emptyList()
             var currentDateString = ""
             var dateStartIndex = 0
             // Requires API 26. If lower, use java.text.SimpleDateFormat

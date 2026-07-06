@@ -108,12 +108,12 @@ class ProfileManagementFragment : Fragment() {
             override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, t: RecyclerView.ViewHolder) = false
 
             override fun getSwipeDirs(rv: RecyclerView, vh: RecyclerView.ViewHolder): Int {
-                val item = adapter.currentList.getOrNull(vh.adapterPosition) ?: return 0
+                val item = adapter.currentList.getOrNull(vh.bindingAdapterPosition) ?: return 0
                 return if (item.profile.isDefault) 0 else super.getSwipeDirs(rv, vh)
             }
 
             override fun onSwiped(vh: RecyclerView.ViewHolder, direction: Int) {
-                val item = adapter.currentList.getOrNull(vh.adapterPosition) ?: return
+                val item = adapter.currentList.getOrNull(vh.bindingAdapterPosition) ?: return
                 val profile = item.profile
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle(getString(R.string.delete_profile_title, profile.name))
@@ -121,12 +121,12 @@ class ProfileManagementFragment : Fragment() {
                         getString(R.string.delete_profile_message, profile.name, item.visitCount)
                     )
                     .setNegativeButton(R.string.cancel) { _, _ ->
-                        adapter.notifyItemChanged(vh.adapterPosition)
+                        adapter.notifyItemChanged(vh.bindingAdapterPosition)
                     }
                     .setPositiveButton(R.string.delete) { _, _ ->
                         viewModel.deleteProfile(profile)
                     }
-                    .setOnCancelListener { adapter.notifyItemChanged(vh.adapterPosition) }
+                    .setOnCancelListener { adapter.notifyItemChanged(vh.bindingAdapterPosition) }
                     .show()
             }
 

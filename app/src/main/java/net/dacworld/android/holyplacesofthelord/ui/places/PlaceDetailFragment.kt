@@ -291,7 +291,7 @@ class PlaceDetailFragment : Fragment() {
                 return false
             }
             
-            if (e1 == null || e2 == null) return false
+            if (e1 == null) return false
 
             val diffY = e2.y - e1.y
             val diffX = e2.x - e1.x
@@ -490,7 +490,7 @@ class PlaceDetailFragment : Fragment() {
         val relevantTypes = listOf("T", "A", "C")
         val delimiter = " - "
 
-        if (templeType != null && relevantTypes.contains(templeType) && !temple.snippet.isNullOrBlank()) {
+        if (relevantTypes.contains(templeType) && temple.snippet.isNotBlank()) {
             Log.d("PlaceDetailDebug", "Attempting to split SNIPPET: '${temple.snippet}' with delimiter: '${delimiter}'")
             val parts = temple.snippet.split(delimiter, limit = 2) // Split the snippet
             Log.d("PlaceDetailDebug", "Parts count after SNIPPET split: ${parts.size}")
