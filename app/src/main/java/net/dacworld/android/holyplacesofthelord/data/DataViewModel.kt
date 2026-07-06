@@ -239,13 +239,10 @@ class DataViewModel(
                             dialogMessages.add("Place data has been updated to version $remoteVersion. ${holyPlacesData.temples.size} places loaded.")
                         }
                         val dialogTitle = "${holyPlacesData.changesDate ?: "Data"} Update"
-
-                        if (dialogMessages.isNotEmpty()) {
-                            _remoteUpdateDetails.value = UpdateDetails(
-                                updateTitle = dialogTitle,
-                                messages = dialogMessages
-                            )
-                        }
+                        _remoteUpdateDetails.value = UpdateDetails(
+                            updateTitle = dialogTitle,
+                            messages = dialogMessages
+                        )
 
                     } else { // holyPlacesData is null (download or parsing failed)
                         _remoteUpdateDetails.value = UpdateDetails(
@@ -363,11 +360,6 @@ class DataViewModel(
 
             val parsedData = connection.inputStream.use { inputStream ->
                 HolyPlacesXmlParser.parse(inputStream)
-            }
-
-            if (parsedData == null) {
-                Log.e("DataViewModel", "Failed to parse HolyPlaces.xml. Parsed data is null.")
-                return@withContext null
             }
             Log.d("DataViewModel", "Parsed ${parsedData.temples.size} temples from XML (Version: ${parsedData.version}).")
 

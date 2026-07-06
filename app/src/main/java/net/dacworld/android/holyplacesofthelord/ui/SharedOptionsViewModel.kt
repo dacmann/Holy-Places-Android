@@ -247,7 +247,7 @@ class SharedOptionsViewModel(
             PlaceSort.ALPHABETICAL -> filteredTemples.sortedBy { it.name }
             PlaceSort.COUNTRY -> filteredTemples.sortedWith(compareBy<Temple> { it.country }.thenBy { it.name })
             PlaceSort.DEDICATION_DATE -> {
-                filteredTemples.filter { it.order != null }.sortedBy { it.order }
+                filteredTemples.sortedBy { it.order }
             }
             PlaceSort.SIZE -> {
                 filteredTemples.sortedWith(compareByDescending { it.sqFt ?: Int.MIN_VALUE })
@@ -295,27 +295,21 @@ private fun insertHeadersIntoSortedList(
         PlaceSort.COUNTRY -> {
             var currentCountry = ""
             var countryStartIndex = 0
-            for (i in sortedTemples.indices) { // sortedTemples is already sorted by country then name by applySort
+            for (i in sortedTemples.indices) {
                 val temple = sortedTemples[i]
                 if (temple.country != currentCountry) {
                     if (currentCountry.isNotEmpty()) {
                         val itemsInCountry = sortedTemples.subList(countryStartIndex, i)
-                        if (itemsInCountry.isNotEmpty()){
-                            displayItems.add(DisplayListItem.HeaderItem(currentCountry, itemsInCountry.size))
-                            itemsInCountry.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
-                        }
+                        displayItems.add(DisplayListItem.HeaderItem(currentCountry, itemsInCountry.size))
+                        itemsInCountry.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
                     }
                     currentCountry = temple.country
                     countryStartIndex = i
                 }
             }
-            if (currentCountry.isNotEmpty()) {
-                val itemsInLastCountry = sortedTemples.subList(countryStartIndex, sortedTemples.size)
-                if (itemsInLastCountry.isNotEmpty()){
-                    displayItems.add(DisplayListItem.HeaderItem(currentCountry, itemsInLastCountry.size))
-                    itemsInLastCountry.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
-                }
-            }
+            val itemsInLastCountry = sortedTemples.subList(countryStartIndex, sortedTemples.size)
+            displayItems.add(DisplayListItem.HeaderItem(currentCountry, itemsInLastCountry.size))
+            itemsInLastCountry.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
         }
         PlaceSort.DEDICATION_DATE -> {
             // sortedTemples is already sorted by 'order' from applySort
@@ -340,28 +334,21 @@ private fun insertHeadersIntoSortedList(
 
             for (i in sortedTemples.indices) {
                 val temple = sortedTemples[i]
-                val era = getEraForOrder(temple.order ?: 0) // Handle null order safely
+                val era = getEraForOrder(temple.order)
 
                 if (era != currentEra) {
                     if (currentEra.isNotEmpty()) {
                         val itemsInEra = sortedTemples.subList(eraStartIndex, i)
-                        if (itemsInEra.isNotEmpty()) {
-                            displayItems.add(DisplayListItem.HeaderItem(currentEra, itemsInEra.size))
-                            itemsInEra.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
-                        }
+                        displayItems.add(DisplayListItem.HeaderItem(currentEra, itemsInEra.size))
+                        itemsInEra.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
                     }
                     currentEra = era
                     eraStartIndex = i
                 }
             }
-            // Add the last era's group
-            if (currentEra.isNotEmpty()) {
-                val itemsInLastEra = sortedTemples.subList(eraStartIndex, sortedTemples.size)
-                if (itemsInLastEra.isNotEmpty()) {
-                    displayItems.add(DisplayListItem.HeaderItem(currentEra, itemsInLastEra.size))
-                    itemsInLastEra.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
-                }
-            }
+            val itemsInLastEra = sortedTemples.subList(eraStartIndex, sortedTemples.size)
+            displayItems.add(DisplayListItem.HeaderItem(currentEra, itemsInLastEra.size))
+            itemsInLastEra.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
         }
         PlaceSort.SIZE -> {
             // sortedTemples is already sorted by sqFt (desc) from applySort
@@ -396,22 +383,16 @@ private fun insertHeadersIntoSortedList(
                 if (category != currentSizeCategory) {
                     if (currentSizeCategory.isNotEmpty()) {
                         val itemsInCategory = sortedTemples.subList(categoryStartIndex, i)
-                        if (itemsInCategory.isNotEmpty()) {
-                            displayItems.add(DisplayListItem.HeaderItem(currentSizeCategory, itemsInCategory.size))
-                            itemsInCategory.forEach { item -> displayItems.add(createModifiedTempleRowItem(item)) }
-                        }
+                        displayItems.add(DisplayListItem.HeaderItem(currentSizeCategory, itemsInCategory.size))
+                        itemsInCategory.forEach { item -> displayItems.add(createModifiedTempleRowItem(item)) }
                     }
                     currentSizeCategory = category
                     categoryStartIndex = i
                 }
             }
-            if (currentSizeCategory.isNotEmpty()) {
-                val itemsInLastCategory = sortedTemples.subList(categoryStartIndex, sortedTemples.size)
-                if (itemsInLastCategory.isNotEmpty()) {
-                    displayItems.add(DisplayListItem.HeaderItem(currentSizeCategory, itemsInLastCategory.size))
-                    itemsInLastCategory.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
-                }
-            }
+            val itemsInLastCategory = sortedTemples.subList(categoryStartIndex, sortedTemples.size)
+            displayItems.add(DisplayListItem.HeaderItem(currentSizeCategory, itemsInLastCategory.size))
+            itemsInLastCategory.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
         }
         PlaceSort.ANNOUNCED_DATE -> {
             // sortedTemples is already sorted by announcedDate (desc) from applySort
@@ -425,24 +406,20 @@ private fun insertHeadersIntoSortedList(
                 val dateString = temple.announcedDate?.format(formatter) ?: "Date Unknown"
 
                 if (dateString != currentDateString) {
-                    if (currentDateString.isNotEmpty() && !currentDateString.equals("Date Unknown", ignoreCase = true)) { // Don't group "Date Unknown" items under a single header unless intended
+                    if (currentDateString.isNotEmpty() && !currentDateString.equals("Date Unknown", ignoreCase = true)) {
                         val itemsForDate = sortedTemples.subList(dateStartIndex, i)
-                        if (itemsForDate.isNotEmpty()) {
-                            displayItems.add(DisplayListItem.HeaderItem(currentDateString, itemsForDate.size))
-                            itemsForDate.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
-                        }
+                        displayItems.add(DisplayListItem.HeaderItem(currentDateString, itemsForDate.size))
+                        itemsForDate.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
                     }
                     currentDateString = dateString
                     dateStartIndex = i
                 }
             }
-            if (currentDateString.isNotEmpty() && !currentDateString.equals("Date Unknown", ignoreCase = true)) {
+            if (!currentDateString.equals("Date Unknown", ignoreCase = true)) {
                 val itemsForLastDate = sortedTemples.subList(dateStartIndex, sortedTemples.size)
-                if (itemsForLastDate.isNotEmpty()){
-                    displayItems.add(DisplayListItem.HeaderItem(currentDateString, itemsForLastDate.size))
-                    itemsForLastDate.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
-                }
-            } else if (currentDateString.equals("Date Unknown", ignoreCase = true)) {
+                displayItems.add(DisplayListItem.HeaderItem(currentDateString, itemsForLastDate.size))
+                itemsForLastDate.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
+            } else {
                 // Handle all "Date Unknown" items - perhaps add them without a header, or a specific "Unknown Date" header
                 sortedTemples.subList(dateStartIndex, sortedTemples.size).forEach {
                     displayItems.add(DisplayListItem.TempleRowItem(it))
