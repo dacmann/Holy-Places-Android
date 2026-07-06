@@ -309,7 +309,7 @@ private fun insertHeadersIntoSortedList(
                     countryStartIndex = i
                 }
             }
-            if (currentCountry.isNotEmpty() && countryStartIndex < sortedTemples.size) {
+            if (currentCountry.isNotEmpty()) {
                 val itemsInLastCountry = sortedTemples.subList(countryStartIndex, sortedTemples.size)
                 if (itemsInLastCountry.isNotEmpty()){
                     displayItems.add(DisplayListItem.HeaderItem(currentCountry, itemsInLastCountry.size))
@@ -355,7 +355,7 @@ private fun insertHeadersIntoSortedList(
                 }
             }
             // Add the last era's group
-            if (currentEra.isNotEmpty() && eraStartIndex < sortedTemples.size) {
+            if (currentEra.isNotEmpty()) {
                 val itemsInLastEra = sortedTemples.subList(eraStartIndex, sortedTemples.size)
                 if (itemsInLastEra.isNotEmpty()) {
                     displayItems.add(DisplayListItem.HeaderItem(currentEra, itemsInLastEra.size))
@@ -405,7 +405,7 @@ private fun insertHeadersIntoSortedList(
                     categoryStartIndex = i
                 }
             }
-            if (currentSizeCategory.isNotEmpty() && categoryStartIndex < sortedTemples.size) {
+            if (currentSizeCategory.isNotEmpty()) {
                 val itemsInLastCategory = sortedTemples.subList(categoryStartIndex, sortedTemples.size)
                 if (itemsInLastCategory.isNotEmpty()) {
                     displayItems.add(DisplayListItem.HeaderItem(currentSizeCategory, itemsInLastCategory.size))
@@ -436,13 +436,13 @@ private fun insertHeadersIntoSortedList(
                     dateStartIndex = i
                 }
             }
-            if (currentDateString.isNotEmpty() && dateStartIndex < sortedTemples.size && !currentDateString.equals("Date Unknown", ignoreCase = true)) {
+            if (currentDateString.isNotEmpty() && !currentDateString.equals("Date Unknown", ignoreCase = true)) {
                 val itemsForLastDate = sortedTemples.subList(dateStartIndex, sortedTemples.size)
                 if (itemsForLastDate.isNotEmpty()){
                     displayItems.add(DisplayListItem.HeaderItem(currentDateString, itemsForLastDate.size))
                     itemsForLastDate.forEach { displayItems.add(DisplayListItem.TempleRowItem(it)) }
                 }
-            } else if (currentDateString.equals("Date Unknown", ignoreCase = true) && dateStartIndex < sortedTemples.size) {
+            } else if (currentDateString.equals("Date Unknown", ignoreCase = true)) {
                 // Handle all "Date Unknown" items - perhaps add them without a header, or a specific "Unknown Date" header
                 sortedTemples.subList(dateStartIndex, sortedTemples.size).forEach {
                     displayItems.add(DisplayListItem.TempleRowItem(it))

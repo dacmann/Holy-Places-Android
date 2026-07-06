@@ -235,20 +235,10 @@ class DataViewModel(
                         holyPlacesData.changesMsg2?.takeIf { it.isNotBlank() }?.let { dialogMessages.add(it) }
                         holyPlacesData.changesMsg3?.takeIf { it.isNotBlank() }?.let { dialogMessages.add(it) }
 
-                        val dialogTitle: String
-                        if (holyPlacesData.temples.isNotEmpty()) {
-                            // REMOVED: _lastUpdateMessage for successful update with temples
-                            if (dialogMessages.isEmpty()) {
-                                dialogMessages.add("Place data has been updated to version $remoteVersion. ${holyPlacesData.temples.size} places loaded.")
-                            }
-                            dialogTitle = "${holyPlacesData.changesDate ?: "Data"} Update"
-                        } else {
-                            // REMOVED: _lastUpdateMessage for successful update without temples
-                            if (dialogMessages.isEmpty()) {
-                                dialogMessages.add("Update messages for version $remoteVersion have been applied.")
-                            }
-                            dialogTitle = "${holyPlacesData.changesDate ?: "Messages"} Updated (v$remoteVersion)"
+                        if (dialogMessages.isEmpty()) {
+                            dialogMessages.add("Place data has been updated to version $remoteVersion. ${holyPlacesData.temples.size} places loaded.")
                         }
+                        val dialogTitle = "${holyPlacesData.changesDate ?: "Data"} Update"
 
                         if (dialogMessages.isNotEmpty()) {
                             _remoteUpdateDetails.value = UpdateDetails(
