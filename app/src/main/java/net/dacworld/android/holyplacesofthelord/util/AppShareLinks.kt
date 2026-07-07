@@ -14,6 +14,6 @@ object AppShareLinks {
         "https://apps.apple.com/us/app/holy-places-of-the-lord/id1200184537"
     )
 
-    const val PROMO_PDF_ASSET = "HolyPlacesPromo.pdf"
+    const val PROMO_PDF_URL = "https://dacworld.net/holyplaces/HolyPlacesPromo.pdf"
     const val PROMO_PDF_CACHE_NAME = "HolyPlacesPromo.pdf"
 }

@@ -378,5 +378,6 @@
     <string name="share_pdf_open">Open PDF</string>
     <string name="share_pdf_share">Share PDF</string>
     <string name="share_pdf_print">Print</string>
+    <string name="share_pdf_download_error">Could not download the promotional PDF. Check your connection and try again.</string>
 
 </resources>

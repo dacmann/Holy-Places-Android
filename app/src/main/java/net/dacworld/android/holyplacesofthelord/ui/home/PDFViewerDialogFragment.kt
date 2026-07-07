@@ -25,7 +25,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentPdfViewerBinding
+import android.widget.Toast
 import net.dacworld.android.holyplacesofthelord.util.AppShareLinks
+import net.dacworld.android.holyplacesofthelord.util.PromoPdfHelper
 import java.io.File
 
 class PDFViewerDialogFragment : DialogFragment() {
@@ -68,27 +70,22 @@ class PDFViewerDialogFragment : DialogFragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val file = ensurePdfCached()
+                val file = PromoPdfHelper.ensureCached(requireContext())
                 pdfCacheFile = file
                 openRenderer(file)
                 setupAdapter()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to open PDF", e)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.share_pdf_download_error),
+                    Toast.LENGTH_LONG
+                ).show()
+                dismissAllowingStateLoss()
             } finally {
                 binding.pdfLoadingIndicator.isVisible = false
             }
         }
-    }
-
-    private suspend fun ensurePdfCached(): File = withContext(Dispatchers.IO) {
-        val shareDir = File(requireContext().cacheDir, "share").apply { mkdirs() }
-        val dest = File(shareDir, AppShareLinks.PROMO_PDF_CACHE_NAME)
-        if (!dest.exists()) {
-            requireContext().assets.open(AppShareLinks.PROMO_PDF_ASSET).use { input ->
-                dest.outputStream().use { input.copyTo(it) }
-            }
-        }
-        dest
     }
 
     private suspend fun openRenderer(file: File) = withContext(Dispatchers.IO) {
