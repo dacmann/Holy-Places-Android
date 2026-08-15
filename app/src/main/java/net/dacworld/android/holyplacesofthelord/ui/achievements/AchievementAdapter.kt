@@ -14,10 +14,11 @@ import androidx.recyclerview.widget.RecyclerView
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.model.Achievement
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
-class AchievementAdapter : ListAdapter<Achievement, AchievementAdapter.AchievementViewHolder>(AchievementDiffCallback()) {
+class AchievementAdapter(
+    private val onShareClick: (Achievement, View) -> Unit
+) : ListAdapter<Achievement, AchievementAdapter.AchievementViewHolder>(AchievementDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AchievementViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_achievement, parent, false)
@@ -36,6 +37,7 @@ class AchievementAdapter : ListAdapter<Achievement, AchievementAdapter.Achieveme
         private val dateView: TextView = itemView.findViewById(R.id.achievementDate)
         private val progressBar: ProgressBar = itemView.findViewById(R.id.achievementProgressBar)
         private val progressContainer: View = itemView.findViewById(R.id.achievementProgressContainer)
+        private val shareButton: View = itemView.findViewById(R.id.achievementShareButton)
 
         private val dateFormat = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
 
@@ -71,6 +73,8 @@ class AchievementAdapter : ListAdapter<Achievement, AchievementAdapter.Achieveme
                 dateView.visibility = View.VISIBLE
                 dateView.text = achievement.achieved?.let { context.getString(R.string.achievement_on, dateFormat.format(it)) } ?: ""
                 progressContainer.visibility = View.GONE
+                shareButton.visibility = View.VISIBLE
+                shareButton.setOnClickListener { onShareClick(achievement, shareButton) }
                 itemView.minimumHeight = context.resources.getDimensionPixelSize(R.dimen.achievement_row_completed_height)
             } else {
                 val remaining = achievement.remaining
@@ -86,6 +90,8 @@ class AchievementAdapter : ListAdapter<Achievement, AchievementAdapter.Achieveme
                 progressBar.progress = ((achievement.progress ?: 0f) * 100).toInt()
                 val typeColor = getColorForAchievementType(context, achievement.iconName)
                 progressBar.progressTintList = ColorStateList.valueOf(typeColor)
+                shareButton.visibility = View.GONE
+                shareButton.setOnClickListener(null)
                 itemView.minimumHeight = context.resources.getDimensionPixelSize(R.dimen.achievement_row_incomplete_height)
             }
         }

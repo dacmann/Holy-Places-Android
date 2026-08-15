@@ -41,9 +41,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="17dp"
+            android:clickable="true"
+            android:contentDescription="@string/cd_change_place"
             android:ellipsize="none"
+            android:focusable="true"
             android:gravity="center"
             android:maxLines="1"
+            android:background="?attr/selectableItemBackground"
             app:autoSizeTextType="uniform"
             app:autoSizeMinTextSize="12sp"
             app:autoSizeStepGranularity="1sp"
@@ -464,20 +468,26 @@
                     app:srcCompat="@drawable/ic_add_circle_outline"/>
             </LinearLayout>
 
-            <!-- Picture Section - Anchored to Bottom -->
+            <!-- Picture Section -->
+            <Space
+                android:id="@+id/picture_section_top_space"
+                android:layout_width="0dp"
+                android:layout_height="24dp"
+                app:layout_constraintTop_toBottomOf="@id/layout_hours_worked"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
             <ImageView
                 android:id="@+id/image_view_visit_picture"
                 android:layout_width="120dp"
                 android:layout_height="120dp"
-                android:layout_marginTop="24dp"
                 android:scaleType="centerCrop"
                 android:visibility="gone"
                 tools:srcCompat="@tools:sample/backgrounds/scenic"
                 tools:visibility="visible"
                 app:layout_constraintBottom_toTopOf="@+id/rotate_buttons_container"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/layout_hours_worked"
-                app:layout_goneMarginTop="24dp"
+                app:layout_constraintTop_toBottomOf="@id/picture_section_top_space"
                 app:layout_constraintVertical_bias="1.0" />
 
             <!-- Rotate buttons — visible only when a photo is present -->
@@ -519,9 +529,10 @@
                 android:layout_height="wrap_content"
                 android:text="@string/button_add_picture"
                 app:icon="@drawable/ic_add_a_photo"
-                app:layout_constraintTop_toTopOf="@id/image_view_visit_picture"
+                app:layout_constraintTop_toBottomOf="@id/picture_section_top_space"
                 app:layout_constraintBottom_toBottomOf="@id/image_view_visit_picture"
                 app:layout_constraintStart_toEndOf="@id/image_view_visit_picture"
+                app:layout_goneMarginStart="0dp"
                 android:layout_marginStart="16dp" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>

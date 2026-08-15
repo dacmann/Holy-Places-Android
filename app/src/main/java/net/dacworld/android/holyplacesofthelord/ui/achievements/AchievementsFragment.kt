@@ -24,6 +24,9 @@ import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentAchievementsBinding
 import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModel
 import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModelFactory
+import net.dacworld.android.holyplacesofthelord.util.AchievementSharing
+import net.dacworld.android.holyplacesofthelord.util.CelebrationBoardConfig
+import net.dacworld.android.holyplacesofthelord.util.IntentUtils
 
 class AchievementsFragment : Fragment() {
 
@@ -67,7 +70,9 @@ class AchievementsFragment : Fragment() {
             }
         }
 
-        adapter = AchievementAdapter()
+        adapter = AchievementAdapter { achievement, sourceView ->
+            AchievementSharing.handleShareAction(this, achievement, sourceView)
+        }
         binding.achievementRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.achievementRecyclerView.adapter = adapter
         val dividerDrawable = ContextCompat.getDrawable(requireContext(), R.drawable.achievement_row_divider)!!
@@ -118,8 +123,13 @@ class AchievementsFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                profileViewModel.activeProfile.collectLatest { profile ->
-                    binding.toolbar.title = if (profile != null) {
+                combine(
+                    profileViewModel.profilesEnabled,
+                    profileViewModel.activeProfile
+                ) { enabled, profile ->
+                    enabled to profile
+                }.collectLatest { (enabled, profile) ->
+                    binding.toolbar.title = if (enabled && profile != null) {
                         getString(R.string.title_achievements_for_profile, profile.name)
                     } else {
                         getString(R.string.title_achievements)
@@ -129,6 +139,14 @@ class AchievementsFragment : Fragment() {
         }
 
         setupWindowInsets()
+
+        binding.viewCelebrationBoardButton.setOnClickListener {
+            IntentUtils.openUrl(
+                requireContext(),
+                CelebrationBoardConfig.PAGE_URL,
+                getString(R.string.celebration_board_name)
+            )
+        }
     }
 
     private fun setupWindowInsets() {

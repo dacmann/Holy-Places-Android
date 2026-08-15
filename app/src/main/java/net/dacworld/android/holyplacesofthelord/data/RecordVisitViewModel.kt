@@ -18,6 +18,7 @@ import net.dacworld.android.holyplacesofthelord.model.TempleNameChange
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.model.effectiveName
 import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
+import net.dacworld.android.holyplacesofthelord.util.OtherPlaceHelper
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -127,8 +128,13 @@ class RecordVisitViewModel(
         }
     }
 
-    /** Loads the current temple name and its rename history (no-op if unavailable). */
+    /** Loads the current temple name and its rename history (no-op for Other places). */
     private suspend fun loadNameChangeHistory(placeId: String) {
+        if (OtherPlaceHelper.isOtherId(placeId)) {
+            currentTempleName = null
+            templeNameChanges = emptyList()
+            return
+        }
         try {
             val db = AppDatabase.getDatabase(getApplication())
             currentTempleName = db.templeDao().getTempleByIdForSync(placeId)?.name
@@ -171,6 +177,41 @@ class RecordVisitViewModel(
             ?.let { templeNameChanges.effectiveName(baseName, it) }
             ?: baseName
         _uiState.value = current.copy(dateVisited = newDate, holyPlaceName = effective)
+    }
+
+    fun onPlaceChanged(placeId: String, placeName: String, placeType: String) {
+        val current = _uiState.value ?: return
+        val previousType = current.visitType
+        val leavingTemple = previousType == "T" && placeType != "T"
+        viewModelScope.launch {
+            val trimmedName = placeName.trim()
+            val isOther = OtherPlaceHelper.isOtherType(placeType) || OtherPlaceHelper.isOtherId(placeId)
+            val effective = if (isOther) {
+                currentTempleName = trimmedName
+                templeNameChanges = emptyList()
+                trimmedName
+            } else {
+                loadNameChangeHistory(placeId)
+                val date = current.dateVisited ?: Date()
+                val baseName = currentTempleName ?: trimmedName
+                HistoricalNamesHelper.toLocalDate(date)
+                    ?.let { templeNameChanges.effectiveName(baseName, it) }
+                    ?: baseName
+            }
+            _uiState.postValue(
+                current.copy(
+                    placeID = placeId,
+                    holyPlaceName = effective,
+                    visitType = placeType,
+                    baptisms = if (leavingTemple) 0 else current.baptisms,
+                    confirmations = if (leavingTemple) 0 else current.confirmations,
+                    initiatories = if (leavingTemple) 0 else current.initiatories,
+                    endowments = if (leavingTemple) 0 else current.endowments,
+                    sealings = if (leavingTemple) 0 else current.sealings,
+                    shiftHrs = if (leavingTemple) 0.0 else current.shiftHrs
+                )
+            )
+        }
     }
 
     fun onOrdinanceCountChanged(type: OrdinanceType, countString: String) {
@@ -450,7 +491,9 @@ class RecordVisitViewModel(
         val showProfileChipsSnapshot = _showProfileChips.value == true
 
         // Basic validation (example)
-        if (currentUiState.holyPlaceName.isBlank() || currentUiState.placeID.isBlank()) {
+        val isOther = OtherPlaceHelper.isOtherType(currentUiState.visitType) ||
+            OtherPlaceHelper.isOtherId(currentUiState.placeID)
+        if (currentUiState.holyPlaceName.isBlank() || (currentUiState.placeID.isBlank() && !isOther)) {
             _saveResultEvent.value = Event(false)
             return
         }
@@ -466,11 +509,20 @@ class RecordVisitViewModel(
                 val baseComments = currentUiState.comments?.trim()?.ifBlank { null }
                 val dateYear = currentUiState.dateVisited?.let { yearFormat.format(it) }
 
+                var resolvedPlaceId = currentUiState.placeID
+                var resolvedType = currentUiState.visitType
+                if (OtherPlaceHelper.isOtherType(resolvedType) || OtherPlaceHelper.isOtherId(resolvedPlaceId)) {
+                    val otherTemple = OtherPlaceHelper.createTemple(currentUiState.holyPlaceName)
+                    AppDatabase.getDatabase(getApplication()).templeDao().upsertOtherTemple(otherTemple)
+                    resolvedPlaceId = otherTemple.id
+                    resolvedType = OtherPlaceHelper.TYPE
+                }
+
                 fun buildVisit(id: Long, profileId: String?, comments: String?) = Visit(
                     id = id,
-                    placeID = currentUiState.placeID,
+                    placeID = resolvedPlaceId,
                     holyPlaceName = currentUiState.holyPlaceName.ifBlank { null },
-                    type = currentUiState.visitType,
+                    type = resolvedType,
                     dateVisited = currentUiState.dateVisited,
                     year = dateYear,
                     baptisms = currentUiState.baptisms,

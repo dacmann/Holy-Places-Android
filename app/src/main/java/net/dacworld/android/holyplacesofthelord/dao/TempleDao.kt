@@ -111,6 +111,24 @@ interface TempleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTemple(temple: Temple) // Use suspend for coroutines
 
+    /**
+     * Inserts an Other-place temple, or updates its name if the id already exists.
+     * Must not use REPLACE: SQLite REPLACE deletes the row first, and Visit
+     * has ON DELETE CASCADE, which would wipe visits that only changed casing.
+     */
+    @Query("UPDATE temples SET name = :name, type = :type WHERE temple_id = :id")
+    suspend fun updateTempleNameAndType(id: String, name: String, type: String)
+
+    @Transaction
+    suspend fun upsertOtherTemple(temple: Temple) {
+        val existing = getTempleByIdOnce(temple.id)
+        if (existing != null) {
+            updateTempleNameAndType(temple.id, temple.name, temple.type)
+        } else {
+            insertTemple(temple)
+        }
+    }
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllTemples(temples: List<Temple>)
 

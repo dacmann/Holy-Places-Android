@@ -36,6 +36,18 @@
         app:tabMode="fixed"
         app:tabGravity="fill" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/viewCelebrationBoardButton"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/view_celebration_board"
+        app:icon="@drawable/ic_globe"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/achievementTabs" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/achievementRecyclerView"
         android:layout_width="0dp"
@@ -45,7 +57,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/achievementTabs"
+        app:layout_constraintTop_toBottomOf="@id/viewCelebrationBoardButton"
         tools:listitem="@layout/item_achievement" />
 
     <TextView
@@ -59,7 +71,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/achievementTabs"
+        app:layout_constraintTop_toBottomOf="@id/viewCelebrationBoardButton"
         tools:visibility="visible" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

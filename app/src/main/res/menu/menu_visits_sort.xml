@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/sort_visits_by_date_desc"
+        android:title="@string/sort_by_date_latest_first" />
+    <item
+        android:id="@+id/sort_visits_by_date_asc"
+        android:title="@string/sort_by_date_oldest_first" />
+    <item
+        android:id="@+id/sort_visits_by_place_asc"
+        android:title="@string/sort_by_place_a_z" />
+    <item
+        android:id="@+id/sort_visits_by_place_desc"
+        android:title="@string/sort_by_place_z_a" />
+</menu>

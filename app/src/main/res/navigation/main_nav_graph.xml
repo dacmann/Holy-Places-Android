@@ -112,6 +112,35 @@
         <action
             android:id="@+id/action_visitsFragment_to_exportImportFragment"
             app:destination="@id/exportImportFragment" />
+        <action
+            android:id="@+id/action_visitsFragment_to_addVisitPlacePickerFragment"
+            app:destination="@id/addVisitPlacePickerFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addVisitPlacePickerFragment"
+        android:name="net.dacworld.android.holyplacesofthelord.ui.visits.AddVisitPlacePickerFragment"
+        android:label="@string/title_add_new_visit"
+        tools:layout="@layout/fragment_add_visit_place_picker">
+        <argument
+            android:name="isChangingPlace"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
+            android:name="currentPlaceId"
+            app:argType="string"
+            android:defaultValue="" />
+        <argument
+            android:name="currentPlaceName"
+            app:argType="string"
+            android:defaultValue="" />
+        <argument
+            android:name="currentPlaceType"
+            app:argType="string"
+            android:defaultValue="" />
+        <action
+            android:id="@+id/action_addVisitPlacePickerFragment_to_recordVisitFragment"
+            app:destination="@id/recordVisitFragment" />
     </fragment>
 
     <fragment
@@ -173,6 +202,9 @@
             android:name="placeType"
             app:argType="string" />
         <!-- Example: "T" for Temple, "H" for Historic Site, etc. -->
+        <action
+            android:id="@+id/action_recordVisitFragment_to_addVisitPlacePickerFragment"
+            app:destination="@id/addVisitPlacePickerFragment" />
     </fragment>
 
     <fragment

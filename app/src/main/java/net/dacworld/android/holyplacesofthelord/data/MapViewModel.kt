@@ -332,10 +332,13 @@ class MapViewModel(
                 Log.d(TAG, "Fetched ${allTemplesList.size} total temples from DAO.")
 
                 // Apply filtering based on currentFilter.typeKey
+                val withoutOther = allTemplesList.filter { temple ->
+                    temple.type != "O" && !temple.id.startsWith("other:")
+                }
                 val templesToProcess = if (currentFilter == TempleFilterType.ALL || currentFilter.typeKey == null) {
-                    allTemplesList // No type-specific filtering
+                    withoutOther
                 } else {
-                    allTemplesList.filter { temple -> temple.type == currentFilter.typeKey }
+                    withoutOther.filter { temple -> temple.type == currentFilter.typeKey }
                 }
                 Log.d(TAG, "Processing ${templesToProcess.size} temples after applying filter '${currentFilter.name}'.")
 

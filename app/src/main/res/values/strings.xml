@@ -44,7 +44,7 @@
     <string name="sort_label_unknown">Unknown Sort Order</string>
     <string name="title_visits_tab">Visits</string>
     <string name="search_visits_hint">Search Visits…</string>
-    <string name="no_visits_yet">Add Visits using the Record Visit button from the Place Details pages to see them here.</string>
+    <string name="no_visits_yet">Add Visits from the Place Details pages or by tapping the Add button below.\n\nIMPORTANT!\n\nTo ensure you don\'t lose your entered visits due to unforeseen circumstances, back-up your visits to an XML file from time to time.\n\nTap Export in the top right corner to access this feature; see the FAQ for more details.</string>
     <string name="add_new_visit">Add Visit</string>
     <string name="sort_by_date_latest_first">Sort by Latest Date</string>
     <string name="sort_by_date_oldest_first">Sort by Oldest Date</string>
@@ -379,5 +379,75 @@
     <string name="share_pdf_share">Share PDF</string>
     <string name="share_pdf_print">Print</string>
     <string name="share_pdf_download_error">Could not download the promotional PDF. Check your connection and try again.</string>
+
+    <!-- Add Visit / Change Place -->
+    <string name="title_add_new_visit">Add New Visit</string>
+    <string name="title_change_place">Change Place</string>
+    <string name="action_next">Next</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="place_picker_type_temple">Temple</string>
+    <string name="place_picker_type_historic">Historic</string>
+    <string name="place_picker_type_visitors">V. Center</string>
+    <string name="place_picker_type_other">Other</string>
+    <string name="place_picker_closest">Closest Place</string>
+    <string name="place_picker_other_hint">Place name</string>
+    <string name="place_picker_search_hint">Search places…</string>
+    <string name="cd_change_place">Changes the place for this visit</string>
+    <string name="place_picker_select_place">Please select a place</string>
+    <string name="location_permission_needed_closest">Location permission is needed to find the closest place.</string>
+
+    <!-- Celebration Board / Achievement sharing -->
+    <string name="celebration_board_name">Celebration Board</string>
+    <string name="view_celebration_board">View Celebration Board</string>
+    <string name="share_achievement">Share Achievement</string>
+    <string name="post_to_celebration_board">Post to Celebration Board</string>
+    <string name="cd_share_achievement">Share achievement</string>
+    <string name="achievement_unlocked_title">Congratulations!</string>
+    <string name="achievement_unlocked_heading">Achievement Unlocked!</string>
+    <string name="achievement_unlocked_index">Achievement %1$d of %2$d</string>
+    <string name="next_achievement">Next Achievement</string>
+    <string name="action_share">Share</string>
+    <string name="action_post">Post</string>
+    <string name="celebration_board_identity_message">Enter the name and location to show publicly with this achievement.</string>
+    <string name="celebration_board_full_name">Full name</string>
+    <string name="celebration_board_location">Where you live</string>
+    <string name="celebration_board_identity_footer">This name and location will appear publicly on the Celebration Board.</string>
+    <string name="celebration_board_name_location_required">Please enter your name and where you live.</string>
+    <string name="celebration_board_no_profile">No active profile is available for posting.</string>
+    <string name="celebration_board_prepare_failed">Unable to prepare submission.</string>
+    <string name="celebration_board_posting">Posting…</string>
+    <string name="celebration_board_post_success">Your achievement was posted successfully.</string>
+    <string name="celebration_board_posted_status">Posted to Celebration Board!</string>
+    <string name="celebration_board_post_failed">Post Failed</string>
+    <string name="celebration_board_share_caption">I just unlocked %1$s — %2$s. Holy Places of the Lord helped me record my visits and see this milestone come together. It’s a free app for keeping a personal history of temples and historic sites, available on the App Store and Google Play.</string>
+    <string name="home_tagline_quote">\"Stand ye in holy places, and be not moved...\"</string>
+    <string name="home_tagline_reference">D&amp;C 87:8</string>
+
+    <!-- Info version taps -->
+    <string name="whats_new_in_version">What\'s New in Version %1$s</string>
+    <string name="data_update_title">%1$s Update</string>
+    <string name="data_update_title_fallback">Data Update</string>
+    <string name="no_update_notes_available">No update notes are available.</string>
+    <string name="version_info_prefix">Version: </string>
+    <string name="version_info_separator"> | </string>
+
+    <!-- Map Timeline era -->
+    <string name="map_timeline_count_with_era">%1$d - %2$s</string>
+    <string name="temple_era_restoration">Restoration Era</string>
+    <string name="temple_era_pioneer">Pioneer Era</string>
+    <string name="temple_era_expansion">Expansion Era</string>
+    <string name="temple_era_strengthening">Strengthening Era</string>
+    <string name="temple_era_growth">Growth Era</string>
+    <string name="temple_era_explosive">Explosive Era</string>
+    <string name="temple_era_hastening">Hastening Era</string>
+    <string name="temple_era_unparalleled">Unparalleled Era</string>
+
+    <!-- What's New 1.10 -->
+    <string name="whats_new_title_1_10">What\'s New in 1.10</string>
+    <string name="whats_new_achievement_share">Share completed achievements as an image, and post eligible milestones to the public Celebration Board.</string>
+    <string name="whats_new_add_change_place">Add a visit from the Visits tab, and change the place on an existing visit when editing.</string>
+    <string name="whats_new_info_version_taps">Tap the version numbers on the Info screen to re-read app and data update messages.</string>
+    <string name="whats_new_timeline_era">Map Timeline now shows the temple era next to the count as you move through time.</string>
+    <string name="whats_new_map_filters_hide">Map Filters are hidden during Timeline so the Timeline control stays easy to use.</string>
 
 </resources>

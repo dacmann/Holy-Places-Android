@@ -28,13 +28,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dacworld.android.holyplacesofthelord.BuildConfig
 import net.dacworld.android.holyplacesofthelord.MyApplication
-import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.dao.NameChangeDao
 import net.dacworld.android.holyplacesofthelord.dao.TempleDao
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
+import net.dacworld.android.holyplacesofthelord.util.WhatsNewNotes
 import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.model.PlaceSort // <<< From OptionModels.kt
@@ -155,38 +155,8 @@ class DataViewModel(
     private suspend fun checkWhatsNew() {
         val lastSeen = userPreferencesManager.lastSeenAppVersionFlow.firstOrNull() ?: 0
         val current = BuildConfig.VERSION_CODE
-        // Show dialog when user hasn't seen this version yet: first install (lastSeen==0) or update (lastSeen < current)
         if (lastSeen != current) {
-            val title: String
-            val messages: List<String>
-            if (current >= 16 && lastSeen < 16) {
-                title = application.getString(R.string.whats_new_title_1_9)
-                messages = listOf(
-                    application.getString(R.string.whats_new_map_timeline),
-                    application.getString(R.string.whats_new_historical_names),
-                    application.getString(R.string.whats_new_share_sheet),
-                    application.getString(R.string.whats_new_photo_rotation)
-                )
-            } else if (current >= 15 && lastSeen < 15) {
-                title = application.getString(R.string.whats_new_title_1_8_2)
-                messages = listOf(
-                    application.getString(R.string.whats_new_profiles),
-                    application.getString(R.string.whats_new_profile_scoped_data),
-                    application.getString(R.string.whats_new_record_copy_visits),
-                    application.getString(R.string.whats_new_migration_fix)
-                )
-            } else {
-                title = application.getString(R.string.whats_new_title_1_8)
-                messages = listOf(
-                    application.getString(R.string.whats_new_profiles),
-                    application.getString(R.string.whats_new_profile_scoped_data),
-                    application.getString(R.string.whats_new_record_copy_visits)
-                )
-            }
-            _whatsNewUpdateDetails.value = UpdateDetails(
-                updateTitle = title,
-                messages = messages
-            )
+            _whatsNewUpdateDetails.value = WhatsNewNotes.notesForVersionBump(application, lastSeen, current)
             Log.d("DataViewModel", "What's New dialog will show: lastSeen=$lastSeen, current=$current")
         }
     }
@@ -199,6 +169,9 @@ class DataViewModel(
 
             if (!date.isNullOrBlank() || !msg1.isNullOrBlank() || !msg2.isNullOrBlank() || !msg3.isNullOrBlank()) {
                 _updateChangesSummary.value = formatChangesMessage(date, msg1, msg2, msg3)
+                if (!date.isNullOrBlank()) {
+                    _currentDataChangesDate.value = date
+                }
             } else {
                 _updateChangesSummary.value = "No update information available." // Or empty string
             }
@@ -479,7 +452,9 @@ class DataViewModel(
 
             // --- Delete Orphans ---
             val currentDbTempleIds = templeDao.getAllTempleIds().toSet()
-            val orphanIds = currentDbTempleIds.filter { it !in xmlTempleIds }
+            val orphanIds = currentDbTempleIds.filter {
+                it !in xmlTempleIds && !it.startsWith("other:")
+            }
             if (orphanIds.isNotEmpty()) {
                 Log.d("DataViewModel", "Deleting ${orphanIds.size} orphan temples: $orphanIds")
                 templeDao.deleteTemplesByIds(orphanIds)

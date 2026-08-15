@@ -25,11 +25,16 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs // Import for Safe Args
 import coil.load // Import Coil for image loading
 import com.google.android.material.chip.Chip
 import com.google.android.material.datepicker.MaterialDatePicker
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import net.dacworld.android.holyplacesofthelord.MyApplication
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentRecordVisitBinding
@@ -38,6 +43,8 @@ import net.dacworld.android.holyplacesofthelord.data.OrdinanceType
 import net.dacworld.android.holyplacesofthelord.data.RecordVisitViewModel
 import net.dacworld.android.holyplacesofthelord.data.RecordVisitViewModelFactory
 import net.dacworld.android.holyplacesofthelord.data.VisitUiState
+import net.dacworld.android.holyplacesofthelord.model.unlockKey
+import net.dacworld.android.holyplacesofthelord.ui.achievements.AchievementUnlockedDialogFragment
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import java.text.SimpleDateFormat
@@ -51,6 +58,7 @@ class RecordVisitFragment : Fragment() {
 
     // Prevents chip click handlers from firing while the observer syncs checked visuals.
     private var isUpdatingChipState = false
+    private var previousAchievementKeys: Set<String> = emptySet()
 
 
     // Using Safe Args to retrieve navigation arguments
@@ -105,6 +113,17 @@ class RecordVisitFragment : Fragment() {
         setupInitialUI()
         setupListeners()
         observeViewModel()
+        parentFragmentManager.setFragmentResultListener(
+            AddVisitPlacePickerFragment.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            val placeId = bundle.getString(AddVisitPlacePickerFragment.RESULT_PLACE_ID).orEmpty()
+            val placeName = bundle.getString(AddVisitPlacePickerFragment.RESULT_PLACE_NAME).orEmpty()
+            val placeType = bundle.getString(AddVisitPlacePickerFragment.RESULT_PLACE_TYPE).orEmpty()
+            if (placeId.isNotBlank() || placeName.isNotBlank()) {
+                viewModel.onPlaceChanged(placeId, placeName, placeType)
+            }
+        }
 
         // << --- Add MenuProvider for Save action --- >>
         val menuHost: MenuHost = requireActivity()
@@ -118,6 +137,7 @@ class RecordVisitFragment : Fragment() {
                 // Handle actions based on item ID
                 return when (menuItem.itemId) {
                     R.id.action_save_visit -> {
+                        previousAchievementKeys = snapshotCompletedAchievementKeys()
                         viewModel.saveVisit()
                         true // Consume the event
                     }
@@ -212,6 +232,18 @@ class RecordVisitFragment : Fragment() {
     private fun setupListeners() {
         binding.buttonVisitDate.setOnClickListener {
             showDatePicker()
+        }
+
+        binding.textViewPlaceName.setOnClickListener {
+            val state = viewModel.uiState.value
+            val action = RecordVisitFragmentDirections
+                .actionRecordVisitFragmentToAddVisitPlacePickerFragment(
+                    isChangingPlace = true,
+                    currentPlaceId = state?.placeID ?: navArgs.placeId,
+                    currentPlaceName = state?.holyPlaceName ?: navArgs.placeName,
+                    currentPlaceType = state?.visitType ?: navArgs.placeType
+                )
+            findNavController().navigate(action)
         }
 
         binding.buttonFavoriteVisit.setOnClickListener {
@@ -398,11 +430,18 @@ class RecordVisitFragment : Fragment() {
         viewModel.saveResultEvent.observe(viewLifecycleOwner, EventObserver { success ->
             if (success) {
                 Toast.makeText(context, getString(R.string.visit_saved_success), Toast.LENGTH_SHORT).show()
-                findNavController().popBackStack()
+                handleSaveSuccessWithAchievements()
             } else {
                 Toast.makeText(context, getString(R.string.visit_saved_error), Toast.LENGTH_SHORT).show()
             }
         })
+
+        childFragmentManager.setFragmentResultListener(
+            AchievementUnlockedDialogFragment.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, _ ->
+            navigateAwayAfterSave()
+        }
 
         // Multi-profile chip selector
         viewModel.showProfileChips.observe(viewLifecycleOwner) { show ->
@@ -514,8 +553,8 @@ class RecordVisitFragment : Fragment() {
 
         // Place Name and Color
         binding.textViewPlaceName.text = state.holyPlaceName
-        Log.d("RecordVisitFragment", "navArgs.placeType: ${navArgs.placeType}")
-        val placeNameColor = ColorUtils.getTextColorForTempleType(requireContext(), navArgs.placeType)
+        val placeType = state.visitType ?: navArgs.placeType
+        val placeNameColor = ColorUtils.getTextColorForTempleType(requireContext(), placeType)
         binding.textViewPlaceName.setTextColor(placeNameColor)
 
         updateEditTextIfChanged(binding.editTextComments, state.comments ?: "")
@@ -540,7 +579,7 @@ class RecordVisitFragment : Fragment() {
         binding.buttonFavoriteVisit.contentDescription = if (state.isFavorite) getString(R.string.cd_remove_favorite) else getString(R.string.cd_add_favorite)
 
         // --- Conditional Visibility Logic for Temple Sections ---
-        if (navArgs.placeType == "T") {
+        if (placeType == "T") {
             binding.groupTempleOrdinances.visibility = View.VISIBLE // For individual ordinances
 
             // Now handle the "Ordinance Worker" section using the preference
@@ -596,6 +635,40 @@ class RecordVisitFragment : Fragment() {
             // editText.setSelection(newValue.length) // Optional
         } else {
             Log.d("RecordVisitFragment", "updateEditTextIfChanged for ID '${editText.idToString()}': NO CHANGE needed.")
+        }
+    }
+
+    private fun snapshotCompletedAchievementKeys(): Set<String> {
+        val app = requireActivity().application as MyApplication
+        return app.achievementRepository.completedAchievements.value
+            .map { it.unlockKey }
+            .toSet()
+    }
+
+    private fun handleSaveSuccessWithAchievements() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val app = requireActivity().application as MyApplication
+            val unlocked = withTimeoutOrNull(2500) {
+                app.achievementRepository.completedAchievements.first { list ->
+                    list.any { it.achieved != null && it.unlockKey !in previousAchievementKeys }
+                }
+            }?.filter { it.achieved != null && it.unlockKey !in previousAchievementKeys }
+                ?: emptyList()
+            if (!isAdded) return@launch
+            if (unlocked.isEmpty()) {
+                navigateAwayAfterSave()
+            } else {
+                AchievementUnlockedDialogFragment.show(this@RecordVisitFragment, unlocked)
+            }
+        }
+    }
+
+    private fun navigateAwayAfterSave() {
+        val nav = findNavController()
+        if (nav.previousBackStackEntry?.destination?.id == R.id.addVisitPlacePickerFragment) {
+            nav.popBackStack(R.id.visits_fragment_destination, false)
+        } else {
+            nav.popBackStack()
         }
     }
 

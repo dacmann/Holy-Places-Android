@@ -222,7 +222,9 @@ class SharedOptionsViewModel(
         filter: PlaceFilter
     ): List<Temple> {
         return when (filter) {
-            PlaceFilter.HOLY_PLACES -> allTemples // Or apply specific logic for HOLY_PLACES
+            PlaceFilter.HOLY_PLACES -> allTemples.filter {
+                it.type != "O" && !it.id.startsWith("other:")
+            }
             PlaceFilter.ACTIVE_TEMPLES -> allTemples.filter { it.type == TYPE_ACTIVE_TEMPLE }
             PlaceFilter.HISTORICAL_SITES -> allTemples.filter { it.type == TYPE_HISTORICAL_SITE }
             PlaceFilter.VISITORS_CENTERS -> allTemples.filter { it.type == TYPE_VISITORS_CENTER }

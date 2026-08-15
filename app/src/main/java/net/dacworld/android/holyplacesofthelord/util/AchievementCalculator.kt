@@ -105,9 +105,12 @@ class AchievementCalculator(
             currentYear
         )
 
-        // Build final list: completed first (by achieve date desc), then incomplete with progress
+        // Completed: newest date first; same-day unlocks show the highest level first
         val completed: List<Achievement> = achievementMap.values.filter { it.achieved != null }
-            .sortedByDescending { it.achieved?.time ?: 0L }
+            .sortedWith(
+                compareByDescending<MutableAchievement> { it.achieved?.time ?: 0L }
+                    .thenByDescending { parseIconName(it.iconName)?.first ?: 0 }
+            )
             .map { it.toAchievement(null, null) }
         val incomplete = achievementMap.values.filter { it.achieved == null }
             .map { calcProgress(it, baptismsTotal, initiatoriesTotal, endowmentsTotal, sealingsTotal, shiftHoursTotal, distinctTemplesVisited.size, distinctHistoricSitesVisited.size, yearMonthsWithOrdinances, currentYear, isOrdinanceWorker) }

@@ -30,7 +30,7 @@
         android:maxLines="1"
         android:textAppearance="?attr/textAppearanceTitleMedium"
         android:textColor="?attr/colorOnSurface"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/achievementShareButton"
         app:layout_constraintStart_toEndOf="@id/achievementIcon"
         app:layout_constraintTop_toTopOf="@id/achievementIcon"
         tools:text="25 Baptisms" />
@@ -45,7 +45,7 @@
         android:maxLines="2"
         android:textAppearance="?attr/textAppearanceBody2"
         android:textColor="?attr/colorOnSurface"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/achievementShareButton"
         app:layout_constraintStart_toEndOf="@id/achievementIcon"
         app:layout_constraintTop_toBottomOf="@id/achievementTitle"
         tools:text="25 baptisms performed" />
@@ -61,7 +61,7 @@
         android:textAppearance="?attr/textAppearanceBody2"
         android:textColor="@color/t2_temples"
         android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/achievementShareButton"
         app:layout_constraintStart_toEndOf="@id/achievementIcon"
         app:layout_constraintTop_toBottomOf="@id/achievementDetails"
         tools:text="at Salt Lake Temple"
@@ -78,10 +78,25 @@
         android:textAppearance="?attr/textAppearanceBody2"
         android:textColor="?attr/colorOnSurface"
         android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/achievementShareButton"
         app:layout_constraintStart_toEndOf="@id/achievementIcon"
         app:layout_constraintTop_toBottomOf="@id/achievementPlace"
         tools:text="on Jan 15, 2025"
+        tools:visibility="visible" />
+
+    <ImageButton
+        android:id="@+id/achievementShareButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/cd_share_achievement"
+        android:padding="8dp"
+        android:src="@drawable/ic_share_app"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="?attr/colorControlNormal"
         tools:visibility="visible" />
 
     <LinearLayout

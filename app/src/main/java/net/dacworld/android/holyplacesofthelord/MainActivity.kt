@@ -155,6 +155,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.placeDetailFragment,       // Assuming this is your Place Detail screen ID
                 R.id.visitDetailFragment,      // Assuming this is your Visit Detail screen ID
                 R.id.recordVisitFragment,      // Assuming this is your Record Visit screen ID
+                R.id.addVisitPlacePickerFragment,
                 R.id.options_fragment_destination, // If Options should also hide bottom nav
                 R.id.exportImportFragment,     // If Export/Import should also hide bottom nav
                 R.id.imageViewerFragment,      // Add this line to hide bottom nav for image viewer

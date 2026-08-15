@@ -22,8 +22,37 @@
             android:id="@+id/visitsToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            app:contentInsetStart="4dp"
+            app:contentInsetStartWithNavigation="4dp"
             app:popupTheme="?attr/actionBarPopupTheme"
             app:title="">
+
+            <LinearLayout
+                android:id="@+id/visits_header_actions"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/sort_visits_button"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/sort_by"
+                    android:src="@drawable/ic_sort"
+                    android:tint="?attr/colorControlNormal" />
+
+                <ImageButton
+                    android:id="@+id/add_visit_button"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/add_new_visit"
+                    android:src="@drawable/ic_add_circle"
+                    android:tint="?attr/colorControlNormal" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -75,7 +104,7 @@
         android:layout_height="0dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintTop_toBottomOf="@id/visitsAppBar"
-        app:layout_constraintBottom_toTopOf="@+id/addVisitFab"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         tools:listitem="@layout/list_item_visit"
@@ -92,7 +121,7 @@
         android:gravity="center_horizontal"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/visitsAppBar"
-        app:layout_constraintBottom_toTopOf="@+id/addVisitFab"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         tools:visibility="visible"/>
@@ -105,18 +134,8 @@
         android:visibility="gone"
         tools:visibility="visible"
         app:layout_constraintTop_toBottomOf="@id/visitsAppBar"
-        app:layout_constraintBottom_toTopOf="@+id/addVisitFab"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/addVisitFab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="@string/add_new_visit"
-        app:srcCompat="@drawable/ic_add"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

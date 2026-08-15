@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore // Ensure this import is present
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
@@ -77,6 +78,10 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         // Historical Names (v4): one-time backfill of name changes, dedication dates,
         // and visit-name repair after upgrading to the schema that supports them.
         val HISTORICAL_DATA_BACKFILL_DONE_KEY = booleanPreferencesKey("historical_data_backfill_done")
+
+        val ADD_VISIT_CLOSEST_PLACE_KEY = booleanPreferencesKey("add_visit_closest_place")
+        val CELEBRATION_BOARD_NAMES_KEY = stringPreferencesKey("celebration_board_names")
+        val CELEBRATION_BOARD_LOCATIONS_KEY = stringPreferencesKey("celebration_board_locations")
     }
 
     // --- Flows for New Settings ---
@@ -451,6 +456,51 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         dataStoreInstance.edit { preferences ->
             preferences[PreferencesKeys.HISTORICAL_DATA_BACKFILL_DONE_KEY] = done
         }
+    }
+
+    val addVisitClosestPlaceFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.ADD_VISIT_CLOSEST_PLACE_KEY] ?: false
+        }
+
+    suspend fun saveAddVisitClosestPlace(enabled: Boolean) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.ADD_VISIT_CLOSEST_PLACE_KEY] = enabled
+        }
+    }
+
+    suspend fun celebrationBoardSavedName(profileId: String): String? {
+        val map = parseIdentityMap(dataStoreInstance.data.first()[PreferencesKeys.CELEBRATION_BOARD_NAMES_KEY])
+        return map[profileId]?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    suspend fun celebrationBoardSavedLocation(profileId: String): String? {
+        val map = parseIdentityMap(dataStoreInstance.data.first()[PreferencesKeys.CELEBRATION_BOARD_LOCATIONS_KEY])
+        return map[profileId]?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    suspend fun saveCelebrationBoardIdentity(profileId: String, name: String, location: String) {
+        dataStoreInstance.edit { preferences ->
+            val names = parseIdentityMap(preferences[PreferencesKeys.CELEBRATION_BOARD_NAMES_KEY]).toMutableMap()
+            val locations = parseIdentityMap(preferences[PreferencesKeys.CELEBRATION_BOARD_LOCATIONS_KEY]).toMutableMap()
+            names[profileId] = name.trim()
+            locations[profileId] = location.trim()
+            preferences[PreferencesKeys.CELEBRATION_BOARD_NAMES_KEY] = encodeIdentityMap(names)
+            preferences[PreferencesKeys.CELEBRATION_BOARD_LOCATIONS_KEY] = encodeIdentityMap(locations)
+        }
+    }
+
+    private fun parseIdentityMap(raw: String?): Map<String, String> {
+        if (raw.isNullOrBlank()) return emptyMap()
+        return raw.split('\u001e').mapNotNull { entry ->
+            val parts = entry.split('\u001f', limit = 2)
+            if (parts.size == 2 && parts[0].isNotBlank()) parts[0] to parts[1] else null
+        }.toMap()
+    }
+
+    private fun encodeIdentityMap(map: Map<String, String>): String {
+        return map.entries.joinToString("\u001e") { "${it.key}\u001f${it.value}" }
     }
 
     companion object {

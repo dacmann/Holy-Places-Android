@@ -40,6 +40,7 @@ import org.maplibre.geojson.FeatureCollection // <<< UPDATED
 import org.maplibre.android.plugins.markerview.MarkerView
 import org.maplibre.android.plugins.markerview.MarkerViewManager
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.TempleEra
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -145,6 +146,11 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
         applyColorsToMenuItems(menu)
     }
 
+    override fun onPrepareMenu(menu: Menu) {
+        menu.findItem(R.id.action_filter_visits_submenu)?.isVisible =
+            mapViewModel.isTimelineActive.value != true
+    }
+
     private fun ensureVisitedDataLoaded() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -243,6 +249,7 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
                 binding.toolbarMap.title = preTimelineTitle
                 preTimelineTitle = null
             }
+            requireActivity().invalidateMenu()
         }
         mapViewModel.timelineYearRange.observe(viewLifecycleOwner) { (min, max) ->
             binding.timelineSlider.valueFrom = min.toFloat()
@@ -254,13 +261,10 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
             if (binding.timelineSlider.value != clamped) {
                 binding.timelineSlider.value = clamped
             }
+            updateTimelineCountLabel(mapViewModel.timelineVisibleCount.value ?: 0, year)
         }
         mapViewModel.timelineVisibleCount.observe(viewLifecycleOwner) { count ->
-            binding.timelineCountLabel.text = if (count == 1) {
-                getString(R.string.map_timeline_temple_count_one)
-            } else {
-                getString(R.string.map_timeline_temple_count, count)
-            }
+            updateTimelineCountLabel(count, mapViewModel.timelineYear.value)
         }
         mapViewModel.isTimelinePlaying.observe(viewLifecycleOwner) { playing ->
             binding.timelinePlayPauseButton.setImageResource(
@@ -273,6 +277,17 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
     }
 
     // ===================== End Map Timeline =====================
+
+    private fun updateTimelineCountLabel(count: Int, year: Int?) {
+        val era = year?.let { TempleEra.nameForYear(requireContext(), it) }
+        binding.timelineCountLabel.text = if (era != null) {
+            getString(R.string.map_timeline_count_with_era, count, era)
+        } else if (count == 1) {
+            getString(R.string.map_timeline_temple_count_one)
+        } else {
+            getString(R.string.map_timeline_temple_count, count)
+        }
+    }
 
     // Add this method to refresh map markers based on current scope
     private fun refreshMapMarkers() {

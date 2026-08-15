@@ -50,6 +50,7 @@ import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import androidx.fragment.app.activityViewModels
 import net.dacworld.android.holyplacesofthelord.model.PlaceFilter
+import android.widget.PopupMenu
 
 class VisitsFragment : Fragment() {
 
@@ -108,7 +109,7 @@ class VisitsFragment : Fragment() {
         setupRecyclerView()
         setupSwipeToDelete()
         setupSearchViewListeners()
-        setupFab()
+        setupHeaderActions()
         observeViewModel()
 
         // Apply bottom padding to the RecyclerView to account for the main_bottom_navigation and IME
@@ -397,31 +398,6 @@ class VisitsFragment : Fragment() {
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                 // Handle the menu selection
                 return when (menuItem.itemId) {
-                    R.id.action_sort_visits -> {
-                        true // Return true if the event was handled
-                    }
-
-                    // Handle sub-menu sort item clicks
-                    R.id.sort_visits_by_date_desc -> {
-                        sharedVisitsViewModel.setSortOrder(net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_DATE_DESC)
-                        true
-                    }
-
-                    R.id.sort_visits_by_date_asc -> {
-                        sharedVisitsViewModel.setSortOrder(net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_DATE_ASC)
-                        true
-                    }
-
-                    R.id.sort_visits_by_place_asc -> {
-                        sharedVisitsViewModel.setSortOrder(net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_PLACE_NAME_ASC)
-                        true
-                    }
-
-                    R.id.sort_visits_by_place_desc -> {
-                        sharedVisitsViewModel.setSortOrder(net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder.BY_PLACE_NAME_DESC)
-                        true
-                    }
-
                     // --- NEW FILTER SUBMENU ITEM CLICKS ---
                     R.id.filter_type_all -> {
                         sharedVisitsViewModel.setPlaceTypeFilter(net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter.ALL)
@@ -509,12 +485,36 @@ class VisitsFragment : Fragment() {
     }
 
 
-    private fun setupFab() {
-        binding.addVisitFab.setOnClickListener {
-            // Navigate to Add/Edit Visit screen
-            // val action = VisitsFragmentDirections.actionVisitsFragmentToAddEditVisitFragment(null) // Pass null for new visit
-            // findNavController().navigate(action)
-            Snackbar.make(binding.root, "Add FAB clicked", Snackbar.LENGTH_SHORT).show()
+    private fun setupHeaderActions() {
+        binding.sortVisitsButton.setOnClickListener { anchor ->
+            val popup = PopupMenu(requireContext(), anchor)
+            popup.menuInflater.inflate(R.menu.menu_visits_sort, popup.menu)
+            popup.setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.sort_visits_by_date_desc -> {
+                        sharedVisitsViewModel.setSortOrder(VisitSortOrder.BY_DATE_DESC)
+                        true
+                    }
+                    R.id.sort_visits_by_date_asc -> {
+                        sharedVisitsViewModel.setSortOrder(VisitSortOrder.BY_DATE_ASC)
+                        true
+                    }
+                    R.id.sort_visits_by_place_asc -> {
+                        sharedVisitsViewModel.setSortOrder(VisitSortOrder.BY_PLACE_NAME_ASC)
+                        true
+                    }
+                    R.id.sort_visits_by_place_desc -> {
+                        sharedVisitsViewModel.setSortOrder(VisitSortOrder.BY_PLACE_NAME_DESC)
+                        true
+                    }
+                    else -> false
+                }
+            }
+            popup.show()
+        }
+        binding.addVisitButton.setOnClickListener {
+            val action = VisitsFragmentDirections.actionVisitsFragmentToAddVisitPlacePickerFragment()
+            findNavController().navigate(action)
         }
     }
 
@@ -690,6 +690,7 @@ class VisitsFragment : Fragment() {
             object : ActionMode.Callback {
                 override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
                     mode.menuInflater.inflate(R.menu.menu_copy_to_profile_action, menu)
+                    binding.visitsHeaderActions.visibility = View.GONE
                     requireActivity().invalidateMenu()
                     return true
                 }
@@ -719,6 +720,7 @@ class VisitsFragment : Fragment() {
                 override fun onDestroyActionMode(mode: ActionMode) {
                     visitListAdapter.clearSelection()
                     actionMode = null
+                    binding.visitsHeaderActions.visibility = View.VISIBLE
                     requireActivity().invalidateMenu()
                 }
             }
