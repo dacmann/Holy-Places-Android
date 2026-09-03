@@ -22,7 +22,8 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimaryContainer"
             app:title="@string/visit_detail_title"
-            app:navigationIcon="@drawable/ic_arrow_back" />
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:menu="@menu/menu_visit_detail" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -72,6 +73,20 @@
             app:layout_constraintEnd_toEndOf="parent"
             tools:text="Monday, January 15, 2024" />
 
+        <!-- Favorite Indicator: same row as the date, above the separator -->
+        <ImageView
+            android:id="@+id/detail_visit_favorite_indicator"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_star_filled"
+            app:tint="@color/Initiatories"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="@id/detail_visit_date"
+            app:layout_constraintBottom_toBottomOf="@id/detail_visit_date"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:visibility="visible"
+            android:contentDescription="@string/cd_mark_as_favorite" />
+
         <!-- Divider Line -->
         <View
             android:id="@+id/detail_visit_divider"
@@ -83,28 +98,12 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Favorite Indicator -->
-        <ImageView
-            android:id="@+id/detail_visit_favorite_indicator"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="0dp"
-            android:src="@drawable/ic_star_filled"
-            app:tint="@color/Initiatories"
-            android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/detail_visit_divider"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:visibility="visible"
-            android:contentDescription="@string/cd_mark_as_favorite" />
-
         <!-- Ordinances Performed -->
         <TextView
             android:id="@+id/detail_visit_ordinances_performed"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:layout_marginEnd="8dp"
             android:gravity="center_horizontal"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:lineSpacingExtra="4dp"

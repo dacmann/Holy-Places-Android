@@ -73,6 +73,19 @@
             app:layout_constraintEnd_toEndOf="parent"
             tools:text="Saturday, March 30, 2024" />
 
+        <ImageButton
+            android:id="@+id/button_favorite_visit"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/cd_mark_as_favorite"
+            app:srcCompat="@drawable/ic_star_outline"
+            app:layout_constraintTop_toTopOf="@id/button_visit_date"
+            app:layout_constraintBottom_toBottomOf="@id/button_visit_date"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <View
             android:id="@+id/divider_after_date"
             android:layout_width="0dp"
@@ -148,8 +161,7 @@
                 app:layout_constraintTop_toBottomOf="@id/profile_chips_scroll"
                 app:layout_goneMarginTop="0dp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/button_favorite_visit"
-                android:layout_marginEnd="8dp"
+                app:layout_constraintEnd_toEndOf="parent"
                 android:layout_marginTop="4dp">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -160,17 +172,6 @@
                     android:gravity="top"
                     android:inputType="textMultiLine|textCapSentences" />
             </com.google.android.material.textfield.TextInputLayout>
-
-            <ImageButton
-                android:id="@+id/button_favorite_visit"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:scaleType="fitCenter"
-                android:contentDescription="@string/cd_mark_as_favorite"
-                app:srcCompat="@drawable/ic_star_outline"
-                app:layout_constraintTop_toTopOf="@id/text_input_layout_comments"
-                app:layout_constraintEnd_toEndOf="parent" />
 
             <!-- Temple Ordinances Section (conditionally visible) -->
             <androidx.constraintlayout.widget.Group

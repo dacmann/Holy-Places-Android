@@ -9,10 +9,7 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.util.Log
 import android.view.*
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.view.MenuHost
-import androidx.core.view.MenuProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -127,7 +124,6 @@ class VisitDetailFragment : Fragment() {
         }
 
         setupCustomToolbar()
-        setupMenuProvider()
         setupInsetHandling()
         setupNavigationObservers()
 
@@ -464,60 +460,28 @@ class VisitDetailFragment : Fragment() {
 
     private fun setupCustomToolbar() {
         val toolbar: MaterialToolbar = binding.visitDetailToolbar
-
-        (activity as? AppCompatActivity)?.setSupportActionBar(toolbar)
-
-        val actionBar = (activity as? AppCompatActivity)?.supportActionBar
-        actionBar?.apply {
-            title = getString(R.string.visit_detail_title)
-            setDisplayHomeAsUpEnabled(true) // This enables the back arrow icon
-            setDisplayShowTitleEnabled(true)
-        }
-
-        // IMPORTANT: When using setDisplayHomeAsUpEnabled(true) with setSupportActionBar,
-        // the click handling for the "home" button (back arrow) is typically handled
-        // by the system routing it to onOptionsItemSelected(android.R.id.home) OR
-        // by the NavController if your NavGraph is set up with an AppBarConfiguration
-        // that includes this fragment's destination.
-        // For directness and consistency with RecordVisitFragment's toolbar.setNavigationOnClickListener,
-        // we can keep it, but it might be redundant if the MenuProvider handles android.R.id.home.
+        toolbar.title = getString(R.string.visit_detail_title)
         toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
-    }
-
-    private fun setupMenuProvider() {
-        val menuHost: MenuHost = requireActivity() // Or use requireView() if toolbar is always part of fragment view
-
-        menuHost.addMenuProvider(object : MenuProvider {
-            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                menuInflater.inflate(R.menu.menu_visit_detail, menu)
-            }
-
-            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-                return when (menuItem.itemId) {
-                    // android.R.id.home is NOT typically handled here if setDisplayHomeAsUpEnabled(true)
-                    // is used and the NavController or toolbar.setNavigationOnClickListener handles it.
-                    // If toolbar.setNavigationOnClickListener is removed, you MIGHT need to handle android.R.id.home here.
-                    // For now, let's assume toolbar.setNavigationOnClickListener handles Up navigation.
-
-                    R.id.action_edit_visit -> {
-                        viewModel.visit.value?.let { currentVisit ->
-                            val action = VisitDetailFragmentDirections
-                                .actionVisitDetailFragmentToRecordVisitFragment(
-                                    visitId = currentVisit.id,
-                                    placeId = currentVisit.placeID,
-                                    placeName = currentVisit.holyPlaceName ?: "",
-                                    placeType = currentVisit.type ?: ""
-                                )
-                            findNavController().navigate(action)
-                        }
-                        true // Consume the event
+        toolbar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_edit_visit -> {
+                    viewModel.visit.value?.let { currentVisit ->
+                        val action = VisitDetailFragmentDirections
+                            .actionVisitDetailFragmentToRecordVisitFragment(
+                                visitId = currentVisit.id,
+                                placeId = currentVisit.placeID,
+                                placeName = currentVisit.holyPlaceName ?: "",
+                                placeType = currentVisit.type ?: ""
+                            )
+                        findNavController().navigate(action)
                     }
-                    else -> false // Let other components (like NavController for Up) handle it
+                    true
                 }
+                else -> false
             }
-        }, viewLifecycleOwner, Lifecycle.State.RESUMED) // Use viewLifecycleOwner and RESUMED state
+        }
     }
 
     private fun populateUi(visit: Visit, temple: Temple?) {
@@ -723,7 +687,6 @@ class VisitDetailFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        (activity as? AppCompatActivity)?.setSupportActionBar(null)
         _binding = null
     }
 }
