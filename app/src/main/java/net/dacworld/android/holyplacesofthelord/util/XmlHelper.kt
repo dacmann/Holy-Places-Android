@@ -12,8 +12,11 @@ import java.io.OutputStream
 import java.text.DateFormat
 import java.text.ParseException
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
+import java.util.GregorianCalendar
 import java.util.Locale
+import java.util.TimeZone
 import net.dacworld.android.holyplacesofthelord.model.Visit // Your Visit model
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -21,12 +24,19 @@ import java.io.OutputStreamWriter
 
 object XmlHelper {
 
-    // For consistent date formatting and parsing (matches iOS .full style)
-    // Using Locale.US as a default for parsing if current locale fails,
-    // as "Saturday, August 6, 1994" is a common English representation.
-    // Ideally, the XML would use a locale-independent format like ISO 8601.
-    private val primaryDateFormatter = DateFormat.getDateInstance(DateFormat.FULL, Locale.getDefault())
-    private val fallbackDateFormatter = DateFormat.getDateInstance(DateFormat.FULL, Locale.US)
+    // Locale-stable calendar date for XML (matches iOS en_US_POSIX yyyy-MM-dd).
+    // Older backups used DateFormat.FULL, which is language-dependent.
+    private val xmlDateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+        calendar = GregorianCalendar()
+        isLenient = false
+    }
+    private val legacyFullDateFormatter = DateFormat.getDateInstance(DateFormat.FULL, Locale.getDefault())
+    private val legacyEnglishFullDateFormatter = DateFormat.getDateInstance(DateFormat.FULL, Locale.US)
+    private val extraLegacyDateFormatters = listOf(
+        SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.US),
+        SimpleDateFormat("MMM d, yyyy", Locale.US),
+        SimpleDateFormat("M/d/yyyy", Locale.US)
+    )
 
 
     // Namespace for XML, not strictly needed for simple XML but good practice if it grows
@@ -188,8 +198,7 @@ object XmlHelper {
         serializer.startTag(ns, TAG_DOCUMENT)
 
         // Add ExportDate and TotalVisits (matching iOS structure)
-        val exportDateFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
-        serializer.startTag(ns, TAG_EXPORT_DATE_DOC).text(exportDateFormatter.format(Date())).endTag(ns, TAG_EXPORT_DATE_DOC)
+        serializer.startTag(ns, TAG_EXPORT_DATE_DOC).text(formatExportTimestamp(Date())).endTag(ns, TAG_EXPORT_DATE_DOC)
         serializer.startTag(ns, TAG_TOTAL_VISITS).text(visits.size.toString()).endTag(ns, TAG_TOTAL_VISITS)
 
         serializer.startTag(ns, TAG_VISITS_COLLECTION)
@@ -203,8 +212,7 @@ object XmlHelper {
             visit.type?.let { serializer.startTag(ns, TAG_TYPE).text(it).endTag(ns, TAG_TYPE) }
 
             visit.dateVisited?.let {
-                val dateString = primaryDateFormatter.format(it)
-                serializer.startTag(ns, TAG_DATE_VISITED).text(dateString).endTag(ns, TAG_DATE_VISITED)
+                serializer.startTag(ns, TAG_DATE_VISITED).text(formatVisitDate(it)).endTag(ns, TAG_DATE_VISITED)
             }
 
             visit.comments?.let {
@@ -228,11 +236,12 @@ object XmlHelper {
                     // Load photo data individually to avoid memory issues
                     val visitWithPhoto = visitDao.getVisitWithPictureById(visit.id)
                     if (visitWithPhoto?.picture != null && visitWithPhoto.picture.isNotEmpty()) {
-                        val base64Photo = Base64.encodeToString(visitWithPhoto.picture, Base64.DEFAULT)
+                        val exportBytes = pictureBytesForExport(visitWithPhoto.picture)
+                        val base64Photo = Base64.encodeToString(exportBytes, Base64.DEFAULT)
                         serializer.startTag(ns, TAG_PICTURE)
                         serializer.cdsect(base64Photo) // Use CDATA for photo data
                         serializer.endTag(ns, TAG_PICTURE)
-                        Log.d("XmlHelper", "Exported photo for visit: ${visit.holyPlaceName}, size: ${visitWithPhoto.picture.size} bytes")
+                        Log.d("XmlHelper", "Exported photo for visit: ${visit.holyPlaceName}, size: ${exportBytes.size} bytes")
                     } else {
                         Log.w("XmlHelper", "Failed to load photo data for visit: ${visit.holyPlaceName}")
                     }
@@ -264,8 +273,7 @@ object XmlHelper {
         serializer.startTag(ns, TAG_DOCUMENT)
 
         // Add ExportDate and TotalVisits (matching iOS structure)
-        val exportDateFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US) // ISO 8601 for export metadata
-        serializer.startTag(ns, TAG_EXPORT_DATE_DOC).text(exportDateFormatter.format(Date())).endTag(ns, TAG_EXPORT_DATE_DOC)
+        serializer.startTag(ns, TAG_EXPORT_DATE_DOC).text(formatExportTimestamp(Date())).endTag(ns, TAG_EXPORT_DATE_DOC)
         serializer.startTag(ns, TAG_TOTAL_VISITS).text(visits.size.toString()).endTag(ns, TAG_TOTAL_VISITS)
 
         serializer.startTag(ns, TAG_VISITS_COLLECTION)
@@ -279,8 +287,7 @@ object XmlHelper {
             visit.type?.let { serializer.startTag(ns, TAG_TYPE).text(it).endTag(ns, TAG_TYPE) }
 
             visit.dateVisited?.let {
-                val dateString = primaryDateFormatter.format(it)
-                serializer.startTag(ns, TAG_DATE_VISITED).text(dateString).endTag(ns, TAG_DATE_VISITED)
+                serializer.startTag(ns, TAG_DATE_VISITED).text(formatVisitDate(it)).endTag(ns, TAG_DATE_VISITED)
             }
 
             visit.comments?.let {
@@ -296,7 +303,8 @@ object XmlHelper {
             if (includePhotos) {
                 visit.picture?.let { pictureData ->
                     if (pictureData.isNotEmpty()) {
-                        val base64String = Base64.encodeToString(pictureData, Base64.NO_WRAP)
+                        val exportBytes = pictureBytesForExport(pictureData)
+                        val base64String = Base64.encodeToString(exportBytes, Base64.NO_WRAP)
                         serializer.startTag(ns, TAG_PICTURE)
                         serializer.cdsect(base64String) // Use CDATA for Base64 data
                         serializer.endTag(ns, TAG_PICTURE)
@@ -1448,18 +1456,49 @@ object XmlHelper {
 
     fun parseDateString(dateString: String?): Date? {
         if (dateString.isNullOrBlank()) return null
-        return try {
-            primaryDateFormatter.parse(dateString)
-        } catch (e: ParseException) {
-            try {
-                // Try fallback if primary fails (e.g. device locale changed since export)
-                fallbackDateFormatter.parse(dateString)
-            } catch (e2: ParseException) {
-                // Log the error or handle it as per your app's requirements
-                // e.g., Log.w("XmlHelper", "Could not parse date string: $dateString", e2)
-                null // Return null if both formatters fail
+        val trimmed = dateString.trim()
+        synchronized(this) {
+            tryParse(xmlDateFormatter, trimmed)?.let { return startOfDay(it) }
+            tryParse(legacyFullDateFormatter, trimmed)?.let { return startOfDay(it) }
+            tryParse(legacyEnglishFullDateFormatter, trimmed)?.let { return startOfDay(it) }
+            for (formatter in extraLegacyDateFormatters) {
+                tryParse(formatter, trimmed)?.let { return startOfDay(it) }
             }
         }
+        Log.w("XmlHelper", "Could not parse date string: $trimmed")
+        return null
+    }
+
+    private fun formatVisitDate(date: Date): String = synchronized(this) {
+        xmlDateFormatter.format(date)
+    }
+
+    private fun formatExportTimestamp(date: Date): String {
+        val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        formatter.timeZone = TimeZone.getTimeZone("UTC")
+        return formatter.format(date)
+    }
+
+    private fun pictureBytesForExport(picture: ByteArray): ByteArray {
+        return VisitPhotoCompression.encodedData(picture) ?: picture
+    }
+
+    private fun tryParse(formatter: DateFormat, value: String): Date? {
+        return try {
+            formatter.parse(value)
+        } catch (e: ParseException) {
+            null
+        }
+    }
+
+    private fun startOfDay(date: Date): Date {
+        return Calendar.getInstance().apply {
+            time = date
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
     }
 
 

@@ -10,6 +10,7 @@ import net.dacworld.android.holyplacesofthelord.data.UpdateDetails
  */
 object WhatsNewNotes {
 
+    const val VERSION_CODE_2_0 = 21
     const val VERSION_CODE_1_10 = 19
     const val VERSION_CODE_1_9 = 16
     const val VERSION_CODE_1_8_2 = 15
@@ -22,6 +23,7 @@ object WhatsNewNotes {
     fun notesForVersionName(context: Context, versionName: String): UpdateDetails? {
         val short = versionName.substringBefore('-')
         return when {
+            short.startsWith("2.0") -> details20(context)
             short.startsWith("1.10") -> details110(context)
             short.startsWith("1.9") -> details19(context)
             short.startsWith("1.8.2") -> details182(context)
@@ -32,12 +34,27 @@ object WhatsNewNotes {
 
     fun notesForVersionBump(context: Context, lastSeen: Int, current: Int): UpdateDetails {
         return when {
+            current >= VERSION_CODE_2_0 && lastSeen < VERSION_CODE_2_0 -> details20(context)
             current >= VERSION_CODE_1_10 && lastSeen < VERSION_CODE_1_10 -> details110(context)
             current >= VERSION_CODE_1_9 && lastSeen < VERSION_CODE_1_9 -> details19(context)
             current >= VERSION_CODE_1_8_2 && lastSeen < VERSION_CODE_1_8_2 -> details182(context)
             else -> details18(context)
         }
     }
+
+    private fun details20(context: Context) = UpdateDetails(
+        updateTitle = context.getString(R.string.whats_new_title_2_0),
+        messages = listOf(
+            context.getString(R.string.whats_new_color_theme_mono),
+            context.getString(R.string.whats_new_type_symbols),
+            context.getString(R.string.whats_new_visit_photos),
+            context.getString(R.string.whats_new_visit_count_breakdown),
+            context.getString(R.string.whats_new_visits_scope_buttons),
+            context.getString(R.string.whats_new_hide_stock_image),
+            context.getString(R.string.whats_new_customize_home),
+            context.getString(R.string.whats_new_visit_xml_backup)
+        )
+    )
 
     private fun details110(context: Context) = UpdateDetails(
         updateTitle = context.getString(R.string.whats_new_title_1_10),

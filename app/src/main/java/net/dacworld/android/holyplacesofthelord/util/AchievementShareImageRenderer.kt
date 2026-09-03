@@ -19,7 +19,7 @@ object AchievementShareImageRenderer {
 
     fun shareCaption(context: Context, achievement: Achievement): String {
         return context.getString(
-            R.string.celebration_board_share_caption,
+            R.string.achievement_share_caption,
             achievement.name,
             achievement.details
         )

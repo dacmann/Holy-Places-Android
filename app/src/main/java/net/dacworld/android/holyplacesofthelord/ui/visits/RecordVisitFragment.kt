@@ -46,6 +46,7 @@ import net.dacworld.android.holyplacesofthelord.data.VisitUiState
 import net.dacworld.android.holyplacesofthelord.model.unlockKey
 import net.dacworld.android.holyplacesofthelord.ui.achievements.AchievementUnlockedDialogFragment
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.Ordinance
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import java.text.SimpleDateFormat
 import java.util.*
@@ -227,6 +228,26 @@ class RecordVisitFragment : Fragment() {
         setupNumericInputListeners(binding.editTextEndowments, OrdinanceType.ENDOWMENTS)
         setupNumericInputListeners(binding.editTextSealings, OrdinanceType.SEALINGS)
         setupNumericInputListeners(binding.editTextHoursWorked, isDecimal = true, step = 0.5)
+        applyOrdinanceColors()
+    }
+
+    /**
+     * Tints each ordinance label and count field for the active color theme, so the
+     * Mono theme shows them in plain black or white.
+     */
+    private fun applyOrdinanceColors() {
+        val pairs = listOf(
+            Ordinance.BAPTISMS to (binding.labelBaptisms to binding.editTextBaptisms),
+            Ordinance.CONFIRMATIONS to (binding.labelConfirmations to binding.editTextConfirmations),
+            Ordinance.INITIATORIES to (binding.labelInitiatories to binding.editTextInitiatories),
+            Ordinance.ENDOWMENTS to (binding.labelEndowments to binding.editTextEndowments),
+            Ordinance.SEALINGS to (binding.labelSealings to binding.editTextSealings)
+        )
+        for ((ordinance, views) in pairs) {
+            val color = ColorUtils.getOrdinanceColor(requireContext(), ordinance)
+            views.first.setTextColor(color)
+            views.second.setTextColor(color)
+        }
     }
 
     private fun setupListeners() {

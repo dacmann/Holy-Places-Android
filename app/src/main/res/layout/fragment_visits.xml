@@ -96,6 +96,130 @@
             app:iconifiedByDefault="false"
             app:queryHint="@string/search_visits_hint" />
 
+        <!-- Ordinance / favorite scope, independent of the "Filter by Type" menu -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/visit_scope_toggle_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <Button
+                android:id="@+id/button_scope_all_visits"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.6"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:minWidth="0dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:text="@string/visit_scope_all" />
+
+            <Button
+                android:id="@+id/button_scope_baptisms"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:minWidth="0dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:contentDescription="@string/ordinance_label_baptisms"
+                android:text="@string/visit_scope_baptisms" />
+
+            <Button
+                android:id="@+id/button_scope_confirmations"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:minWidth="0dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:contentDescription="@string/ordinance_label_confirmations"
+                android:text="@string/visit_scope_confirmations" />
+
+            <Button
+                android:id="@+id/button_scope_initiatories"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:minWidth="0dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:contentDescription="@string/ordinance_label_initiatories"
+                android:text="@string/visit_scope_initiatories" />
+
+            <Button
+                android:id="@+id/button_scope_endowments"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:minWidth="0dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:contentDescription="@string/ordinance_label_endowments"
+                android:text="@string/visit_scope_endowments" />
+
+            <Button
+                android:id="@+id/button_scope_sealings"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:minWidth="0dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:contentDescription="@string/ordinance_label_sealings"
+                android:text="@string/visit_scope_sealings" />
+
+            <Button
+                android:id="@+id/button_scope_favorites"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.2"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:minWidth="0dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:contentDescription="@string/scope_favorites_description"
+                android:text="@string/visit_scope_favorites" />
+
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView

@@ -44,7 +44,7 @@
     <string name="sort_label_unknown">Unknown Sort Order</string>
     <string name="title_visits_tab">Visits</string>
     <string name="search_visits_hint">Search Visits…</string>
-    <string name="no_visits_yet">Add Visits from the Place Details pages or by tapping the Add button below.\n\nIMPORTANT!\n\nTo ensure you don\'t lose your entered visits due to unforeseen circumstances, back-up your visits to an XML file from time to time.\n\nTap Export in the top right corner to access this feature; see the FAQ for more details.</string>
+    <string name="no_visits_yet">Add Visits from the Place Details pages or by tapping the Add button above.\n\nIMPORTANT!\n\nTo ensure you don\'t lose your entered visits due to unforeseen circumstances, back-up your visits to an XML file from time to time.\n\nTap Export in the top right corner to access this feature; see the FAQ for more details.</string>
     <string name="add_new_visit">Add Visit</string>
     <string name="sort_by_date_latest_first">Sort by Latest Date</string>
     <string name="sort_by_date_oldest_first">Sort by Oldest Date</string>
@@ -419,7 +419,7 @@
     <string name="celebration_board_post_success">Your achievement was posted successfully.</string>
     <string name="celebration_board_posted_status">Posted to Celebration Board!</string>
     <string name="celebration_board_post_failed">Post Failed</string>
-    <string name="celebration_board_share_caption">I just unlocked %1$s — %2$s. Holy Places of the Lord helped me record my visits and see this milestone come together. It’s a free app for keeping a personal history of temples and historic sites, available on the App Store and Google Play.</string>
+    <string name="achievement_share_caption">I just unlocked %1$s — %2$s in the app Holy Places of the Lord</string>
     <string name="home_tagline_quote">\"Stand ye in holy places, and be not moved...\"</string>
     <string name="home_tagline_reference">D&amp;C 87:8</string>
 
@@ -449,5 +449,69 @@
     <string name="whats_new_info_version_taps">Tap the version numbers on the Info screen to re-read app and data update messages.</string>
     <string name="whats_new_timeline_era">Map Timeline now shows the temple era next to the count as you move through time.</string>
     <string name="whats_new_map_filters_hide">Map Filters are hidden during Timeline so the Timeline control stays easy to use.</string>
+
+    <!-- Color Theme settings -->
+    <string name="color_theme_section_title">COLOR THEME</string>
+    <string name="color_theme_red_green">Red / Green</string>
+    <string name="color_theme_purple_orange">Purple / Orange</string>
+    <string name="color_theme_mono">Mono</string>
+    <string name="description_color_theme">Choose which color theme to use for place names and ordinances. Mono uses black (light mode) or white (dark mode) for easier reading. Map pins keep their colors in every theme.</string>
+    <string name="show_type_symbols">Show Type Symbols</string>
+    <string name="description_type_symbols">Add a small symbol for each place type on the Places and Visits lists and in the filter menus, so place types stay distinct when not in color.</string>
+
+    <!-- Customize Home Screen settings -->
+    <string name="home_screen_section_title">CUSTOMIZE HOME SCREEN</string>
+    <string name="home_image_default">Default</string>
+    <string name="home_image_random">Random</string>
+    <string name="home_image_specific">Specific</string>
+    <string name="home_image_import">Import Image</string>
+    <string name="home_image_change">Change Image</string>
+    <string name="home_text_color">Text Color</string>
+    <string name="home_text_color_white">White</string>
+    <string name="home_text_color_black">Black</string>
+    <string name="description_home_screen">Select from the available background image options. The Random Image option will select from the images you have attached to the visits. To use a specific image, import the image using the above button.</string>
+    <string name="home_image_not_available">Not Available</string>
+    <string name="home_image_no_visit_photos">You haven\'t added any Visit images yet.</string>
+    <string name="home_image_no_imported_image">You haven\'t imported an image below.</string>
+    <string name="cd_home_image_preview">Imported home screen image</string>
+    <string name="cd_home_visit_date">Date of the visit in the home background photo</string>
+
+    <!-- Visit photo settings -->
+    <string name="visit_photos_section_title">VISIT PHOTOS</string>
+    <string name="show_stock_place_image">Show Place Image if No Visit Photo</string>
+    <string name="description_stock_place_image">When a visit has no photo attached, the place\'s stock image is shown on the visit. Turn this off to only see photos you attached.</string>
+
+    <!-- Place detail visit count and ordinance breakdown -->
+    <string name="place_detail_visit_count">Visits: %1$d</string>
+    <string name="place_detail_visit_count_expandable">Visits: %1$d \u25BE</string>
+    <string name="ordinance_breakdown_no_ordinances">No ordinances recorded</string>
+    <string name="ordinance_breakdown_hours_worked">Hours Worked</string>
+    <string name="ordinance_label_baptisms">Baptisms</string>
+    <string name="ordinance_label_confirmations">Confirmations</string>
+    <string name="ordinance_label_initiatories">Initiatories</string>
+    <string name="ordinance_label_endowments">Endowments</string>
+    <string name="ordinance_label_sealings">Sealings</string>
+    <string name="place_detail_photo_page">Photo %1$d of %2$d</string>
+
+    <!-- Visits tab ordinance scope buttons -->
+    <string name="visit_scope_all">All</string>
+    <string name="visit_scope_baptisms">B</string>
+    <string name="visit_scope_confirmations">C</string>
+    <string name="visit_scope_initiatories">I</string>
+    <string name="visit_scope_endowments">E</string>
+    <string name="visit_scope_sealings">S</string>
+    <string name="visit_scope_favorites">\u2B50</string>
+    <string name="scope_favorites_description">Favorites</string>
+
+    <!-- What's New 2.0 -->
+    <string name="whats_new_title_2_0">What\'s New in 2.0</string>
+    <string name="whats_new_color_theme_mono">Color Theme now includes Mono — place names and ordinances in black or white for easier reading.</string>
+    <string name="whats_new_type_symbols">Optional type symbols on the Places and Visits lists, and in filter menus, so place types stay distinct when not in color.</string>
+    <string name="whats_new_visit_photos">Place details now include a swipeable gallery of your visit photos. Tap a photo to view it full screen.</string>
+    <string name="whats_new_visit_count_breakdown">Tap the visit count on a temple to see each ordinance type counted separately.</string>
+    <string name="whats_new_visits_scope_buttons">Visits tab scope buttons stay in the header so you can filter by ordinance or favorites without opening search.</string>
+    <string name="whats_new_hide_stock_image">New setting to hide the place\'s stock image on visits that don\'t have a photo attached.</string>
+    <string name="whats_new_customize_home">Customize the Home screen with the default temple photo, a random visit photo, or an image you import. You can choose white or black overlay text.</string>
+    <string name="whats_new_visit_xml_backup">Visit XML export/import is more reliable — photos are compressed so large backups can import, and dates use a stable format that works across languages.</string>
 
 </resources>

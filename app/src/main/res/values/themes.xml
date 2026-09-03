@@ -33,6 +33,7 @@
         <!-- Status bar color (Light Theme specific part) -->
         <item name="android:statusBarColor">@color/app_bar_background_color</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
 
         <!-- Custom Theme Attributes for Specific UI Elements -->
         <item name="appBarBackgroundColor">@color/app_bar_background_color</item>

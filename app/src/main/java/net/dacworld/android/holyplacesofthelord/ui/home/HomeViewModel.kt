@@ -4,19 +4,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.data.AchievementRepository
 import net.dacworld.android.holyplacesofthelord.data.ProfileRepository
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.model.Achievement
-import net.dacworld.android.holyplacesofthelord.model.Profile
+import net.dacworld.android.holyplacesofthelord.model.VisitPhoto
+import net.dacworld.android.holyplacesofthelord.util.HomeBackgroundStore
+import net.dacworld.android.holyplacesofthelord.util.HomeImageOption
+import net.dacworld.android.holyplacesofthelord.util.HomeTextColor
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -30,11 +38,19 @@ data class GoalDisplayItem(
     val hasActiveGoal: Boolean // True if target > 0
 )
 
+data class HomeAppearanceState(
+    val option: HomeImageOption = HomeImageOption.DEFAULT,
+    val textColor: HomeTextColor = HomeTextColor.WHITE,
+    val randomPhoto: VisitPhoto? = null,
+    val alternateFile: File? = null
+)
+
 class HomeViewModel(
     private val userPreferencesManager: UserPreferencesManager,
     private val visitDao: VisitDao,
     private val achievementRepository: AchievementRepository,
-    private val profileRepository: ProfileRepository? = null
+    private val profileRepository: ProfileRepository? = null,
+    private val homeBackgroundStore: HomeBackgroundStore? = null
 ) : ViewModel() {
 
     private val _text = MutableStateFlow("This is home Fragment (from HomeViewModel)") // Changed to StateFlow
@@ -49,8 +65,53 @@ class HomeViewModel(
     private val _goalDisplayItems = MutableStateFlow<List<GoalDisplayItem>>(emptyList())
     val goalDisplayItems: StateFlow<List<GoalDisplayItem>> = _goalDisplayItems.asStateFlow()
 
+    private val _randomPhoto = MutableStateFlow<VisitPhoto?>(null)
+
+    val homeAppearance: StateFlow<HomeAppearanceState> = combine(
+        userPreferencesManager.homeImageOptionFlow,
+        userPreferencesManager.homeTextColorFlow,
+        _randomPhoto,
+        homeBackgroundStore?.revision ?: flowOf(0)
+    ) { option, textColor, photo, _ ->
+        HomeAppearanceState(
+            option = HomeImageOption.fromStoredValue(option),
+            textColor = HomeTextColor.fromStoredValue(textColor),
+            randomPhoto = photo,
+            alternateFile = homeBackgroundStore?.file()?.takeIf { homeBackgroundStore.exists() }
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeAppearanceState())
+
     init {
         loadGoalProgress()
+        observeRandomHomePhoto()
+    }
+
+    private fun observeRandomHomePhoto() {
+        viewModelScope.launch {
+            combine(
+                userPreferencesManager.homeImageOptionFlow,
+                profileRepository?.scopedProfileId ?: flowOf(null)
+            ) { option, profileId ->
+                HomeImageOption.fromStoredValue(option) to profileId
+            }.collectLatest { (option, profileId) ->
+                if (option == HomeImageOption.RANDOM) {
+                    _randomPhoto.value = visitDao.getRandomVisitPhoto(profileId)
+                } else {
+                    _randomPhoto.value = null
+                }
+            }
+        }
+    }
+
+    fun refreshRandomPhoto() {
+        viewModelScope.launch {
+            val option = HomeImageOption.fromStoredValue(
+                userPreferencesManager.homeImageOptionFlow.first()
+            )
+            if (option != HomeImageOption.RANDOM) return@launch
+            val profileId = profileRepository?.scopedProfileId?.first()
+            _randomPhoto.value = visitDao.getRandomVisitPhoto(profileId)
+        }
     }
 
     private fun getCurrentYearString(): String {
@@ -63,11 +124,11 @@ class HomeViewModel(
 
             // Determine if profiles are enabled and get the active profile/profileId
             val profilesEnabledFlow = profileRepository?.profilesEnabled
-                ?: kotlinx.coroutines.flow.flowOf(false)
+                ?: flowOf(false)
             val activeProfileFlow = profileRepository?.activeProfile
-                ?: kotlinx.coroutines.flow.flowOf(null)
+                ?: flowOf(null)
             val activeProfileIdFlow = profileRepository?.activeProfileId
-                ?: kotlinx.coroutines.flow.flowOf(null)
+                ?: flowOf(null)
 
             // Goal targets always come from the active profile when one exists
             val visitsTargetFlow = combine(activeProfileFlow, userPreferencesManager.templeVisitsGoalFlow) { profile, legacy ->

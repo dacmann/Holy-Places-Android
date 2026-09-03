@@ -41,6 +41,7 @@ import org.maplibre.android.plugins.markerview.MarkerView
 import org.maplibre.android.plugins.markerview.MarkerViewManager
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 import net.dacworld.android.holyplacesofthelord.util.TempleEra
+import net.dacworld.android.holyplacesofthelord.util.placeTypeSymbolTitle
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -369,7 +370,12 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
                         title.length,
                         SpannableString.SPAN_INCLUSIVE_INCLUSIVE
                     )
-                    menuItem.title = spannableString // Set the styled title
+                    menuItem.title = placeTypeSymbolTitle(
+                        requireContext(),
+                        spannableString,
+                        placeFilterForMenuItem.placeTypeCode,
+                        colorInt
+                    )
                     Log.d(FRAGMENT_TAG, "Applied color to menu item: '${menuItem.title}', Enum: ${placeFilterForMenuItem.name}")
                 } catch (e: Exception) {
                     Log.e(FRAGMENT_TAG, "Error applying color to menu item (ID: ${menuItem.itemId}): ${e.message}", e)

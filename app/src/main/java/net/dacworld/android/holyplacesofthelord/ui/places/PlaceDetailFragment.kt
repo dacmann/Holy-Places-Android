@@ -26,14 +26,17 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.tabs.TabLayoutMediator
 import androidx.navigation.fragment.navArgs
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
-import coil.load
 import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.MyApplication
 import net.dacworld.android.holyplacesofthelord.R // Make sure this is imported for drawables
@@ -43,6 +46,7 @@ import net.dacworld.android.holyplacesofthelord.databinding.FragmentPlaceDetailB
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.Ordinance
 import net.dacworld.android.holyplacesofthelord.util.IntentUtils
 import androidx.core.net.toUri
 import androidx.core.content.ContextCompat
@@ -57,6 +61,7 @@ import kotlinx.coroutines.flow.collectLatest
 import net.dacworld.android.holyplacesofthelord.MainActivity
 import androidx.navigation.fragment.navArgs
 import net.dacworld.android.holyplacesofthelord.ui.ImageViewerFragment
+import net.dacworld.android.holyplacesofthelord.ui.ImageViewerViewModel
 import net.dacworld.android.holyplacesofthelord.ui.placedetail.PlaceDetailFragmentDirections
 
 class PlaceDetailFragment : Fragment() {
@@ -71,6 +76,7 @@ class PlaceDetailFragment : Fragment() {
 
      // NEW: Add NavigationViewModel
      private val navigationViewModel: NavigationViewModel by activityViewModels()
+     private val imageViewerViewModel: ImageViewerViewModel by activityViewModels()
 
      // NEW: Add SharedOptionsViewModel to access current place list
      private val sharedOptionsViewModel: SharedOptionsViewModel by activityViewModels {
@@ -83,6 +89,11 @@ class PlaceDetailFragment : Fragment() {
 
      private val sharedToolbarViewModel: SharedToolbarViewModel by activityViewModels()
 
+     private val placeDetailViewModel: PlaceDetailViewModel by viewModels {
+         val application = requireActivity().application as MyApplication
+         PlaceDetailViewModelFactory(application.visitDao, application.profileRepository)
+     }
+
     private val args: PlaceDetailFragmentArgs by navArgs()
     // Add a property to track the source
     private val sourceFragment: String by lazy { args.sourceFragment }
@@ -92,6 +103,12 @@ class PlaceDetailFragment : Fragment() {
 
     // NEW: Add gesture detector
     private lateinit var gestureDetector: GestureDetector
+
+    private var photoLoadGeneration = 0
+    private lateinit var photoAdapter: PlaceDetailPhotoAdapter
+    private var photoIndicatorMediator: TabLayoutMediator? = null
+    private var visitSummary: PlaceVisitSummary = PlaceVisitSummary()
+    private var showHoursWorked: Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -243,8 +260,12 @@ class PlaceDetailFragment : Fragment() {
         // <<<<<<<<<<<< END: ADD INSET HANDLING CODE HERE >>>>>>>>>>>>>>>>
 
 
+        setupPhotoPager()
+
         val templeId = args.templeId
         if (templeId.isNotEmpty()) {
+            placeDetailViewModel.setTempleId(templeId)
+            observeVisitSummary()
             loadTempleDetails(templeId)
         } else {
             Log.e("PlaceDetailFragment", "Temple ID is missing.")
@@ -272,7 +293,6 @@ class PlaceDetailFragment : Fragment() {
         }
         // NEW: Add observers for navigation events
         setupNavigationObservers()
-        setupImageClickListener()
     }
 
     // NEW: Add gesture listener class
@@ -427,39 +447,193 @@ class PlaceDetailFragment : Fragment() {
         }
     }
 
-    private fun setupImageClickListener() {
-        binding.imageViewTempleDetail.setOnClickListener {
-            val temple = currentTemple
-            when {
-                temple?.pictureData != null -> {
-                    val base64String = android.util.Base64.encodeToString(temple.pictureData, android.util.Base64.DEFAULT)
-                    val action = PlaceDetailFragmentDirections.actionPlaceDetailFragmentToImageViewerFragment(
-                        imageUrl = "",
-                        imageDataBase64 = base64String
-                    )
-                    findNavController().navigate(action)
+    private fun setupPhotoPager() {
+        photoAdapter = PlaceDetailPhotoAdapter(viewLifecycleOwner.lifecycleScope) { page ->
+            openPhotoViewer(page)
+        }
+        binding.placeDetailPhotoPager.adapter = photoAdapter
+    }
+
+    private fun openPhotoViewer(page: PlacePhotoPage) {
+        when (page) {
+            is PlacePhotoPage.Stock -> when {
+                page.pictureData != null -> imageViewerViewModel.show(imageBytes = page.pictureData)
+                !page.pictureUrl.isNullOrEmpty() -> imageViewerViewModel.show(imageUrl = page.pictureUrl)
+                else -> return
+            }
+            is PlacePhotoPage.VisitPhotoPage ->
+                imageViewerViewModel.show(imageBytes = page.picture)
+        }
+        showImageViewer()
+    }
+
+    /**
+     * Shows the place's stock image immediately, then appends visit photos as they load
+     * so the carousel is not blank while the database query runs.
+     */
+    private fun loadPhotoPages(temple: Temple) {
+        val generation = ++photoLoadGeneration
+        val stock = if (temple.pictureData != null || temple.pictureUrl.isNotBlank()) {
+            PlacePhotoPage.Stock(temple.pictureData, temple.pictureUrl)
+        } else {
+            PlacePhotoPage.Stock(null, null)
+        }
+        applyPhotoPages(listOf(stock), restoreSavedIndex = false)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val visitPages = placeDetailViewModel.loadVisitPhotos(temple.id).mapNotNull { photo ->
+                photo.picture?.takeIf { it.isNotEmpty() }?.let { bytes ->
+                    PlacePhotoPage.VisitPhotoPage(photo.id, photo.dateVisited, bytes)
                 }
-                !temple?.pictureUrl.isNullOrEmpty() -> {
-                    val action = PlaceDetailFragmentDirections.actionPlaceDetailFragmentToImageViewerFragment(
-                        imageUrl = temple.pictureUrl,
-                        imageDataBase64 = ""
-                    )
-                    findNavController().navigate(action)
+            }
+            if (_binding == null || generation != photoLoadGeneration) return@launch
+            applyPhotoPages(listOf(stock) + visitPages, restoreSavedIndex = true)
+        }
+    }
+
+    private fun applyPhotoPages(pages: List<PlacePhotoPage>, restoreSavedIndex: Boolean) {
+        photoAdapter.submitPages(pages)
+
+        val indicator = binding.placeDetailPhotoIndicator
+        photoIndicatorMediator?.detach()
+        photoIndicatorMediator = null
+        if (pages.size > 1) {
+            indicator.visibility = View.VISIBLE
+            photoIndicatorMediator =
+                TabLayoutMediator(indicator, binding.placeDetailPhotoPager) { _, _ -> }
+                    .also { it.attach() }
+        } else {
+            indicator.visibility = View.GONE
+        }
+
+        if (!restoreSavedIndex) return
+        val restoreIndex = placeDetailViewModel.selectedPhotoIndex
+            .coerceIn(0, (pages.size - 1).coerceAtLeast(0))
+        binding.placeDetailPhotoPager.post {
+            if (_binding == null) return@post
+            val maxIndex = photoAdapter.itemCount - 1
+            if (maxIndex >= 0) {
+                binding.placeDetailPhotoPager.setCurrentItem(
+                    restoreIndex.coerceIn(0, maxIndex),
+                    false
+                )
+            }
+        }
+    }
+
+    private fun observeVisitSummary() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                placeDetailViewModel.visitSummary.collectLatest { summary ->
+                    visitSummary = summary
+                    bindVisitCount(summary)
+                }
+            }
+        }
+        val userPreferencesManager =
+            (requireActivity().application as MyApplication).userPreferencesManager
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                userPreferencesManager.enableHoursWorkedFlow.collectLatest { enabled ->
+                    showHoursWorked = enabled
                 }
             }
         }
     }
+
+    /**
+     * Shows "Visits: N" once there is at least one visit. On active temples it is
+     * tappable and opens the per-ordinance breakdown.
+     */
+    private fun bindVisitCount(summary: PlaceVisitSummary) {
+        val countView = binding.textViewVisitCountDetail
+        if (summary.visitCount <= 0) {
+            countView.visibility = View.GONE
+            countView.setOnClickListener(null)
+            countView.isClickable = false
+            return
+        }
+        countView.visibility = View.VISIBLE
+        val isActiveTemple = currentTemple?.type == "T"
+        if (isActiveTemple) {
+            countView.text = getString(R.string.place_detail_visit_count_expandable, summary.visitCount)
+            countView.setOnClickListener { showOrdinanceBreakdown(summary) }
+        } else {
+            countView.text = getString(R.string.place_detail_visit_count, summary.visitCount)
+            countView.setOnClickListener(null)
+            countView.isClickable = false
+        }
+    }
+
+    /**
+     * Lists each ordinance type recorded at this temple, omitting types with no count.
+     * Labels sit on the left; counts share a right-aligned column.
+     */
+    private fun showOrdinanceBreakdown(summary: PlaceVisitSummary) {
+        val temple = currentTemple ?: return
+        val content = layoutInflater.inflate(R.layout.dialog_ordinance_breakdown, null)
+        content.findViewById<TextView>(R.id.ordinance_breakdown_visit_count).text =
+            getString(R.string.place_detail_visit_count, summary.visitCount)
+        val rows = content.findViewById<LinearLayout>(R.id.ordinance_breakdown_rows)
+
+        fun addRow(label: String, countText: String, ordinance: Ordinance) {
+            val row = layoutInflater.inflate(R.layout.item_ordinance_breakdown_row, rows, false)
+            val color = ColorUtils.getOrdinanceColor(requireContext(), ordinance)
+            row.findViewById<TextView>(R.id.ordinance_row_label).apply {
+                text = label
+                setTextColor(color)
+            }
+            row.findViewById<TextView>(R.id.ordinance_row_count).apply {
+                text = countText
+                setTextColor(color)
+            }
+            rows.addView(row)
+        }
+
+        fun addOrdinance(labelRes: Int, count: Int, ordinance: Ordinance) {
+            if (count <= 0) return
+            addRow(getString(labelRes), count.toString(), ordinance)
+        }
+
+        if (summary.hasAnyOrdinances) {
+            addOrdinance(R.string.ordinance_label_sealings, summary.sealings, Ordinance.SEALINGS)
+            addOrdinance(R.string.ordinance_label_endowments, summary.endowments, Ordinance.ENDOWMENTS)
+            addOrdinance(R.string.ordinance_label_initiatories, summary.initiatories, Ordinance.INITIATORIES)
+            addOrdinance(R.string.ordinance_label_confirmations, summary.confirmations, Ordinance.CONFIRMATIONS)
+            addOrdinance(R.string.ordinance_label_baptisms, summary.baptisms, Ordinance.BAPTISMS)
+        } else {
+            val empty = TextView(requireContext()).apply {
+                text = getString(R.string.ordinance_breakdown_no_ordinances)
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
+            }
+            rows.addView(empty)
+        }
+
+        if (showHoursWorked && summary.hoursWorked > 0.0) {
+            addRow(
+                getString(R.string.ordinance_breakdown_hours_worked),
+                String.format(java.util.Locale.getDefault(), "%.1f", summary.hoursWorked),
+                Ordinance.HOURS_WORKED
+            )
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(temple.name)
+            .setView(content)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
     
-    private fun showImageViewer(imageViewerFragment: ImageViewerFragment) {
-        parentFragmentManager.beginTransaction()
+    private fun showImageViewer() {
+        requireActivity().supportFragmentManager.beginTransaction()
             .setCustomAnimations(
                 android.R.anim.fade_in,
                 android.R.anim.fade_out,
                 android.R.anim.fade_in,
                 android.R.anim.fade_out
             )
-            .add(android.R.id.content, imageViewerFragment)
-            .addToBackStack("image_viewer")
+            .add(android.R.id.content, ImageViewerFragment.newInstance(), ImageViewerFragment.BACK_STACK_NAME)
+            .addToBackStack(ImageViewerFragment.BACK_STACK_NAME)
             .commit()
     }
 
@@ -629,24 +803,12 @@ class PlaceDetailFragment : Fragment() {
         }
 
 
-        // Image Loading with Coil
-        when {
-            temple.pictureData != null -> {
-                binding.imageViewTempleDetail.load(temple.pictureData) {
-                    placeholder(R.drawable.default_placeholder_image) // Provide your placeholder
-                    error(R.drawable.default_placeholder_image)     // Provide your error drawable
-                }
-            }
-            temple.pictureUrl.isNotBlank() -> {
-                binding.imageViewTempleDetail.load(temple.pictureUrl) {
-                    placeholder(R.drawable.default_placeholder_image)
-                    error(R.drawable.default_placeholder_image)
-                }
-            }
-            else -> {
-                binding.imageViewTempleDetail.setImageResource(R.drawable.default_placeholder_image)
-            }
-        }
+        // Stock image plus any photos from your visits
+        loadPhotoPages(temple)
+
+        // The count arrives from its own flow, so re-bind here now that the place type
+        // (which decides whether it is tappable) is known.
+        bindVisitCount(visitSummary)
         // Make snippet GONE if it's empty or null to prevent empty space
         binding.textViewSnippetDetail.visibility = if (temple.snippet.isBlank()) View.GONE else View.VISIBLE
 
@@ -756,8 +918,14 @@ class PlaceDetailFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
+        _binding?.placeDetailPhotoPager?.let { pager ->
+            placeDetailViewModel.selectedPhotoIndex = pager.currentItem
+        }
+        photoIndicatorMediator?.detach()
+        photoIndicatorMediator = null
+        _binding?.placeDetailPhotoPager?.adapter = null
         _binding = null // Important for preventing memory leaks
         currentTemple = null
+        super.onDestroyView()
     }
 }

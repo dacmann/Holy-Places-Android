@@ -32,7 +32,9 @@ import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentVisitDetailBinding
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.model.Visit
+import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils // Assuming ColorUtils is in this package
+import net.dacworld.android.holyplacesofthelord.util.Ordinance
 import net.dacworld.android.holyplacesofthelord.data.VisitDetailViewModel
 import net.dacworld.android.holyplacesofthelord.data.VisitDetailViewModelFactory
 import java.text.SimpleDateFormat
@@ -85,6 +87,10 @@ class VisitDetailFragment : Fragment() {
 
     // Historical Names: rename that applies to this visit's date (for old-image fallback)
     private var historicalNameChange: net.dacworld.android.holyplacesofthelord.model.TempleNameChange? = null
+
+    // "Show Place Image if No Visit Photo" setting; when off, photo-less visits show no image.
+    private var showStockPlaceImage: Boolean =
+        UserPreferencesManager.DEFAULT_SHOW_STOCK_PLACE_IMAGE_ON_VISITS
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -144,6 +150,16 @@ class VisitDetailFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.historicalNameChange.collect { change ->
                     historicalNameChange = change
+                    viewModel.visit.value?.let { visit -> populateUi(visit, currentTemple) }
+                }
+            }
+        }
+        val userPreferencesManager =
+            UserPreferencesManager.getInstance(requireContext().applicationContext)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                userPreferencesManager.showStockPlaceImageOnVisitsFlow.collect { enabled ->
+                    showStockPlaceImage = enabled
                     viewModel.visit.value?.let { visit -> populateUi(visit, currentTemple) }
                 }
             }
@@ -219,6 +235,8 @@ class VisitDetailFragment : Fragment() {
                         val temple = currentTemple
                         val pictureData = when {
                             visit?.picture != null && visit.picture.isNotEmpty() -> visit.picture
+                            // No stock image is on screen to tap when the setting is off.
+                            !showStockPlaceImage -> null
                             historicalNameChange?.oldImageData != null -> historicalNameChange?.oldImageData
                             temple?.pictureData != null -> temple.pictureData
                             else -> null
@@ -310,16 +328,20 @@ class VisitDetailFragment : Fragment() {
         val currentSortOrder = sharedVisitsViewModel.sortOrder.value
         val currentFilter = sharedVisitsViewModel.selectedPlaceTypeFilter.value
         val currentQuery = sharedVisitsViewModel.searchQuery.value
-        
+        val currentScopeFilter = sharedVisitsViewModel.filterOptions.value
+
         // Force update the VisitViewModel with current values
-        currentSortOrder?.let { 
-            visitViewModel.updateSortOrder(it) 
+        currentSortOrder?.let {
+            visitViewModel.updateSortOrder(it)
         }
-        currentFilter?.let { 
-            visitViewModel.updatePlaceTypeFilter(it) 
+        currentFilter?.let {
+            visitViewModel.updatePlaceTypeFilter(it)
         }
         visitViewModel.setSearchQuery(currentQuery)
-        
+        currentScopeFilter?.let {
+            visitViewModel.updateScopeFilter(it)
+        }
+
         // Observe for changes
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -327,15 +349,20 @@ class VisitDetailFragment : Fragment() {
                 sharedVisitsViewModel.sortOrder.observe(viewLifecycleOwner) { sortOrder ->
                     visitViewModel.updateSortOrder(sortOrder)
                 }
-                
+
                 // Sync place type filter
                 sharedVisitsViewModel.selectedPlaceTypeFilter.observe(viewLifecycleOwner) { filter ->
                     visitViewModel.updatePlaceTypeFilter(filter)
                 }
-                
+
                 // Sync search query
                 sharedVisitsViewModel.searchQuery.observe(viewLifecycleOwner) { query ->
                     visitViewModel.setSearchQuery(query)
+                }
+
+                // Sync header scope buttons (ordinance / favorites)
+                sharedVisitsViewModel.filterOptions.observe(viewLifecycleOwner) { options ->
+                    options?.let { visitViewModel.updateScopeFilter(it) }
                 }
             }
         }
@@ -522,7 +549,9 @@ class VisitDetailFragment : Fragment() {
             }
 
             // Picture: visit photo first, then historical place image (when the
-            // visit predates a rename with an oldImage), then current place image
+            // visit predates a rename with an oldImage), then current place image.
+            // Everything after the visit's own photo is the place's stock image, which
+            // the "Show Place Image if No Visit Photo" setting can turn off.
             val historicalImageData = historicalNameChange?.oldImageData
             val historicalImageUrl = historicalNameChange?.oldImageUrl
             when {
@@ -531,6 +560,9 @@ class VisitDetailFragment : Fragment() {
                     detailVisitPicture.load(visit.picture) {
                         crossfade(true)
                     }
+                }
+                !showStockPlaceImage -> {
+                    detailVisitPicture.visibility = View.GONE
                 }
                 historicalImageData != null -> {
                     detailVisitPicture.visibility = View.VISIBLE
@@ -622,12 +654,12 @@ class VisitDetailFragment : Fragment() {
         }
 
         // Order based on your desired layout
-        appendOrdinance("Baptisms", visit.baptisms, R.color.BaptismBlue)
-        appendOrdinance("Confirmations", visit.confirmations, R.color.Confirmations)
-        appendOrdinance("Initiatories", visit.initiatories, R.color.Initiatories)
-        appendOrdinance("Endowments", visit.endowments, R.color.Endowments)
-        appendOrdinance("Sealings", visit.sealings, R.color.Sealings)
-        appendHours("Hours Worked", visit.shiftHrs, R.color.alt_grey_text) // Use a suitable color for hours
+        appendOrdinance("Baptisms", visit.baptisms, ColorUtils.getOrdinanceColorRes(Ordinance.BAPTISMS))
+        appendOrdinance("Confirmations", visit.confirmations, ColorUtils.getOrdinanceColorRes(Ordinance.CONFIRMATIONS))
+        appendOrdinance("Initiatories", visit.initiatories, ColorUtils.getOrdinanceColorRes(Ordinance.INITIATORIES))
+        appendOrdinance("Endowments", visit.endowments, ColorUtils.getOrdinanceColorRes(Ordinance.ENDOWMENTS))
+        appendOrdinance("Sealings", visit.sealings, ColorUtils.getOrdinanceColorRes(Ordinance.SEALINGS))
+        appendHours("Hours Worked", visit.shiftHrs, ColorUtils.getOrdinanceColorRes(Ordinance.HOURS_WORKED))
 
         if (hasOrdinances) {
             binding.detailVisitOrdinancesPerformed.visibility = View.VISIBLE

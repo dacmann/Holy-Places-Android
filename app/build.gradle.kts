@@ -11,14 +11,14 @@ kotlin {
 }
 android {
     namespace = "net.dacworld.android.holyplacesofthelord"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "net.dacworld.android.holyplacesofthelord"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 19
-        versionName = "1.10"
+        targetSdk = 37
+        versionCode = 21
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -49,6 +49,14 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+configurations.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("org.maplibre.gl:android-sdk"))
+            .using(module("org.maplibre.gl:android-sdk-opengl:${libs.versions.androidSdk.get()}"))
+            .because("MapLibre 13 default artifact requires Vulkan; keep OpenGL for older devices")
+    }
+}
+
 dependencies {
     implementation(libs.material)
 
@@ -65,7 +73,7 @@ dependencies {
     // Optional - Test helpers
     testImplementation(libs.androidx.room.testing)
 
-    // MapLibre GL Native
+    // MapLibre GL Native (OpenGL backend; default android-sdk is Vulkan as of 13.x)
     implementation(libs.android.sdk)
     implementation(libs.android.plugin.annotation.v9)
     implementation(libs.android.plugin.markerview.v9)
@@ -84,6 +92,9 @@ dependencies {
 
     // QR code generation
     implementation(libs.zxing.core)
+
+    // Photo pager on place details
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
 
     // ... other dependencies
     implementation(libs.androidx.core.ktx)

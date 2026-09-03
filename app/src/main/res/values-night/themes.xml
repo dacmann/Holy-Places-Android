@@ -28,6 +28,7 @@
         <!-- M3 themes often handle this via colorSurface. If this doesn't work as expected, uncomment: -->
         <item name="android:statusBarColor">@color/app_bar_background_color</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
 
         <item name="fontFamilyApp">@font/baskerville_font_family</item>
         <item name="android:fontFamily">?attr/fontFamilyApp</item>

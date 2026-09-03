@@ -195,6 +195,7 @@
                 app:layout_goneMarginBottom="0dp">
 
                 <TextView
+                    android:id="@+id/label_baptisms"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -242,6 +243,7 @@
                 app:layout_constraintBottom_toTopOf="@+id/layout_initiatories"
                 app:layout_goneMarginBottom="0dp">
                 <TextView
+                    android:id="@+id/label_confirmations"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -289,6 +291,7 @@
                 app:layout_constraintBottom_toTopOf="@+id/layout_endowments"
                 app:layout_goneMarginBottom="0dp">
                 <TextView
+                    android:id="@+id/label_initiatories"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -336,6 +339,7 @@
                 app:layout_constraintBottom_toTopOf="@+id/layout_sealings"
                 app:layout_goneMarginBottom="0dp">
                 <TextView
+                    android:id="@+id/label_endowments"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -382,6 +386,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_goneMarginBottom="16dp">
                 <TextView
+                    android:id="@+id/label_sealings"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"

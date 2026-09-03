@@ -3,20 +3,31 @@ package net.dacworld.android.holyplacesofthelord.model // Ensure this matches yo
 import androidx.annotation.ColorRes
 import androidx.annotation.StringRes
 import net.dacworld.android.holyplacesofthelord.R // Import your project's R file
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 
 // --- Enums and Helper Function from previous response ---
 
-enum class PlaceFilter(@field:StringRes val displayNameRes: Int, @field:ColorRes val customColorRes: Int? = null) {
-    HOLY_PLACES(R.string.place_filter_holy_places, R.color.grey_text),
-    ACTIVE_TEMPLES(R.string.place_filter_active_temples, R.color.t2_temples),
-    HISTORICAL_SITES(R.string.place_filter_historical_sites, R.color.t2_historic_site),
-    VISITORS_CENTERS(R.string.place_filter_visitors_centers, R.color.t2_visitors_centers),
-    TEMPLES_UNDER_CONSTRUCTION(
-        R.string.place_filter_temples_under_construction,
-        R.color.t2_under_construction
-    ),
-    ANNOUNCED_TEMPLES(R.string.place_filter_announced_temples, R.color.t2_announced_temples),
-    ALL_TEMPLES(R.string.place_filter_all_temples, R.color.grey_text);
+/**
+ * [placeTypeCode] is the place type this filter narrows to (null for the "any type"
+ * filters), and drives both the color and the optional type symbol so the filter menus
+ * always match the lists.
+ */
+enum class PlaceFilter(
+    @field:StringRes val displayNameRes: Int,
+    val placeTypeCode: String? = null
+) {
+    HOLY_PLACES(R.string.place_filter_holy_places),
+    ACTIVE_TEMPLES(R.string.place_filter_active_temples, "T"),
+    HISTORICAL_SITES(R.string.place_filter_historical_sites, "H"),
+    VISITORS_CENTERS(R.string.place_filter_visitors_centers, "V"),
+    TEMPLES_UNDER_CONSTRUCTION(R.string.place_filter_temples_under_construction, "C"),
+    ANNOUNCED_TEMPLES(R.string.place_filter_announced_temples, "A"),
+    ALL_TEMPLES(R.string.place_filter_all_temples);
+
+    @get:ColorRes
+    val customColorRes: Int?
+        get() = if (placeTypeCode == null) R.color.grey_text
+        else ColorUtils.getPlaceTypeColorRes(placeTypeCode)
 }
 
 enum class PlaceSort(@field:StringRes val displayNameRes: Int) {

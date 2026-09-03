@@ -23,6 +23,7 @@ import net.dacworld.android.holyplacesofthelord.dao.VisitDao
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
 import net.dacworld.android.holyplacesofthelord.model.Visit // Your Visit model from context
 // No need to import Temple model here if we only use TempleDao for counts
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 import org.xmlpull.v1.XmlPullParser
 import java.io.InputStream
@@ -234,19 +235,19 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
                     "Temples",
                     visitedPlaceNamesByType[TYPE_TEMPLE]?.size ?: 0,
                     totalTemplesCountDeferred.await(),
-                    net.dacworld.android.holyplacesofthelord.R.color.t2_temples // Direct R reference
+                    ColorUtils.getPlaceTypeColorRes(TYPE_TEMPLE)
                 ),
                 HolyPlaceStat(
                     "Historic Sites", // Display name
                     visitedPlaceNamesByType[TYPE_HISTORICAL_SITE]?.size ?: 0,
                     totalHistoricalCountDeferred.await(),
-                    net.dacworld.android.holyplacesofthelord.R.color.t2_historic_site
+                    ColorUtils.getPlaceTypeColorRes(TYPE_HISTORICAL_SITE)
                 ),
                 HolyPlaceStat(
                     "Visitors' Centers", // Display name
                     visitedPlaceNamesByType[TYPE_VISITORS_CENTER]?.size ?: 0,
                     totalVCCountDeferred.await(),
-                    net.dacworld.android.holyplacesofthelord.R.color.t2_visitors_centers
+                    ColorUtils.getPlaceTypeColorRes(TYPE_VISITORS_CENTER)
                 )
                 // Add other HolyPlaceStat objects here if "Announced", "Under Construction"
                 // are part of this summary table with their own visited/total counts.
@@ -275,11 +276,9 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
                 .take(12)
                 .map { (name, count, type) ->
                     val colorRes = when (type) {
-                        TYPE_TEMPLE -> net.dacworld.android.holyplacesofthelord.R.color.t2_temples
-                        TYPE_HISTORICAL_SITE -> net.dacworld.android.holyplacesofthelord.R.color.t2_historic_site
-                        TYPE_VISITORS_CENTER -> net.dacworld.android.holyplacesofthelord.R.color.t2_visitors_centers
-                        TYPE_ANNOUNCED_TEMPLES -> net.dacworld.android.holyplacesofthelord.R.color.t2_announced_temples
-                        TYPE_UNDER_CONSTRUCTION -> net.dacworld.android.holyplacesofthelord.R.color.t2_under_construction
+                        TYPE_TEMPLE, TYPE_HISTORICAL_SITE, TYPE_VISITORS_CENTER,
+                        TYPE_ANNOUNCED_TEMPLES, TYPE_UNDER_CONSTRUCTION ->
+                            ColorUtils.getPlaceTypeColorRes(type)
                         else -> net.dacworld.android.holyplacesofthelord.R.color.alt_grey_text // Fallback color
                     }
                     MostVisitedPlaceItem(name, count, colorRes)

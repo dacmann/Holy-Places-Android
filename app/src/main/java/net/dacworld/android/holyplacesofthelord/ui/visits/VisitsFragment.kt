@@ -28,8 +28,10 @@ import com.google.android.material.snackbar.Snackbar
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentVisitsBinding
 import net.dacworld.android.holyplacesofthelord.ui.SharedVisitsViewModel
+import net.dacworld.android.holyplacesofthelord.ui.VisitFilterOptions
 import net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder
 import net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter
+import net.dacworld.android.holyplacesofthelord.ui.VisitScope
 
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.data.VisitViewModel
@@ -46,6 +48,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.color.MaterialColors
 import net.dacworld.android.holyplacesofthelord.data.VisitDisplayListItem
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.placeTypeSymbolTitle
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import androidx.fragment.app.activityViewModels
@@ -74,6 +77,7 @@ class VisitsFragment : Fragment() {
 
     private var previousSortOrder: net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder? = null
     private var previousPlaceTypeFilter: net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter? = null
+    private var previousScopeFilter: VisitFilterOptions? = null
     private var isVisitsInitialLoad = true // To differentiate from subsequent updates
     private var shouldScrollAfterNextSubmit: Boolean = false // More direct flag for scrolling
 
@@ -102,6 +106,7 @@ class VisitsFragment : Fragment() {
         // the observers don't falsely detect a change if LiveData re-emits its current value.
         previousSortOrder = sharedVisitsViewModel.sortOrder.value
         previousPlaceTypeFilter = sharedVisitsViewModel.selectedPlaceTypeFilter.value
+        previousScopeFilter = sharedVisitsViewModel.filterOptions.value
         // previousSearchQuery = sharedVisitsViewModel.searchQuery.value // if you use it
 
         setupToolbar()
@@ -110,6 +115,7 @@ class VisitsFragment : Fragment() {
         setupSwipeToDelete()
         setupSearchViewListeners()
         setupHeaderActions()
+        setupScopeToggleGroup()
         observeViewModel()
 
         // Apply bottom padding to the RecyclerView to account for the main_bottom_navigation and IME
@@ -382,7 +388,12 @@ class VisitsFragment : Fragment() {
                                 title.length,
                                 SpannableString.SPAN_INCLUSIVE_INCLUSIVE
                             )
-                            menuItem.title = spannableString // Set the styled title
+                            menuItem.title = placeTypeSymbolTitle(
+                                requireContext(),
+                                spannableString,
+                                placeFilterForMenuItem.placeTypeCode,
+                                colorInt
+                            )
                             Log.d("VisitsFragmentMenu", "Applied PlaceFilter text/color to menu item: '${menuItem.title}', Enum: ${placeFilterForMenuItem.name}")
                         } catch (e: Exception) {
                             Log.e("VisitsFragmentMenu", "Error applying PlaceFilter style to menu item (ID: ${menuItem.itemId}): ${e.message}", e)
@@ -515,6 +526,55 @@ class VisitsFragment : Fragment() {
         binding.addVisitButton.setOnClickListener {
             val action = VisitsFragmentDirections.actionVisitsFragmentToAddVisitPlacePickerFragment()
             findNavController().navigate(action)
+        }
+    }
+
+    private fun scopeToButtonId(scope: VisitScope): Int = when (scope) {
+        VisitScope.ALL -> R.id.button_scope_all_visits
+        VisitScope.BAPTISMS -> R.id.button_scope_baptisms
+        VisitScope.CONFIRMATIONS -> R.id.button_scope_confirmations
+        VisitScope.INITIATORIES -> R.id.button_scope_initiatories
+        VisitScope.ENDOWMENTS -> R.id.button_scope_endowments
+        VisitScope.SEALINGS -> R.id.button_scope_sealings
+        VisitScope.FAVORITES -> R.id.button_scope_favorites
+    }
+
+    private fun setupScopeToggleGroup() {
+        // Restore the previously selected scope before listening, so re-checking the
+        // stored button doesn't look like a fresh selection.
+        binding.visitScopeToggleGroup.check(
+            scopeToButtonId(sharedVisitsViewModel.selectedScope.value ?: VisitScope.ALL)
+        )
+        binding.visitScopeToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val scope = when (checkedId) {
+                R.id.button_scope_all_visits -> VisitScope.ALL
+                R.id.button_scope_baptisms -> VisitScope.BAPTISMS
+                R.id.button_scope_confirmations -> VisitScope.CONFIRMATIONS
+                R.id.button_scope_initiatories -> VisitScope.INITIATORIES
+                R.id.button_scope_endowments -> VisitScope.ENDOWMENTS
+                R.id.button_scope_sealings -> VisitScope.SEALINGS
+                R.id.button_scope_favorites -> VisitScope.FAVORITES
+                else -> return@addOnButtonCheckedListener
+            }
+            sharedVisitsViewModel.setScope(scope)
+        }
+
+        sharedVisitsViewModel.filterOptions.observe(viewLifecycleOwner) { options ->
+            options?.let { currentOptions ->
+                if (!isVisitsInitialLoad && previousScopeFilter != currentOptions) {
+                    shouldScrollAfterNextSubmit = true
+                }
+                previousScopeFilter = currentOptions
+                visitViewModel.updateScopeFilter(currentOptions)
+            }
+        }
+
+        sharedVisitsViewModel.selectedScope.observe(viewLifecycleOwner) { scope ->
+            val buttonId = scopeToButtonId(scope ?: VisitScope.ALL)
+            if (binding.visitScopeToggleGroup.checkedButtonId != buttonId) {
+                binding.visitScopeToggleGroup.check(buttonId)
+            }
         }
     }
 

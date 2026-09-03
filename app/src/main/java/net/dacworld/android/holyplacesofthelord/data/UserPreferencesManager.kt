@@ -82,6 +82,13 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val ADD_VISIT_CLOSEST_PLACE_KEY = booleanPreferencesKey("add_visit_closest_place")
         val CELEBRATION_BOARD_NAMES_KEY = stringPreferencesKey("celebration_board_names")
         val CELEBRATION_BOARD_LOCATIONS_KEY = stringPreferencesKey("celebration_board_locations")
+
+        // --- Appearance keys ---
+        val COLOR_THEME_KEY = stringPreferencesKey("color_theme")
+        val SHOW_PLACE_TYPE_SYMBOLS_KEY = booleanPreferencesKey("show_place_type_symbols")
+        val SHOW_STOCK_PLACE_IMAGE_ON_VISITS_KEY = booleanPreferencesKey("show_stock_place_image_on_visits")
+        val HOME_IMAGE_OPTION_KEY = stringPreferencesKey("home_image_option")
+        val HOME_TEXT_COLOR_KEY = intPreferencesKey("home_text_color")
     }
 
     // --- Flows for New Settings ---
@@ -470,6 +477,69 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         }
     }
 
+    // --- Appearance ---
+
+    val colorThemeFlow: Flow<String> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.COLOR_THEME_KEY] ?: DEFAULT_COLOR_THEME
+        }
+
+    suspend fun saveColorTheme(value: String) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.COLOR_THEME_KEY] = value
+        }
+    }
+
+    val showPlaceTypeSymbolsFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.SHOW_PLACE_TYPE_SYMBOLS_KEY] ?: DEFAULT_SHOW_PLACE_TYPE_SYMBOLS
+        }
+
+    suspend fun saveShowPlaceTypeSymbols(value: Boolean) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_PLACE_TYPE_SYMBOLS_KEY] = value
+        }
+    }
+
+    val showStockPlaceImageOnVisitsFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.SHOW_STOCK_PLACE_IMAGE_ON_VISITS_KEY]
+                ?: DEFAULT_SHOW_STOCK_PLACE_IMAGE_ON_VISITS
+        }
+
+    suspend fun saveShowStockPlaceImageOnVisits(value: Boolean) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_STOCK_PLACE_IMAGE_ON_VISITS_KEY] = value
+        }
+    }
+
+    val homeImageOptionFlow: Flow<String> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.HOME_IMAGE_OPTION_KEY] ?: DEFAULT_HOME_IMAGE_OPTION
+        }
+
+    suspend fun saveHomeImageOption(value: String) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.HOME_IMAGE_OPTION_KEY] = value
+        }
+    }
+
+    val homeTextColorFlow: Flow<Int> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.HOME_TEXT_COLOR_KEY] ?: DEFAULT_HOME_TEXT_COLOR
+        }
+
+    suspend fun saveHomeTextColor(value: Int) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.HOME_TEXT_COLOR_KEY] = value
+        }
+    }
+
     suspend fun celebrationBoardSavedName(profileId: String): String? {
         val map = parseIdentityMap(dataStoreInstance.data.first()[PreferencesKeys.CELEBRATION_BOARD_NAMES_KEY])
         return map[profileId]?.trim()?.takeIf { it.isNotEmpty() }
@@ -510,6 +580,14 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         const val DEFAULT_EXCLUDE_VISITS = false
         const val DEFAULT_ENABLE_HOURS = false
         const val DEFAULT_COMMENTS_TEXT = "Attended with..." // Fallback only - actual default comes from string resource
+
+        // Appearance defaults - stored values match the iOS "themeSelected" values
+        const val DEFAULT_COLOR_THEME = "3830"
+        const val DEFAULT_SHOW_PLACE_TYPE_SYMBOLS = false
+        const val DEFAULT_SHOW_STOCK_PLACE_IMAGE_ON_VISITS = true
+        const val DEFAULT_HOME_IMAGE_OPTION = "default"
+        const val DEFAULT_HOME_TEXT_COLOR = 0
+
         
         // Rating prompt status values
         const val RATING_STATUS_NOT_SHOWN = "not_shown"

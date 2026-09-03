@@ -11,6 +11,7 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.model.VisitContract // If you created this
+import net.dacworld.android.holyplacesofthelord.model.VisitPhoto
 
 @Dao
 interface VisitDao {
@@ -93,6 +94,56 @@ interface VisitDao {
     // Get all visits for a specific Temple
     @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_PLACE_ID} = :templeId ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
     fun getVisitsForTemple(templeId: String): Flow<List<Visit>>
+
+    /**
+     * Visits for one place, newest first, optionally scoped to a profile — used for the
+     * visit count and ordinance totals on place details, so the photo blob is left out.
+     * Visits keep their place ID across renames, so visits recorded under a former name
+     * are included. When [profileId] is null, all visits are included.
+     */
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT " +
+            "${VisitContract.COLUMN_ID}, " +
+            "${VisitContract.COLUMN_PLACE_ID}, " +
+            "${VisitContract.COLUMN_BAPTISMS}, " +
+            "${VisitContract.COLUMN_COMMENTS}, " +
+            "${VisitContract.COLUMN_CONFIRMATIONS}, " +
+            "${VisitContract.COLUMN_DATE_VISITED}, " +
+            "${VisitContract.COLUMN_ENDOWMENTS}, " +
+            "${VisitContract.COLUMN_HOLY_PLACE_NAME}, " +
+            "${VisitContract.COLUMN_INITIATORIES}, " +
+            "${VisitContract.COLUMN_IS_FAVORITE}, " +
+            "${VisitContract.COLUMN_SEALINGS}, " +
+            "${VisitContract.COLUMN_SHIFT_HRS}, " +
+            "${VisitContract.COLUMN_VISIT_TYPE}, " +
+            "${VisitContract.COLUMN_YEAR}, " +
+            "${VisitContract.COLUMN_HAS_PICTURE} " +
+            "FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE ${VisitContract.COLUMN_PLACE_ID} = :templeId " +
+            "AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId " +
+            "     OR ${VisitContract.COLUMN_PROFILE_ID} IS NULL) " +
+            "ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC")
+    fun getVisitsForTempleByProfile(templeId: String, profileId: String?): Flow<List<Visit>>
+
+    /**
+     * The newest [limit] visit photos for a place, for the place details photo pager.
+     */
+    @Query(
+        "SELECT ${VisitContract.COLUMN_ID} AS id, " +
+            "${VisitContract.COLUMN_DATE_VISITED} AS dateVisited, " +
+            "${VisitContract.COLUMN_PICTURE_DATA} AS picture " +
+            "FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE ${VisitContract.COLUMN_PLACE_ID} = :templeId " +
+            "AND ${VisitContract.COLUMN_PICTURE_DATA} IS NOT NULL " +
+            "AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId " +
+            "     OR ${VisitContract.COLUMN_PROFILE_ID} IS NULL) " +
+            "ORDER BY ${VisitContract.COLUMN_DATE_VISITED} DESC LIMIT :limit"
+    )
+    suspend fun getVisitPhotosForTemple(
+        templeId: String,
+        profileId: String?,
+        limit: Int
+    ): List<VisitPhoto>
 
     // NEW: Suspend function to get a list of visits for a specific Temple ID (for background processing)
     @Query("SELECT * FROM ${VisitContract.TABLE_NAME} WHERE ${VisitContract.COLUMN_PLACE_ID} = :templeId")
@@ -317,6 +368,33 @@ interface VisitDao {
 
     @Query("SELECT SUM(${VisitContract.COLUMN_SEALINGS}) FROM visits WHERE year = :year AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)")
     fun getTotalSealingsForYear(year: String, profileId: String? = null): Flow<Int?>
+
+    /**
+     * Count of visits that have an attached photo, optionally scoped to a profile.
+     * Used to decide whether Random home background is available.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE ${VisitContract.COLUMN_HAS_PICTURE} = 1 " +
+            "AND ${VisitContract.COLUMN_PICTURE_DATA} IS NOT NULL " +
+            "AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId)"
+    )
+    suspend fun countVisitsWithPictures(profileId: String?): Int
+
+    /**
+     * One random visit photo for the home-screen Random Image option.
+     */
+    @Query(
+        "SELECT ${VisitContract.COLUMN_ID} AS id, " +
+            "${VisitContract.COLUMN_DATE_VISITED} AS dateVisited, " +
+            "${VisitContract.COLUMN_PICTURE_DATA} AS picture " +
+            "FROM ${VisitContract.TABLE_NAME} " +
+            "WHERE ${VisitContract.COLUMN_HAS_PICTURE} = 1 " +
+            "AND ${VisitContract.COLUMN_PICTURE_DATA} IS NOT NULL " +
+            "AND (:profileId IS NULL OR ${VisitContract.COLUMN_PROFILE_ID} = :profileId) " +
+            "ORDER BY RANDOM() LIMIT 1"
+    )
+    suspend fun getRandomVisitPhoto(profileId: String?): VisitPhoto?
 
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("SELECT " +

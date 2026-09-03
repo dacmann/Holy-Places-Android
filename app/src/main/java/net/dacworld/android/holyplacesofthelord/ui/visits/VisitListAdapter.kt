@@ -16,6 +16,7 @@ import net.dacworld.android.holyplacesofthelord.databinding.ListItemVisitBinding
 import java.text.SimpleDateFormat
 import java.util.Locale
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.placeTypeSymbolTitle
 
 
 class VisitListAdapter(
@@ -137,7 +138,15 @@ class VisitListAdapter(
             isMultiSelectMode: Boolean = false,
             onClickAction: () -> Unit = {}
         ) {
-            binding.visitItemPlaceName.text = visit.holyPlaceName ?: context.getString(R.string.unknown)
+            val placeName = visit.holyPlaceName ?: context.getString(R.string.unknown)
+            val typeColor = ColorUtils.getTextColorForTempleType(context, visit.type)
+            binding.visitItemPlaceName.setTextColor(typeColor)
+            binding.visitItemPlaceName.text = placeTypeSymbolTitle(
+                context,
+                placeName,
+                visit.type,
+                typeColor
+            )
 
             val dateString = visit.dateVisited?.let {
                 dateFormatter.format(it)
@@ -172,9 +181,6 @@ class VisitListAdapter(
             binding.visitItemDate.text = "$combinedDateAndOrdinances${indicators.toString().trimEnd()}"
 
             Log.d("VisitListAdapter", "Binding visit: '${visit.holyPlaceName}', Type: '${visit.type}'")
-
-            val typeColor = ColorUtils.getTextColorForTempleType(context, visit.type)
-            binding.visitItemPlaceName.setTextColor(typeColor)
 
             itemView.isActivated = isSelected
             itemView.alpha = if (isMultiSelectMode && !isSelected) 0.5f else 1.0f

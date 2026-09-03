@@ -1,25 +1,35 @@
 package net.dacworld.android.holyplacesofthelord.ui.home
 
 import android.app.AlertDialog
+import android.content.res.ColorStateList
+import android.content.res.Configuration
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.navigation.fragment.findNavController
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.view.WindowManager
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels // For shared ViewModel
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import coil.load
+import coil.request.CachePolicy
+import coil.size.Scale
 import com.google.android.material.dialog.MaterialAlertDialogBuilder // For Dialog
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updatePadding
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import net.dacworld.android.holyplacesofthelord.MyApplication
@@ -33,7 +43,13 @@ import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileIconAdapter
 import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileIcons
 import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModel
 import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModelFactory
+import net.dacworld.android.holyplacesofthelord.util.HomeBackgroundStore
+import net.dacworld.android.holyplacesofthelord.util.HomeImageOption
+import net.dacworld.android.holyplacesofthelord.util.HomeTextColor
+import android.widget.ImageView
 import android.widget.PopupMenu
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class HomeFragment : Fragment() {
 
@@ -42,7 +58,13 @@ class HomeFragment : Fragment() {
 
     private val homeViewModel: HomeViewModel by viewModels {
         val application = requireActivity().application as MyApplication
-        HomeViewModelFactory(application.userPreferencesManager, application.visitDao, application.achievementRepository, application.profileRepository)
+        HomeViewModelFactory(
+            application.userPreferencesManager,
+            application.visitDao,
+            application.achievementRepository,
+            application.profileRepository,
+            HomeBackgroundStore.getInstance(application)
+        )
     }
 
     private val dataViewModel: DataViewModel by activityViewModels {
@@ -60,6 +82,8 @@ class HomeFragment : Fragment() {
 
     // Flag to manage if the What's New dialog is currently being shown by this fragment
     private var isWhatsNewDialogShowing = false
+
+    private val homeVisitDateFormat = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -136,6 +160,128 @@ class HomeFragment : Fragment() {
         setupGoalProgressObservers()
         setupAchievementButton()
         setupProfileSwitcher()
+        setupHomeAppearanceObserver()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        homeViewModel.refreshRandomPhoto()
+    }
+
+    override fun onStop() {
+        restoreStatusBar()
+        super.onStop()
+    }
+
+    private fun setupHomeAppearanceObserver() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                homeViewModel.homeAppearance.collectLatest { state ->
+                    applyHomeAppearance(state)
+                }
+            }
+        }
+    }
+
+    private fun applyHomeAppearance(state: HomeAppearanceState) {
+        val color = ContextCompat.getColor(
+            requireContext(),
+            if (state.textColor == HomeTextColor.WHITE) android.R.color.white else android.R.color.black
+        )
+        applyHomeOverlayColor(color)
+
+        when (state.option) {
+            HomeImageOption.DEFAULT -> {
+                binding.backgroundImagePCC.scaleType = ImageView.ScaleType.CENTER_CROP
+                binding.backgroundImagePCC.setImageResource(R.drawable.provo_city_center)
+                binding.homeVisitDate.visibility = View.GONE
+            }
+            HomeImageOption.RANDOM -> {
+                binding.backgroundImagePCC.scaleType = ImageView.ScaleType.CENTER_CROP
+                val bytes = state.randomPhoto?.picture
+                if (bytes != null && bytes.isNotEmpty()) {
+                    binding.backgroundImagePCC.load(bytes) {
+                        scale(Scale.FILL)
+                    }
+                } else {
+                    binding.backgroundImagePCC.setImageResource(R.drawable.provo_city_center)
+                }
+                val date = state.randomPhoto?.dateVisited
+                if (date != null) {
+                    binding.homeVisitDate.text = homeVisitDateFormat.format(date)
+                    binding.homeVisitDate.visibility = View.VISIBLE
+                    binding.homeVisitDate.setTextColor(color)
+                } else {
+                    binding.homeVisitDate.visibility = View.GONE
+                }
+            }
+            HomeImageOption.SPECIFIC -> {
+                binding.backgroundImagePCC.scaleType = ImageView.ScaleType.CENTER_CROP
+                val file = state.alternateFile
+                if (file != null && file.exists()) {
+                    binding.backgroundImagePCC.load(file.readBytes()) {
+                        scale(Scale.FILL)
+                        diskCachePolicy(CachePolicy.DISABLED)
+                        memoryCacheKey("home_bg_${file.lastModified()}")
+                    }
+                } else {
+                    binding.backgroundImagePCC.setImageResource(R.drawable.provo_city_center)
+                }
+                binding.homeVisitDate.visibility = View.GONE
+            }
+        }
+        applyStatusBar(state.textColor)
+    }
+
+    private fun applyHomeOverlayColor(color: Int) {
+        val tint = ColorStateList.valueOf(color)
+        binding.appName.setTextColor(color)
+        binding.appNameSeparator.setBackgroundColor(color)
+        binding.appSubtitle.setTextColor(color)
+        binding.scriptureReference.setTextColor(color)
+        binding.profileSwitcherButton.setTextColor(color)
+        binding.profileSwitcherButton.iconTint = tint
+        ImageViewCompat.setImageTintList(binding.infoIcon, tint)
+        ImageViewCompat.setImageTintList(binding.settingsIcon, tint)
+        ImageViewCompat.setImageTintList(binding.shareButton, tint)
+        binding.goalProgressTitle.setTextColor(color)
+        binding.preGoalTitleSeparator.setBackgroundColor(color)
+        binding.postGoalTitleSeparator.setBackgroundColor(color)
+        binding.visitsGoalText.setTextColor(color)
+        binding.baptConfGoalText.setTextColor(color)
+        binding.initiatoriesGoalText.setTextColor(color)
+        binding.endowmentsGoalText.setTextColor(color)
+        binding.sealingsGoalText.setTextColor(color)
+        binding.homeVisitDate.setTextColor(color)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun applyStatusBar(textColor: HomeTextColor) {
+        val window = activity?.window ?: return
+        window.statusBarColor = Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isStatusBarContrastEnforced = false
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars =
+            textColor == HomeTextColor.BLACK
+    }
+
+    @Suppress("DEPRECATION")
+    private fun restoreStatusBar() {
+        val window = activity?.window ?: return
+        window.statusBarColor = ContextCompat.getColor(requireContext(), R.color.app_bar_background_color)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isStatusBarContrastEnforced = true
+        }
+        val night = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            Configuration.UI_MODE_NIGHT_YES
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = !night
     }
 
     // In HomeFragment.kt
@@ -147,6 +293,15 @@ class HomeFragment : Fragment() {
         // Function to calculate and apply spacer height
         val applySpacerHeight = {
             ViewCompat.getRootWindowInsets(viewReceivingInsets)?.let { insets ->
+                val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+                val extraTitleMarginPx = (16 * resources.displayMetrics.density).toInt()
+                val titleTopMargin = statusBars.top + extraTitleMarginPx
+                val titleLp = binding.appName.layoutParams as ViewGroup.MarginLayoutParams
+                if (titleLp.topMargin != titleTopMargin) {
+                    titleLp.topMargin = titleTopMargin
+                    binding.appName.layoutParams = titleLp
+                }
+
                 val systemNavigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
                 val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
                 var effectiveNavHeight = systemNavigationBars.bottom
@@ -443,6 +598,7 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        restoreStatusBar()
         _binding = null
         isInitialSeedDialogShowing = false // Reset flag to be safe
         isWhatsNewDialogShowing = false

@@ -5,6 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black"
+    android:clickable="true"
+    android:focusable="true"
     android:fitsSystemWindows="true">
 
     <com.github.chrisbanes.photoview.PhotoView
@@ -23,8 +25,11 @@
         android:layout_margin="16dp"
         android:contentDescription="@string/close"
         android:src="@drawable/ic_close"
-        app:tint="@null"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:elevation="8dp"
+        app:backgroundTint="#CC000000"
+        app:fabSize="mini"
+        app:tint="@android:color/white"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

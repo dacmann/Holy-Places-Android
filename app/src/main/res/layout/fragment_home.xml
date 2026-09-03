@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fitsSystemWindows="false"
     tools:context=".ui.home.HomeFragment">
 
     <ImageView
@@ -12,6 +14,7 @@
         android:layout_height="0dp"
         android:src="@drawable/provo_city_center"
         android:scaleType="centerCrop"
+        android:background="@android:color/black"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -125,6 +128,23 @@
         app:layout_constraintTop_toBottomOf="@id/scriptureReference"
         android:layout_marginTop="24dp"
         android:layout_marginEnd="10dp" />
+
+    <TextView
+        android:id="@+id/homeVisitDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/baskerville_font_family"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:visibility="gone"
+        android:layout_marginBottom="8dp"
+        android:contentDescription="@string/cd_home_visit_date"
+        app:layout_constraintBottom_toTopOf="@id/goalProgressContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_goneMarginBottom="16dp"
+        tools:text="April 6, 1830"
+        tools:visibility="visible" />
 
     <!-- Goal Progress Section START -->
     <LinearLayout

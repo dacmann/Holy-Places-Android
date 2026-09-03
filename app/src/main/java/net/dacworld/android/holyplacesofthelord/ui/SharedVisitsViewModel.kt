@@ -30,6 +30,31 @@ data class VisitFilterOptions(
     }
 }
 
+/**
+ * The scope buttons in the Visits header. Each narrows the list to visits where that
+ * ordinance was performed, or to favorites for [FAVORITES]. Deliberately independent of
+ * the "Filter by Type" menu, as on iOS.
+ */
+enum class VisitScope {
+    ALL,
+    BAPTISMS,
+    CONFIRMATIONS,
+    INITIATORIES,
+    ENDOWMENTS,
+    SEALINGS,
+    FAVORITES;
+
+    fun toFilterOptions(): VisitFilterOptions = when (this) {
+        ALL -> VisitFilterOptions()
+        BAPTISMS -> VisitFilterOptions(ordinanceBaptisms = true)
+        CONFIRMATIONS -> VisitFilterOptions(ordinanceConfirmations = true)
+        INITIATORIES -> VisitFilterOptions(ordinanceInitiatories = true)
+        ENDOWMENTS -> VisitFilterOptions(ordinanceEndowments = true)
+        SEALINGS -> VisitFilterOptions(ordinanceSealings = true)
+        FAVORITES -> VisitFilterOptions(showOnlyFavorites = true)
+    }
+}
+
 enum class VisitPlaceTypeFilter(val typeCode: String?, val displayNameResource: Int) {
     ALL(null, R.string.filter_type_all_visits),
     ACTIVE_TEMPLES("T", R.string.filter_type_active_temples),
@@ -49,6 +74,11 @@ class SharedVisitsViewModel : ViewModel() {
 
     private val _filterOptions = MutableLiveData<VisitFilterOptions>(VisitFilterOptions()) // Default filters
     val filterOptions: LiveData<VisitFilterOptions> = _filterOptions
+
+    // Which header scope button is selected. Kept alongside [filterOptions] so the
+    // toggle group can restore its selection.
+    private val _selectedScope = MutableLiveData(VisitScope.ALL)
+    val selectedScope: LiveData<VisitScope> = _selectedScope
 
     // --- NEW LiveData and method for the Place Type Filter ---
     private val _selectedPlaceTypeFilter = MutableLiveData(VisitPlaceTypeFilter.ALL)
@@ -73,6 +103,17 @@ class SharedVisitsViewModel : ViewModel() {
         if (_filterOptions.value != options) {
             _filterOptions.value = options
         }
+    }
+
+    /**
+     * Selects a header scope button, which drives [filterOptions]. Kept separately so the
+     * toggle group can restore its checked button after a rotation or theme change.
+     */
+    fun setScope(scope: VisitScope) {
+        if (_selectedScope.value != scope) {
+            _selectedScope.value = scope
+        }
+        setScopeFilterOptions(scope.toFilterOptions())
     }
 
     // Example method for updating a specific scope button filter (if needed)

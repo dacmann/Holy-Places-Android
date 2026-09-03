@@ -7,7 +7,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.databinding.ItemTempleBinding // View Binding
-import net.dacworld.android.holyplacesofthelord.util.ColorUtils // Import ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.placeTypeSymbolTitle
 // Import your ItemSectionHeaderBinding if you have created it (we'll do this soon)
 // import net.dacworld.android.holyplacesofthelord.databinding.ItemSectionHeaderBinding
 
@@ -38,11 +39,16 @@ class PlaceDisplayAdapter(private val onItemClicked: (Temple) -> Unit) :
         private val onItemClickedCallback: (Temple) -> Unit // Renamed param for clarity
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(temple: Temple) {
-            binding.templeNameTextView.text = temple.name
             binding.templeSnippetTextView.text = temple.snippet // Assuming snippet is still relevant
 
             val nameColor = ColorUtils.getTextColorForTempleType(binding.root.context, temple.type)
             binding.templeNameTextView.setTextColor(nameColor)
+            binding.templeNameTextView.text = placeTypeSymbolTitle(
+                binding.root.context,
+                temple.name.orEmpty(),
+                temple.type,
+                nameColor
+            )
 
             itemView.setOnClickListener {
                 onItemClickedCallback(temple)

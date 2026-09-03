@@ -31,21 +31,39 @@
         android:layout_weight="1">
         <!-- Padding removed from here -->
 
-        <ImageView
-            android:id="@+id/imageViewTempleDetail"
+        <!-- Page 0 is the place's stock image, followed by photos from your visits. -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/placeDetailPhotoPager"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:scaleType="fitCenter"
-            android:clickable="true"
-            android:focusable="true"
-            android:adjustViewBounds="true"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@+id/guideline_image_bottom"
-            app:layout_constraintVertical_bias="0.0"
-            android:contentDescription="@string/temple_image_description"
-            tools:src="@drawable/default_placeholder_image"/>
+            android:contentDescription="@string/temple_image_description" />
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/placeDetailPhotoIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="8dp"
+            android:minHeight="8dp"
+            android:layout_marginBottom="4dp"
+            android:background="@android:color/transparent"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/guideline_image_bottom"
+            app:tabBackground="@drawable/photo_pager_dot_selector"
+            app:tabGravity="center"
+            app:tabIndicatorHeight="0dp"
+            app:tabMinWidth="8dp"
+            app:tabMode="fixed"
+            app:tabPaddingStart="4dp"
+            app:tabPaddingEnd="4dp"
+            app:tabPaddingTop="0dp"
+            app:tabPaddingBottom="0dp"
+            app:tabRippleColor="@null"
+            tools:visibility="visible" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline_image_bottom"
@@ -61,9 +79,27 @@
             android:layout_marginTop="16dp"
             android:layout_marginStart="16dp"
             android:textAppearance="@style/TextAppearance.App.LabelSmall"
-            app:layout_constraintTop_toBottomOf="@id/imageViewTempleDetail"
+            app:layout_constraintTop_toBottomOf="@id/placeDetailPhotoPager"
             app:layout_constraintStart_toStartOf="parent"
             tools:text="FH123"/>
+
+        <!-- Tappable on active temples: opens the per-ordinance breakdown. -->
+        <TextView
+            android:id="@+id/textViewVisitCountDetail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:background="?attr/selectableItemBackground"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:textColor="@color/BaptismBlue"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/placeDetailPhotoPager"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:text="Visits: 12"
+            tools:visibility="visible"/>
 
         <TextView
             android:id="@+id/textViewTempleNameDetail"

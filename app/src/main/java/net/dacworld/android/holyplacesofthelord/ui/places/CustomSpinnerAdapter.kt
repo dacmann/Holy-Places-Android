@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.text.color
 import net.dacworld.android.holyplacesofthelord.R
 import net.dacworld.android.holyplacesofthelord.model.PlaceFilter // For custom filter colors
+import net.dacworld.android.holyplacesofthelord.util.placeTypeSymbolTitle
 
 // Generic adapter that can take a list of any objects and a way to display them
 class CustomSpinnerAdapter<T>(
@@ -19,7 +20,9 @@ class CustomSpinnerAdapter<T>(
     private val dropdownResource: Int, // layout for dropdown items (e.g., spinner_dropdown_item_custom)
     private val items: List<T>,
     private val displayMapper: (T) -> String, // Function to get display string from T
-    private val colorMapper: ((T) -> Int?)? = null // Optional function to get color resource ID for T
+    private val colorMapper: ((T) -> Int?)? = null, // Optional function to get color resource ID for T
+    // Optional function to get the place type code for T, used to show a type symbol
+    private val placeTypeMapper: ((T) -> String?)? = null
 ) : ArrayAdapter<T>(context, resource, items) {
 
     private val layoutInflater: LayoutInflater = LayoutInflater.from(context)
@@ -44,12 +47,19 @@ class CustomSpinnerAdapter<T>(
 
         val item = getItem(position)
         if (item != null) {
-            view.text = displayMapper(item)
+            var textColor = view.currentTextColor
             colorMapper?.let { mapper ->
-                mapper(item)?.let { colorRes ->
-                    view.setTextColor(ContextCompat.getColor(context, colorRes))
-                } ?: view.setTextColor(ContextCompat.getColor(context, com.google.android.material.R.color.design_default_color_primary)) // Default if no specific color
+                textColor = mapper(item)?.let { colorRes ->
+                    ContextCompat.getColor(context, colorRes)
+                } ?: ContextCompat.getColor(context, com.google.android.material.R.color.design_default_color_primary) // Default if no specific color
+                view.setTextColor(textColor)
             }
+            // The rows are center-aligned, so the symbol is prefixed inline rather than
+            // set as a compound drawable (which would sit at the view's edge).
+            val title = displayMapper(item)
+            view.text = placeTypeMapper?.let { mapper ->
+                placeTypeSymbolTitle(context, title, mapper(item), textColor)
+            } ?: title
         }
         return view
     }

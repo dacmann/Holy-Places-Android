@@ -173,7 +173,8 @@ class OptionsFragment : Fragment() {
                 // Resolve the string resource ID to the actual string
                 requireContext().getString(filter.displayNameRes)
             },
-            colorMapper = { it.customColorRes } // Pass the color resource from the enum
+            colorMapper = { it.customColorRes }, // Pass the color resource from the enum
+            placeTypeMapper = { it.placeTypeCode }
         )
         binding.spinnerFilter.adapter = filterAdapter
 

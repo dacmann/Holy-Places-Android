@@ -5,10 +5,6 @@ import android.content.Context
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import java.io.ByteArrayOutputStream
-import kotlin.math.sqrt
 import androidx.fragment.app.add
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -24,6 +20,7 @@ import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.model.effectiveName
 import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
+import net.dacworld.android.holyplacesofthelord.util.VisitPhotoCompression
 import net.dacworld.android.holyplacesofthelord.util.XmlHelper // We will create this helper next
 import java.io.FileDescriptor
 import java.io.FileInputStream
@@ -162,28 +159,22 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
                 val visits = visitDao.getAllVisitsListForExportByProfile(activeProfileId)
                 var estimatedSize: Long = 1000 // Base XML structure
                 var photoCount = 0
-                
-                // Average photo size after compression (based on actual data from logs)
-                val averagePhotoSizeBytes = 2_200_000L // 2.2MB average (more accurate based on actual sizes)
-                
+                val averagePhotoSizeBytes = 500_000L // 0.5 MB typical encoded photo in the XML
+
                 Log.d("ExportImportVM", "Calculating file size for ${visits.size} visits, includePhotos: $_includePhotos")
-                
+
                 for (visit in visits) {
-                    // Add visit data size
                     estimatedSize += (visit.holyPlaceName?.length ?: 0) * 2L
                     estimatedSize += (visit.comments?.length ?: 0) * 2L
                     estimatedSize += 200 // Other fields
-                    
-                    // Add estimated photo size if includePhotos is enabled and visit has a photo
+
                     if (_includePhotos && visit.hasPicture) {
-                        // Base64 encoding increases size by ~33%
-                        val estimatedPhotoSize = (averagePhotoSizeBytes * 133) / 100
-                        estimatedSize += estimatedPhotoSize
+                        estimatedSize += averagePhotoSizeBytes
                         photoCount++
                     }
                 }
-                
-                Log.d("ExportImportVM", "Estimated size: $estimatedSize bytes, Photos included: $photoCount, Average photo size: $averagePhotoSizeBytes bytes")
+
+                Log.d("ExportImportVM", "Estimated size: $estimatedSize bytes, Photos included: $photoCount")
                 callback(estimatedSize)
             } catch (e: Exception) {
                 Log.e("ExportImportVM", "Error calculating file size", e)
@@ -245,24 +236,7 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
                                 shouldSkipPhoto = { holyPlaceName, dateVisitedString ->
                                     // Check if this visit already has a photo (duplicate check)
                                     try {
-                                        // Try multiple date formats to handle different XML formats
-                                        val dateFormats = listOf(
-                                            SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.US), // "Saturday, August 30, 2025"
-                                            SimpleDateFormat("yyyy-MM-dd", Locale.US), // "2025-08-30"
-                                            SimpleDateFormat("MMM d, yyyy", Locale.US), // "Aug 30, 2025"
-                                            SimpleDateFormat("M/d/yyyy", Locale.US) // "8/30/2025"
-                                        )
-                                        
-                                        var dateVisitedFromXml: Date? = null
-                                        for (format in dateFormats) {
-                                            try {
-                                                dateVisitedFromXml = format.parse(dateVisitedString)
-                                                if (dateVisitedFromXml != null) break
-                                            } catch (e: Exception) {
-                                                // Try next format
-                                            }
-                                        }
-                                        
+                                        val dateVisitedFromXml = XmlHelper.parseDateString(dateVisitedString)
                                         if (dateVisitedFromXml != null) {
                                             val calendar = Calendar.getInstance().apply {
                                                 time = dateVisitedFromXml
@@ -507,9 +481,7 @@ private class VisitProcessor(
                     Log.d("VisitProcessor", "Image validation result: $isValidImage for visit: ${dto.holyPlaceName}")
                     
                     if (pictureData.isNotEmpty() && isValidImage) {
-                        // Compress photo if it's too large for SQLite storage
-                        val compressedPictureData = compressPhotoIfNeeded(pictureData)
-                        pictureData = compressedPictureData
+                        pictureData = VisitPhotoCompression.encodedData(pictureData) ?: pictureData
                         
                                     hasPicture = true
                                     photoImportCount++
@@ -603,71 +575,6 @@ private class VisitProcessor(
             header[0] == 0x47.toByte() && header[1] == 0x49.toByte() && 
             header[2] == 0x46.toByte() && header[3] == 0x38.toByte() -> true // GIF
             else -> false
-        }
-    }
-
-    /**
-     * Compresses photo data if it's too large for SQLite storage
-     * @param originalData The original photo data
-     * @param maxSizeBytes Maximum size in bytes (default: 4MB)
-     * @return Compressed photo data or original if compression not needed
-     */
-    private fun compressPhotoIfNeeded(originalData: ByteArray, maxSizeBytes: Int = 4_000_000): ByteArray {
-        if (originalData.size <= maxSizeBytes) {
-            Log.d("VisitProcessor", "Photo size ${originalData.size} bytes is within limit, no compression needed")
-            return originalData
-        }
-
-        Log.d("VisitProcessor", "Photo size ${originalData.size} bytes exceeds limit, compressing...")
-        
-        try {
-            // Decode the original image
-            val originalBitmap = BitmapFactory.decodeByteArray(originalData, 0, originalData.size)
-            if (originalBitmap == null) {
-                Log.w("VisitProcessor", "Failed to decode original image for compression")
-                return originalData
-            }
-
-            // Ultra conservative compression - aim for 3.9MB target (97.5% of max)
-            val targetSizeBytes = (maxSizeBytes * 0.975).toInt() // 3.9MB target
-            val compressionRatio = sqrt(targetSizeBytes.toFloat() / originalData.size)
-            
-            // Ensure minimum reasonable size (at least 1800px on the longer side)
-            val maxDimension = maxOf(originalBitmap.width, originalBitmap.height)
-            val minDimension = 1800
-            val sizeRatio = if (maxDimension > minDimension) compressionRatio else 1.0f
-            
-            val targetWidth = (originalBitmap.width * sizeRatio).toInt().coerceAtLeast(1000)
-            val targetHeight = (originalBitmap.height * sizeRatio).toInt().coerceAtLeast(1000)
-            
-            Log.d("VisitProcessor", "Compressing from ${originalBitmap.width}x${originalBitmap.height} to ${targetWidth}x${targetHeight}")
-
-            // Create compressed bitmap
-            val compressedBitmap = Bitmap.createScaledBitmap(originalBitmap, targetWidth, targetHeight, true)
-            originalBitmap.recycle() // Free memory
-
-            // Compress to JPEG with quality adjustment
-            val outputStream = ByteArrayOutputStream()
-            var quality = 100 // Start with maximum quality
-            var compressedData: ByteArray
-
-            do {
-                outputStream.reset()
-                compressedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
-                compressedData = outputStream.toByteArray()
-                quality -= 1 // Minimal quality steps
-                Log.d("VisitProcessor", "Compression attempt: quality=$quality, size=${compressedData.size} bytes")
-            } while (compressedData.size > maxSizeBytes && quality > 70) // Very high minimum quality
-
-            compressedBitmap.recycle() // Free memory
-            outputStream.close()
-
-            Log.d("VisitProcessor", "Compression complete: ${originalData.size} -> ${compressedData.size} bytes")
-            return compressedData
-
-        } catch (e: Exception) {
-            Log.w("VisitProcessor", "Failed to compress photo, using original", e)
-            return originalData
         }
     }
 }

@@ -60,6 +60,13 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Keep the NavHost full-bleed so Home can draw behind the status bar.
+        // Fragments apply their own toolbar / list insets.
+        ViewCompat.setOnApplyWindowInsetsListener(binding.navHostFragmentActivityMain) { view, insets ->
+            view.setPadding(0, 0, 0, 0)
+            insets
+        }
+
         // force the background of the bottom nav bar to not be tinted
         val bottomNav = binding.mainBottomNavigation
         // --- 1. Setup Insets for BottomNavigationView ---

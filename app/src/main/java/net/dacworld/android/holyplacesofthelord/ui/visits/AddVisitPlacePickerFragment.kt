@@ -41,6 +41,7 @@ import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.databinding.FragmentAddVisitPlacePickerBinding
 import net.dacworld.android.holyplacesofthelord.model.Temple
 import net.dacworld.android.holyplacesofthelord.util.ColorUtils
+import net.dacworld.android.holyplacesofthelord.util.placeTypeSymbolTitle
 
 class AddVisitPlacePickerFragment : Fragment() {
 
@@ -372,8 +373,14 @@ private class PlacePickerAdapter(
         private val checkView: android.widget.ImageView = itemView.findViewById(R.id.place_picker_selected)
 
         fun bind(temple: Temple, selected: Boolean) {
-            nameView.text = temple.name
-            nameView.setTextColor(ColorUtils.getTextColorForTempleType(itemView.context, temple.type))
+            val nameColor = ColorUtils.getTextColorForTempleType(itemView.context, temple.type)
+            nameView.setTextColor(nameColor)
+            nameView.text = placeTypeSymbolTitle(
+                itemView.context,
+                temple.name.orEmpty(),
+                temple.type,
+                nameColor
+            )
             checkView.visibility = if (selected) View.VISIBLE else View.GONE
             itemView.setOnClickListener { onClick(temple) }
         }

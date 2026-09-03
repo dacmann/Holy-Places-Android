@@ -359,6 +359,269 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- COLOR THEME Section -->
+    <TextView
+        android:id="@+id/color_theme_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/color_theme_section_title"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/color_theme_toggle_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        app:singleSelection="true"
+        app:selectionRequired="true">
+
+        <Button
+            android:id="@+id/button_theme_red_green"
+            style="@style/Widget.App.VisitScopeToggleButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.15"
+            android:minWidth="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:maxLines="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/color_theme_red_green" />
+
+        <Button
+            android:id="@+id/button_theme_purple_orange"
+            style="@style/Widget.App.VisitScopeToggleButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.45"
+            android:minWidth="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:maxLines="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/color_theme_purple_orange" />
+
+        <Button
+            android:id="@+id/button_theme_mono"
+            style="@style/Widget.App.VisitScopeToggleButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.85"
+            android:minWidth="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:maxLines="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/color_theme_mono" />
+
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <TextView
+        android:id="@+id/description_color_theme"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/description_color_theme"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"/>
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_show_type_symbols"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/show_type_symbols"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/description_type_symbols"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/description_type_symbols"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- CUSTOMIZE HOME SCREEN Section -->
+    <TextView
+        android:id="@+id/home_screen_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/home_screen_section_title"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/home_image_toggle_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        app:singleSelection="true"
+        app:selectionRequired="true">
+
+        <Button
+            android:id="@+id/button_home_image_default"
+            style="@style/Widget.App.VisitScopeToggleButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/home_image_default" />
+
+        <Button
+            android:id="@+id/button_home_image_random"
+            style="@style/Widget.App.VisitScopeToggleButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/home_image_random" />
+
+        <Button
+            android:id="@+id/button_home_image_specific"
+            style="@style/Widget.App.VisitScopeToggleButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:textAppearance="@style/TextAppearance.App.LabelSmall"
+            android:text="@string/home_image_specific" />
+
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <FrameLayout
+        android:id="@+id/home_image_import_container"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginBottom="8dp"
+        android:background="?attr/colorSurfaceVariant">
+
+        <ImageView
+            android:id="@+id/home_image_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:alpha="0.75"
+            android:contentDescription="@string/cd_home_image_preview" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_import_home_image"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textAllCaps="false"
+            android:text="@string/home_image_import"
+            android:textColor="@android:color/white"
+            android:shadowColor="#59000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="2" />
+
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/label_home_text_color"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/home_text_color"
+            android:textAppearance="?attr/textAppearanceBody2"/>
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/home_text_color_toggle_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <Button
+                android:id="@+id/button_home_text_white"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="72dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:text="@string/home_text_color_white" />
+
+            <Button
+                android:id="@+id/button_home_text_black"
+                style="@style/Widget.App.VisitScopeToggleButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="72dp"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                android:text="@string/home_text_color_black" />
+
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/description_home_screen"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/description_home_screen"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- VISIT PHOTOS Section -->
+    <TextView
+        android:id="@+id/visit_photos_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/visit_photos_section_title"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_show_stock_place_image"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/show_stock_place_image"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:checked="true"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/description_stock_place_image"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/description_stock_place_image"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"/>
+
     </LinearLayout>
 
     </ScrollView>

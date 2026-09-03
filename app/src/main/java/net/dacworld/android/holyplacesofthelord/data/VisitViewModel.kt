@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
 import net.dacworld.android.holyplacesofthelord.model.Visit
 import net.dacworld.android.holyplacesofthelord.dao.VisitDao
+import net.dacworld.android.holyplacesofthelord.ui.VisitFilterOptions
 import net.dacworld.android.holyplacesofthelord.ui.VisitPlaceTypeFilter
 import net.dacworld.android.holyplacesofthelord.ui.VisitSortOrder
 import androidx.lifecycle.MediatorLiveData
@@ -31,6 +32,8 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
     private var currentSortOrder: VisitSortOrder = VisitSortOrder.BY_DATE_DESC
     private var currentPlaceTypeFilter: VisitPlaceTypeFilter = VisitPlaceTypeFilter.ALL // Default to ALL
     private var currentSearchQuery: String = ""
+    // Set by the ordinance / favorite scope buttons in the Visits header.
+    private var currentScopeFilter: VisitFilterOptions = VisitFilterOptions()
 
     // Backup reminder state
     private val _shouldShowBackupReminder = MutableLiveData<Boolean>()
@@ -53,7 +56,21 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
                 visitsList,
                 currentPlaceTypeFilter,
                 currentSortOrder,
-                currentSearchQuery
+                currentSearchQuery,
+                currentScopeFilter
+            )
+        }
+    }
+
+    /** Re-runs search, scope, place-type filtering and sorting over the current raw data. */
+    private fun refreshDisplayList() {
+        rawVisitsFromDB.value?.let { visitsList ->
+            allVisits.value = transformToDisplayListWithHeaders(
+                visitsList,
+                currentPlaceTypeFilter,
+                currentSortOrder,
+                currentSearchQuery,
+                currentScopeFilter
             )
         }
     }
@@ -63,27 +80,13 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
         val newQuery = query?.trim() ?: "" // Normalize: trim and default null to empty
         if (newQuery != currentSearchQuery) {
             currentSearchQuery = newQuery
-            // Re-apply filter, sort, and search to the current raw data
-            rawVisitsFromDB.value?.let { visitsList ->
-                allVisits.value = transformToDisplayListWithHeaders(
-                    visitsList,
-                    currentPlaceTypeFilter,
-                    currentSortOrder,
-                    currentSearchQuery // Pass current search query
-                )
-            }
+            refreshDisplayList()
         }
     }
     fun updateSortOrder(newSortOrder: VisitSortOrder) {
         if (newSortOrder != currentSortOrder) {
             currentSortOrder = newSortOrder
-            rawVisitsFromDB.value?.let { visitsList ->
-                allVisits.value = transformToDisplayListWithHeaders(
-                    visitsList,
-                    currentPlaceTypeFilter,
-                    currentSortOrder,
-                    currentSearchQuery // ADD currentSearchQuery HERE
-                )}
+            refreshDisplayList()
         }
     }
 
@@ -91,15 +94,15 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
     fun updatePlaceTypeFilter(newFilter: VisitPlaceTypeFilter) {
         if (newFilter != currentPlaceTypeFilter) {
             currentPlaceTypeFilter = newFilter
-            // Re-apply filter and sort to the current raw data
-            rawVisitsFromDB.value?.let { visitsList ->
-                allVisits.value = transformToDisplayListWithHeaders(
-                    visitsList,
-                    currentPlaceTypeFilter,
-                    currentSortOrder,
-                    currentSearchQuery // ADD currentSearchQuery HERE
-                )
-            }
+            refreshDisplayList()
+        }
+    }
+
+    /** Called by VisitsFragment when a header scope button is selected. */
+    fun updateScopeFilter(newScopeFilter: VisitFilterOptions) {
+        if (newScopeFilter != currentScopeFilter) {
+            currentScopeFilter = newScopeFilter
+            refreshDisplayList()
         }
     }
 
@@ -108,7 +111,8 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
         visits: List<Visit>?,
         filterType: VisitPlaceTypeFilter,
         sortOrder: VisitSortOrder,
-        searchQuery: String
+        searchQuery: String,
+        scopeFilter: VisitFilterOptions
     ): List<VisitDisplayListItem> {
         val currentVisits = visits ?: return emptyList()
 
@@ -124,11 +128,22 @@ class VisitViewModel(application: Application) : AndroidViewModel(application) {
             currentVisits
         }
 
-        // 2. Apply Place Type Filtering (on the result of the search filter)
+        // 2. Apply the header scope buttons (ordinance performed, or favorites)
+        val scopedVisits = when {
+            scopeFilter.showOnlyFavorites -> searchedVisits.filter { it.isFavorite }
+            scopeFilter.ordinanceBaptisms -> searchedVisits.filter { (it.baptisms?.toInt() ?: 0) > 0 }
+            scopeFilter.ordinanceConfirmations -> searchedVisits.filter { (it.confirmations?.toInt() ?: 0) > 0 }
+            scopeFilter.ordinanceInitiatories -> searchedVisits.filter { (it.initiatories?.toInt() ?: 0) > 0 }
+            scopeFilter.ordinanceEndowments -> searchedVisits.filter { (it.endowments?.toInt() ?: 0) > 0 }
+            scopeFilter.ordinanceSealings -> searchedVisits.filter { (it.sealings?.toInt() ?: 0) > 0 }
+            else -> searchedVisits
+        }
+
+        // 3. Apply Place Type Filtering (on the result of the search and scope filters)
         val filteredVisits = if (filterType == VisitPlaceTypeFilter.ALL || filterType.typeCode == null) {
-            searchedVisits // Apply to already search-filtered list
+            scopedVisits
         } else {
-            searchedVisits.filter { visit -> // Apply to already search-filtered list
+            scopedVisits.filter { visit ->
                 visit.type == filterType.typeCode
             }
         }

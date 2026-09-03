@@ -19,6 +19,8 @@ import net.dacworld.android.holyplacesofthelord.data.AchievementRepository
 import net.dacworld.android.holyplacesofthelord.data.ProfileRepository
 import net.dacworld.android.holyplacesofthelord.data.UserPreferencesManager
 import net.dacworld.android.holyplacesofthelord.database.AppDatabase
+import net.dacworld.android.holyplacesofthelord.util.AppTheme
+import net.dacworld.android.holyplacesofthelord.util.ColorTheme
 import net.dacworld.android.holyplacesofthelord.util.HistoricalNamesHelper
 import net.dacworld.android.holyplacesofthelord.util.HolyPlacesXmlParser
 import java.io.InputStream
@@ -57,9 +59,12 @@ class MyApplication : Application() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
 
         // Open DB (runs migration) and repair profile state before any UI queries the database.
+        // The color theme is seeded here too, since views resolve colors synchronously while binding.
         runBlocking(Dispatchers.IO) {
             database.openHelper.writableDatabase
             profileRepository.repairProfileState()
+            AppTheme.current = ColorTheme.fromStoredValue(userPreferencesManager.colorThemeFlow.first())
+            AppTheme.showPlaceTypeSymbols = userPreferencesManager.showPlaceTypeSymbolsFlow.first()
         }
 
         ProcessLifecycleOwner.get().lifecycleScope.launch {
