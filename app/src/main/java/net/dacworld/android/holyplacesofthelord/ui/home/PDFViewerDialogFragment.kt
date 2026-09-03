@@ -15,6 +15,7 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
@@ -42,7 +43,7 @@ class PDFViewerDialogFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NORMAL, com.google.android.material.R.style.Theme_Material3_DayNight_NoActionBar)
+        setStyle(STYLE_NORMAL, R.style.Theme_HolyPlacesOfTheLord)
     }
 
     override fun onCreateView(
@@ -58,6 +59,10 @@ class PDFViewerDialogFragment : DialogFragment() {
 
         binding.pdfToolbar.setNavigationOnClickListener { dismissAllowingStateLoss() }
         binding.pdfToolbar.inflateMenu(R.menu.menu_pdf_viewer)
+        val iconTint = ContextCompat.getColor(requireContext(), R.color.BaptismBlue)
+        for (i in 0 until binding.pdfToolbar.menu.size()) {
+            binding.pdfToolbar.menu.getItem(i).icon?.mutate()?.setTint(iconTint)
+        }
         binding.pdfToolbar.setOnMenuItemClickListener { item: MenuItem ->
             when (item.itemId) {
                 R.id.action_pdf_print -> { printPDF(); true }

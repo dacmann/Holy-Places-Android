@@ -1,16 +1,10 @@
 package net.dacworld.android.holyplacesofthelord.ui.home
 
 import android.os.Bundle
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.TextPaint
-import android.text.method.LinkMovementMethod
-import android.text.style.ClickableSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -56,46 +50,47 @@ class InfoBottomSheetFragment : BottomSheetDialogFragment() {
                 ) { dataVersion, _ -> dataVersion }.collect { dataVersion ->
                     val appVersion = BuildConfig.VERSION_NAME
                     val displayDataVersion = dataVersion ?: getString(R.string.status_unknown)
-                    bindVersionText(appVersion, displayDataVersion)
+                    binding.versionAppButton.text = getString(R.string.version_info_app_button, appVersion)
+                    binding.versionDataButton.text = getString(R.string.version_info_data_button, displayDataVersion)
                 }
             }
         }
     }
 
-    private fun bindVersionText(appVersion: String, dataVersion: String) {
-        val prefix = getString(R.string.version_info_prefix)
-        val separator = getString(R.string.version_info_separator)
-        val full = prefix + appVersion + separator + dataVersion
-        val spannable = SpannableString(full)
-        val linkColor = ContextCompat.getColor(requireContext(), R.color.BaptismBlue)
+    private fun setupUIListeners() {
+        binding.buttonCloseInfoSheet.setOnClickListener {
+            dismiss()
+        }
 
-        val appStart = prefix.length
-        val appEnd = appStart + appVersion.length
-        spannable.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
-                showAppNotes()
-            }
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = linkColor
-                ds.isUnderlineText = false
-            }
-        }, appStart, appEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        binding.versionAppButton.setOnClickListener { showAppNotes() }
+        binding.versionDataButton.setOnClickListener { showDataNotes() }
 
-        val dataStart = appEnd + separator.length
-        val dataEnd = dataStart + dataVersion.length
-        spannable.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
-                showDataNotes()
+        binding.emailLinkButton.setOnClickListener {
+            context?.let { ctx ->
+                val deviceName = "${android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${android.os.Build.MODEL}"
+                val androidVersion = android.os.Build.VERSION.RELEASE
+                val appVersion = BuildConfig.VERSION_NAME
+                val dataVersion = dataViewModel.currentDataVersion.value ?: "Unknown"
+                val emailBody = "\n\n\n-----------------------------------\n" +
+                        "Device: $deviceName\n" +
+                        "Android Version: $androidVersion\n" +
+                        "Holy Places Version: $appVersion | $dataVersion\n" +
+                        "-----------------------------------"
+                IntentUtils.openEmail(ctx, "dacmann@icloud.com", "Holy Places App Feedback", emailBody)
             }
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = linkColor
-                ds.isUnderlineText = false
-            }
-        }, dataStart, dataEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
 
-        binding.versionInfoText.text = spannable
-        binding.versionInfoText.movementMethod = LinkMovementMethod.getInstance()
-        binding.versionInfoText.highlightColor = android.graphics.Color.TRANSPARENT
+        binding.faqButton.setOnClickListener {
+            context?.let { ctx ->
+                IntentUtils.openUrl(ctx, "https://dacworld.net/holyplaces/holyplacesfaq.html", "Could not open FAQ link.")
+            }
+        }
+
+        binding.articleLinkText.setOnClickListener {
+            context?.let { ctx ->
+                IntentUtils.openUrl(ctx, "https://oneclimbs.com/2011/11/21/restoring-the-pentagram-to-its-proper-place/", "Could not open article link.")
+            }
+        }
     }
 
     private fun showAppNotes() {
@@ -129,39 +124,6 @@ class InfoBottomSheetFragment : BottomSheetDialogFragment() {
             .setMessage(message)
             .setPositiveButton(android.R.string.ok, null)
             .show()
-    }
-
-    private fun setupUIListeners() {
-        binding.buttonCloseInfoSheet.setOnClickListener {
-            dismiss()
-        }
-
-        binding.emailLinkButton.setOnClickListener {
-            context?.let { ctx ->
-                val deviceName = "${android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${android.os.Build.MODEL}"
-                val androidVersion = android.os.Build.VERSION.RELEASE
-                val appVersion = BuildConfig.VERSION_NAME
-                val dataVersion = dataViewModel.currentDataVersion.value ?: "Unknown"
-                val emailBody = "\n\n\n-----------------------------------\n" +
-                        "Device: $deviceName\n" +
-                        "Android Version: $androidVersion\n" +
-                        "Holy Places Version: $appVersion | $dataVersion\n" +
-                        "-----------------------------------"
-                IntentUtils.openEmail(ctx, "dacmann@icloud.com", "Holy Places App Feedback", emailBody)
-            }
-        }
-
-        binding.faqButton.setOnClickListener {
-            context?.let { ctx ->
-                IntentUtils.openUrl(ctx, "https://dacworld.net/holyplaces/holyplacesfaq.html", "Could not open FAQ link.")
-            }
-        }
-
-        binding.articleLinkText.setOnClickListener {
-            context?.let { ctx ->
-                IntentUtils.openUrl(ctx, "https://oneclimbs.com/2011/11/21/restoring-the-pentagram-to-its-proper-place/", "Could not open article link.")
-            }
-        }
     }
 
     override fun onStart() {

@@ -506,11 +506,11 @@ class MapFragment : Fragment(), OnMapReadyCallback, MapLibreMap.OnMapClickListen
 
             // Add all your colored pin icons to the style
             try {
-                style.addImage("temple_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.temple_map_pin))
-                style.addImage("historic_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.historic_map_pin))
-                style.addImage("visitors_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.visitors_map_pin))
-                style.addImage("construction_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.construction_map_pin))
-                style.addImage("announced_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.announced_map_pin))
+                style.addImage("temple_pin_icon", ColorUtils.mapPinBitmap(requireContext(), R.drawable.temple_map_pin, "T"))
+                style.addImage("historic_pin_icon", ColorUtils.mapPinBitmap(requireContext(), R.drawable.historic_map_pin, "H"))
+                style.addImage("visitors_pin_icon", ColorUtils.mapPinBitmap(requireContext(), R.drawable.visitors_map_pin, "V"))
+                style.addImage("construction_pin_icon", ColorUtils.mapPinBitmap(requireContext(), R.drawable.construction_map_pin, "C"))
+                style.addImage("announced_pin_icon", ColorUtils.mapPinBitmap(requireContext(), R.drawable.announced_map_pin, "A"))
                 style.addImage("default_pin_icon", BitmapFactory.decodeResource(resources, R.drawable.gray_map_pin)) // Your default
                 Log.d(FRAGMENT_TAG, "All custom pin icons added to style.")
             } catch (e: Exception) {

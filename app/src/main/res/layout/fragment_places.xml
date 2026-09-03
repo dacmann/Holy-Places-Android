@@ -13,7 +13,11 @@
         android:layout_height="wrap_content"
         android:background="?attr/appBarBackgroundColor"
         android:theme="?attr/actionBarTheme"
-        android:fitsSystemWindows="true">
+        android:fitsSystemWindows="true"
+        android:elevation="0dp"
+        app:elevation="0dp"
+        app:liftOnScroll="false"
+        app:liftOnScrollColor="@android:color/transparent">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/places_toolbar"

@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -56,6 +57,11 @@ class SummaryFragment : Fragment() {
         defaultYearHeaderColor = ContextCompat.getColor(requireContext(), R.color.brand_primary)
 
         setupInsetHandling()
+
+        val summaryBaskerville = ResourcesCompat.getFont(requireContext(), R.font.libre_baskerville_regular)
+        binding.textViewHolyPlacesHeaderPlace.typeface = summaryBaskerville
+        binding.textViewHolyPlacesHeaderVisited.typeface = summaryBaskerville
+        binding.textViewHolyPlacesHeaderTotal.typeface = summaryBaskerville
 
         // Quote Module
         summaryViewModel.quote.observe(viewLifecycleOwner) { quoteText ->
@@ -294,6 +300,11 @@ class SummaryFragment : Fragment() {
             visitedTextView.text = stat.visitedCount.toString()
             totalTextView.text = stat.totalCount.toString()
 
+            val baskerville = ResourcesCompat.getFont(context, R.font.libre_baskerville_regular)
+            typeTextView.typeface = baskerville
+            visitedTextView.typeface = baskerville
+            totalTextView.typeface = baskerville
+
             try {
                 val textColor = ContextCompat.getColor(context, stat.colorRes)
                 typeTextView.setTextColor(textColor)
@@ -365,12 +376,18 @@ class SummaryFragment : Fragment() {
         baptismsTextView?.text = stats.baptisms.toString()
         ordinancesTotalTextView?.text = stats.totalOrdinances.toString()
 
-        // You might want to bold the "Total" row text if desired
-        if (yearType == "total") {
-            listOfNotNull(attendedTextView, uniqueTextView, hoursTextView, sealingsTextView, endowmentsTextView,
-                initiatoriesTextView, confirmationsTextView, baptismsTextView, ordinancesTotalTextView)
-                .forEach { it.setTypeface(null, Typeface.BOLD) }
+        val typeface = if (yearType == "total") {
+            Typeface.create(
+                ResourcesCompat.getFont(requireContext(), R.font.libre_baskerville_bold),
+                Typeface.BOLD
+            )
+        } else {
+            ResourcesCompat.getFont(requireContext(), R.font.libre_baskerville_regular)
         }
+        listOfNotNull(
+            attendedTextView, uniqueTextView, hoursTextView, sealingsTextView, endowmentsTextView,
+            initiatoriesTextView, confirmationsTextView, baptismsTextView, ordinancesTotalTextView
+        ).forEach { it.typeface = typeface }
     }
 
     private fun populateMostVisitedList(places: List<MostVisitedPlaceItem>) {

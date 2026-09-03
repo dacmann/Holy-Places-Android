@@ -430,6 +430,8 @@
     <string name="no_update_notes_available">No update notes are available.</string>
     <string name="version_info_prefix">Version: </string>
     <string name="version_info_separator"> | </string>
+    <string name="version_info_app_button">Version %1$s</string>
+    <string name="version_info_data_button">Data %1$s</string>
 
     <!-- Map Timeline era -->
     <string name="map_timeline_count_with_era">%1$d - %2$s</string>
