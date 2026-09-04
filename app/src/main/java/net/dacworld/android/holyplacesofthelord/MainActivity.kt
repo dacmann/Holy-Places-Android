@@ -122,15 +122,15 @@ class MainActivity : AppCompatActivity() {
         // This is your existing logic. It should run after the BNV is configured for insets.
         val bottomNavBackground = bottomNav.background // This line is here
         if (bottomNavBackground is MaterialShapeDrawable) {
-            val resolvedAppColorSurface = ContextCompat.getColor(this, R.color.app_colorSurface)
-            bottomNavBackground.fillColor = ColorStateList.valueOf(resolvedAppColorSurface)
-            // bottomNavBackground.setTintList(ColorStateList.valueOf(resolvedAppColorSurface)) // Often redundant
-            // bottomNavBackground.elevation = 0f // As per your original code
-            // bottomNav.invalidate() // requestApplyInsets() or layout changes should trigger redraw
-            Log.d("MainActivity_BNV_Style", "Applied MaterialShapeDrawable background styling to BNV.")
+            val translucentBar = ContextCompat.getColor(this, R.color.tab_bar_translucent_background)
+            bottomNavBackground.fillColor = ColorStateList.valueOf(translucentBar)
+            bottomNavBackground.elevation = 0f
+            Log.d("MainActivity_BNV_Style", "Applied translucent MaterialShapeDrawable background to BNV.")
         } else {
             Log.w("MainActivity_BNV_Style", "BottomNavigationView background is not a MaterialShapeDrawable. Background: ${bottomNavBackground?.javaClass?.name}")
         }
+        bottomNav.backgroundTintList = null
+        bottomNav.elevation = 0f
 
         // --- 3. Setup Navigation Controller ---
         val navHostFragment = supportFragmentManager

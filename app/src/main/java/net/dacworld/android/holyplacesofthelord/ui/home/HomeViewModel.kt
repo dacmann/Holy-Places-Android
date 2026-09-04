@@ -41,6 +41,7 @@ data class GoalDisplayItem(
 data class HomeAppearanceState(
     val option: HomeImageOption = HomeImageOption.DEFAULT,
     val textColor: HomeTextColor = HomeTextColor.WHITE,
+    val cropToFill: Boolean = true,
     val randomPhoto: VisitPhoto? = null,
     val alternateFile: File? = null
 )
@@ -70,12 +71,14 @@ class HomeViewModel(
     val homeAppearance: StateFlow<HomeAppearanceState> = combine(
         userPreferencesManager.homeImageOptionFlow,
         userPreferencesManager.homeTextColorFlow,
+        userPreferencesManager.homeImageCropToFillFlow,
         _randomPhoto,
         homeBackgroundStore?.revision ?: flowOf(0)
-    ) { option, textColor, photo, _ ->
+    ) { option, textColor, cropToFill, photo, _ ->
         HomeAppearanceState(
             option = HomeImageOption.fromStoredValue(option),
             textColor = HomeTextColor.fromStoredValue(textColor),
+            cropToFill = cropToFill,
             randomPhoto = photo,
             alternateFile = homeBackgroundStore?.file()?.takeIf { homeBackgroundStore.exists() }
         )

@@ -468,6 +468,8 @@
     <string name="home_image_specific">Specific</string>
     <string name="home_image_import">Import Image</string>
     <string name="home_image_change">Change Image</string>
+    <string name="home_image_crop_to_fill">Crop to fill</string>
+    <string name="description_home_image_crop_to_fill">When off, the whole photo is shown and a complementary color fills the remaining area.</string>
     <string name="home_text_color">Text Color</string>
     <string name="home_text_color_white">White</string>
     <string name="home_text_color_black">Black</string>

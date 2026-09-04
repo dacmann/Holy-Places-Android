@@ -4,6 +4,8 @@ import android.app.AlertDialog
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
 import androidx.core.content.ContextCompat
@@ -43,6 +45,7 @@ import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileIconAdapter
 import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileIcons
 import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModel
 import net.dacworld.android.holyplacesofthelord.ui.profile.ProfileViewModelFactory
+import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 import net.dacworld.android.holyplacesofthelord.util.HomeBackgroundStore
 import net.dacworld.android.holyplacesofthelord.util.HomeImageOption
 import net.dacworld.android.holyplacesofthelord.util.HomeTextColor
@@ -190,21 +193,26 @@ class HomeFragment : Fragment() {
         )
         applyHomeOverlayColor(color)
 
+        val cropToFill = state.cropToFill
+        binding.backgroundImagePCC.scaleType =
+            if (cropToFill) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
+        if (cropToFill) {
+            binding.backgroundImagePCC.setBackgroundColor(Color.BLACK)
+        }
+
         when (state.option) {
             HomeImageOption.DEFAULT -> {
-                binding.backgroundImagePCC.scaleType = ImageView.ScaleType.CENTER_CROP
                 binding.backgroundImagePCC.setImageResource(R.drawable.provo_city_center)
+                applyLetterboxFromDrawable(cropToFill, binding.backgroundImagePCC.drawable)
                 binding.homeVisitDate.visibility = View.GONE
             }
             HomeImageOption.RANDOM -> {
-                binding.backgroundImagePCC.scaleType = ImageView.ScaleType.CENTER_CROP
                 val bytes = state.randomPhoto?.picture
                 if (bytes != null && bytes.isNotEmpty()) {
-                    binding.backgroundImagePCC.load(bytes) {
-                        scale(Scale.FILL)
-                    }
+                    loadHomeBackground(bytes, cropToFill)
                 } else {
                     binding.backgroundImagePCC.setImageResource(R.drawable.provo_city_center)
+                    applyLetterboxFromDrawable(cropToFill, binding.backgroundImagePCC.drawable)
                 }
                 val date = state.randomPhoto?.dateVisited
                 if (date != null) {
@@ -216,21 +224,51 @@ class HomeFragment : Fragment() {
                 }
             }
             HomeImageOption.SPECIFIC -> {
-                binding.backgroundImagePCC.scaleType = ImageView.ScaleType.CENTER_CROP
                 val file = state.alternateFile
                 if (file != null && file.exists()) {
                     binding.backgroundImagePCC.load(file.readBytes()) {
-                        scale(Scale.FILL)
+                        scale(if (cropToFill) Scale.FILL else Scale.FIT)
                         diskCachePolicy(CachePolicy.DISABLED)
-                        memoryCacheKey("home_bg_${file.lastModified()}")
+                        memoryCacheKey("home_bg_${file.lastModified()}_$cropToFill")
+                        listener(
+                            onSuccess = { _, result ->
+                                applyLetterboxFromDrawable(cropToFill, result.drawable)
+                            }
+                        )
                     }
                 } else {
                     binding.backgroundImagePCC.setImageResource(R.drawable.provo_city_center)
+                    applyLetterboxFromDrawable(cropToFill, binding.backgroundImagePCC.drawable)
                 }
                 binding.homeVisitDate.visibility = View.GONE
             }
         }
         applyStatusBar(state.textColor)
+    }
+
+    private fun loadHomeBackground(bytes: ByteArray, cropToFill: Boolean) {
+        binding.backgroundImagePCC.load(bytes) {
+            scale(if (cropToFill) Scale.FILL else Scale.FIT)
+            listener(
+                onSuccess = { _, result ->
+                    applyLetterboxFromDrawable(cropToFill, result.drawable)
+                }
+            )
+        }
+    }
+
+    private fun applyLetterboxFromDrawable(cropToFill: Boolean, drawable: Drawable?) {
+        if (cropToFill) {
+            binding.backgroundImagePCC.setBackgroundColor(Color.BLACK)
+            return
+        }
+        val bitmap = (drawable as? BitmapDrawable)?.bitmap
+        val fill = if (bitmap != null && !bitmap.isRecycled) {
+            ColorUtils.complementaryFillColor(bitmap)
+        } else {
+            Color.BLACK
+        }
+        binding.backgroundImagePCC.setBackgroundColor(fill)
     }
 
     private fun applyHomeOverlayColor(color: Int) {

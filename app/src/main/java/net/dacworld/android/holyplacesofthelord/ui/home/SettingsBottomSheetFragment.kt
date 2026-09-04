@@ -181,6 +181,14 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
                     }
                 }
                 launch {
+                    settingsViewModel.homeImageCropToFill.collect { isEnabled ->
+                        if (binding.switchHomeImageCropToFill.isChecked != isEnabled) {
+                            binding.switchHomeImageCropToFill.isChecked = isEnabled
+                            binding.switchHomeImageCropToFill.jumpDrawablesToCurrentState()
+                        }
+                    }
+                }
+                launch {
                     settingsViewModel.homeTextColor.collect { color ->
                         val buttonId = homeTextColorButtonId(color)
                         if (binding.homeTextColorToggleGroup.checkedButtonId != buttonId) {
@@ -364,6 +372,12 @@ class SettingsBottomSheetFragment : BottomSheetDialogFragment() {
         binding.switchShowStockPlaceImage.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked != settingsViewModel.showStockPlaceImageOnVisits.value) {
                 settingsViewModel.updateShowStockPlaceImageOnVisits(isChecked)
+            }
+        }
+
+        binding.switchHomeImageCropToFill.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked != settingsViewModel.homeImageCropToFill.value) {
+                settingsViewModel.updateHomeImageCropToFill(isChecked)
             }
         }
 

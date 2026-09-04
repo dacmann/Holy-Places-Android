@@ -101,6 +101,13 @@ class SettingsViewModel(
             HomeImageOption.DEFAULT
         )
 
+    val homeImageCropToFill: StateFlow<Boolean> = userPreferencesManager.homeImageCropToFillFlow
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            UserPreferencesManager.DEFAULT_HOME_IMAGE_CROP_TO_FILL
+        )
+
     val homeTextColor: StateFlow<HomeTextColor> = userPreferencesManager.homeTextColorFlow
         .map { HomeTextColor.fromStoredValue(it) }
         .stateIn(
@@ -186,6 +193,11 @@ class SettingsViewModel(
     fun updateShowStockPlaceImageOnVisits(isEnabled: Boolean) = viewModelScope.launch {
         if (isEnabled == showStockPlaceImageOnVisits.value) return@launch
         userPreferencesManager.saveShowStockPlaceImageOnVisits(isEnabled)
+    }
+
+    fun updateHomeImageCropToFill(isEnabled: Boolean) = viewModelScope.launch {
+        if (isEnabled == homeImageCropToFill.value) return@launch
+        userPreferencesManager.saveHomeImageCropToFill(isEnabled)
     }
 
     fun selectHomeImageOption(option: HomeImageOption) {

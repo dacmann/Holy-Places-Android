@@ -88,6 +88,7 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         val SHOW_PLACE_TYPE_SYMBOLS_KEY = booleanPreferencesKey("show_place_type_symbols")
         val SHOW_STOCK_PLACE_IMAGE_ON_VISITS_KEY = booleanPreferencesKey("show_stock_place_image_on_visits")
         val HOME_IMAGE_OPTION_KEY = stringPreferencesKey("home_image_option")
+        val HOME_IMAGE_CROP_TO_FILL_KEY = booleanPreferencesKey("home_image_crop_to_fill")
         val HOME_TEXT_COLOR_KEY = intPreferencesKey("home_text_color")
     }
 
@@ -528,6 +529,18 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         }
     }
 
+    val homeImageCropToFillFlow: Flow<Boolean> = dataStoreInstance.data
+        .catchIOException()
+        .map { preferences ->
+            preferences[PreferencesKeys.HOME_IMAGE_CROP_TO_FILL_KEY] ?: DEFAULT_HOME_IMAGE_CROP_TO_FILL
+        }
+
+    suspend fun saveHomeImageCropToFill(value: Boolean) {
+        dataStoreInstance.edit { preferences ->
+            preferences[PreferencesKeys.HOME_IMAGE_CROP_TO_FILL_KEY] = value
+        }
+    }
+
     val homeTextColorFlow: Flow<Int> = dataStoreInstance.data
         .catchIOException()
         .map { preferences ->
@@ -586,6 +599,7 @@ class UserPreferencesManager private constructor(private val dataStoreInstance: 
         const val DEFAULT_SHOW_PLACE_TYPE_SYMBOLS = false
         const val DEFAULT_SHOW_STOCK_PLACE_IMAGE_ON_VISITS = true
         const val DEFAULT_HOME_IMAGE_OPTION = "default"
+        const val DEFAULT_HOME_IMAGE_CROP_TO_FILL = true
         const val DEFAULT_HOME_TEXT_COLOR = 0
 
         

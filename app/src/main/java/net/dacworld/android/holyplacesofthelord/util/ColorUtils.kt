@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.os.Build
 import android.util.Log
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
@@ -132,5 +133,54 @@ object ColorUtils {
         }
         bitmap.setPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
         return bitmap
+    }
+
+    /**
+     * Complementary letterbox color sampled from [bitmap], darkened so the photo stays
+     * the focus when Crop to fill is off.
+     */
+    fun complementaryFillColor(bitmap: Bitmap): Int {
+        val source = if (Build.VERSION.SDK_INT >= 26 && bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return Color.BLACK
+        } else {
+            bitmap
+        }
+        try {
+            val stepX = (source.width / 32).coerceAtLeast(1)
+            val stepY = (source.height / 32).coerceAtLeast(1)
+            var red = 0L
+            var green = 0L
+            var blue = 0L
+            var count = 0
+            var y = 0
+            while (y < source.height) {
+                var x = 0
+                while (x < source.width) {
+                    val pixel = source.getPixel(x, y)
+                    if (Color.alpha(pixel) >= 32) {
+                        red += Color.red(pixel)
+                        green += Color.green(pixel)
+                        blue += Color.blue(pixel)
+                        count++
+                    }
+                    x += stepX
+                }
+                y += stepY
+            }
+            if (count == 0) return Color.BLACK
+            val hsv = FloatArray(3)
+            Color.RGBToHSV(
+                (red / count).toInt(),
+                (green / count).toInt(),
+                (blue / count).toInt(),
+                hsv
+            )
+            hsv[0] = (hsv[0] + 180f) % 360f
+            hsv[1] = (hsv[1] * 0.55f + 0.25f).coerceIn(0.2f, 0.7f)
+            hsv[2] = (hsv[2] * 0.45f + 0.15f).coerceIn(0.18f, 0.45f)
+            return Color.HSVToColor(hsv)
+        } finally {
+            if (source != bitmap) source.recycle()
+        }
     }
 }

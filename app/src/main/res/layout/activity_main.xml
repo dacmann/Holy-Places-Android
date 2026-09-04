@@ -36,6 +36,6 @@
         app:itemActiveIndicatorStyle="@style/NoActiveIndicatorBottomNav"
         app:itemBackground="@android:color/transparent"
         app:itemRippleColor="@android:color/transparent"
-        android:background="@color/app_colorSurface" />
+        android:background="@color/tab_bar_translucent_background" />
     <!-- android:fitsSystemWindows="true" -->
 </androidx.constraintlayout.widget.ConstraintLayout>

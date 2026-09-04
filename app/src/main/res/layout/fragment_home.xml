@@ -158,7 +158,6 @@
         android:paddingEnd="16dp"
         android:paddingBottom="16dp"
         android:clipToPadding="false"
-        android:background="#80000000"
         app:layout_constraintBottom_toTopOf="@id/bottom_inset_spacer"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

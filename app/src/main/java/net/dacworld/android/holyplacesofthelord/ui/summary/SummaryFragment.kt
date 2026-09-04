@@ -230,53 +230,40 @@ class SummaryFragment : Fragment() {
     }
 
     private fun setupInsetHandling() {
-        // The root view of your fragment_summary.xml is likely the NestedScrollView
-        // If your binding.root is the NestedScrollView itself, this is fine.
-        // Otherwise, you might need to target binding.yourNestedScrollViewId
-        val viewToPad = binding.root // Assuming binding.root IS the NestedScrollView
+        val root = binding.root
+        val scrollView = binding.scrollableContentArea
 
-        // Apply padding for Status Bar (top) and Navigation Bar/IME (bottom)
-        ViewCompat.setOnApplyWindowInsetsListener(viewToPad) { v, windowInsets ->
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, windowInsets ->
             val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             val imeInsets = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
 
-            // Determine effective bottom padding: prefer IME if visible, else navigation bar.
             var desiredBottomPadding = if (imeInsets.bottom > 0) {
                 imeInsets.bottom
             } else {
-                systemBars.bottom // For navigation bar
+                systemBars.bottom
             }
 
-            // --- Consider your app's BottomNavigationView height ---
             val activityRootView = requireActivity().window.decorView
-
             val appBottomNavView = activityRootView.findViewById<BottomNavigationView>(R.id.main_bottom_navigation)
-
             if (appBottomNavView != null && appBottomNavView.visibility == View.VISIBLE) {
                 if (desiredBottomPadding < appBottomNavView.height) {
                     desiredBottomPadding = appBottomNavView.height
                 }
             }
-            // --- End of BottomNavigationView logic ---
 
-            v.updatePadding(
-                top = systemBars.top, // Padding for the status bar
-                bottom = desiredBottomPadding // Padding for navigation bar/IME and your app's BottomNav
-                // left and right padding are usually handled by the layout's own attributes
-            )
+            // Keep the quote below the status bar, but let the scroll content draw
+            // behind the translucent tab bar (same pattern as Places and Visits).
+            root.updatePadding(top = systemBars.top, bottom = 0)
+            scrollView.updatePadding(bottom = desiredBottomPadding)
 
-            // It's good practice to consume only the insets you've used,
-            // but for simplicity and if this is the main scrolling content,
-            // returning the original insets (or CONSUMED) is often acceptable.
-            // For precise control, you'd create new insets excluding what you've applied.
-            WindowInsetsCompat.CONSUMED // Or return windowInsets if other views need to react
+            WindowInsetsCompat.CONSUMED
         }
 
         // Request initial insets apply if the view is already attached
-        if (viewToPad.isAttachedToWindow) {
-            ViewCompat.requestApplyInsets(viewToPad)
+        if (root.isAttachedToWindow) {
+            ViewCompat.requestApplyInsets(root)
         } else {
-            viewToPad.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
                 override fun onViewAttachedToWindow(v: View) {
                     v.removeOnAttachStateChangeListener(this)
                     ViewCompat.requestApplyInsets(v)

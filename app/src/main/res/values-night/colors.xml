@@ -21,6 +21,7 @@
     <color name="app_bar_background_color">@color/app_colorSurface</color> <!-- Use dark surface -->
     <color name="app_bar_text_color">@color/alt_grey_text</color>
     <color name="tab_bar_background_color">@color/app_colorSurface</color> <!-- Use dark surface -->
+    <color name="tab_bar_translucent_background">#CC1E1E1E</color>
     <color name="tab_bar_text_color">@color/grey_text</color>
     <color name="tab_bar_selected_text_color">@color/brand_primary</color> <!-- Use dark theme primary accent -->
     <color name="search_view_background_color">#333333</color> <!-- Darker grey for search BG -->
