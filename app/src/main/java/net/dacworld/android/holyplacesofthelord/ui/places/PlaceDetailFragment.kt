@@ -16,6 +16,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -49,6 +50,7 @@ import net.dacworld.android.holyplacesofthelord.util.ColorUtils
 import net.dacworld.android.holyplacesofthelord.util.Ordinance
 import net.dacworld.android.holyplacesofthelord.util.IntentUtils
 import androidx.core.net.toUri
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AlertDialog
 import net.dacworld.android.holyplacesofthelord.util.IntentUtils.openUrl
@@ -121,6 +123,8 @@ class PlaceDetailFragment : Fragment() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        applyPhotoHeightGuide()
 
         // Add this debug line
         Log.d("PlaceDetailFragment", "Source fragment: $sourceFragment")
@@ -330,6 +334,15 @@ class PlaceDetailFragment : Fragment() {
             }
             return false
         }
+    }
+
+    /** Tablet landscape: photo is 65% of the content height; otherwise 40%. */
+    private fun applyPhotoHeightGuide() {
+        val value = TypedValue()
+        resources.getValue(R.dimen.place_detail_image_guide_percent, value, true)
+        val params = binding.guidelineImageBottom.layoutParams as ConstraintLayout.LayoutParams
+        params.guidePercent = value.float
+        binding.guidelineImageBottom.layoutParams = params
     }
 
     // Add this helper function

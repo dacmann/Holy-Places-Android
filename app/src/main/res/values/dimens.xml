@@ -10,4 +10,9 @@
     <dimen name="profile_chip_spacing">8dp</dimen>
     <dimen name="profile_chip_icon_size">18dp</dimen>
     <dimen name="profile_chip_stroke_width">1dp</dimen>
+
+    <!-- Place Detail photo height as a fraction of the content area below the toolbar. -->
+    <item name="place_detail_image_guide_percent" format="float" type="dimen">0.40</item>
+    <dimen name="place_detail_snippet_text_size">14sp</dimen>
+    <dimen name="place_detail_snippet_min_text_size">10sp</dimen>
 </resources>

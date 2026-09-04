@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tablet landscape: give the photo most of the short axis, matching iOS iPad landscape. -->
+    <item name="place_detail_image_guide_percent" format="float" type="dimen">0.65</item>
+    <dimen name="place_detail_snippet_text_size">16sp</dimen>
+    <dimen name="place_detail_snippet_min_text_size">12sp</dimen>
+</resources>
